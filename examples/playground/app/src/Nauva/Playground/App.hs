@@ -1,0 +1,276 @@
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+
+module Nauva.Playground.App
+    ( rootElement
+    ) where
+
+
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Aeson as A
+import           Data.Monoid
+import qualified Data.Map as M
+import           Data.Tagged
+
+import           System.Random
+
+import           GHC.Generics (Generic)
+
+import           Nauva.DOM
+import           Nauva.Internal.Types
+import           Nauva.Internal.Events
+import           Nauva.NJS
+
+
+
+
+-- | The root element of the application. It takes one input (an 'Int'), and
+-- contains both 'Thunk's and 'Component's, to demonstrate that they all work
+-- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
+rootElement :: Int -> Element
+rootElement i = ENode "div" Nothing [] [] rootStyle $
+    [ EText $ "App Generation " <> (T.pack $ show i)
+    , ENode "br" Nothing [] [] noStyle []
+    , EThunk thunk (i `div` 2)
+    , ENode "br" Nothing [] [] noStyle []
+    , EComponent component (i `div` 3)
+    , ENode "br" Nothing [] [] noStyle []
+    , ENode "div" Nothing [] [] (M.fromList [ ("flex", "1"), ("display", "flex"), ("flex-direction", "row") ]) $
+        [ EComponent canvas ()
+        , EComponent canvas ()
+        ]
+    ] -- <> (intersperse (ENode "br" [] [] []) $
+        -- map (\x -> EComponent component x) [1..restCount])
+
+  where
+    rootStyle = M.fromList
+        [ ("height", "100vh")
+        , ("display", "flex")
+        , ("flex-direction", "column")
+        ]
+
+
+thunk :: Thunk Int
+thunk = Thunk mkThunkId "thunk" (==) $ \i ->
+    EText $ "Thunk " <> (T.pack $ show i)
+
+
+data Action = DoThis | DoThat | DoClick Text | DoChange Text
+    deriving (Generic)
+
+instance Value Action where
+    parseValue v = do
+        list <- A.parseJSON $ unTagged v
+        case list of
+            (t:xs) -> do
+                ctag <- A.parseJSON t
+                case ctag :: Text of
+                    "DoClick" -> do
+                        case xs of
+                            [a] -> DoClick <$> A.parseJSON a
+                            _ -> fail "Action:DoClick"
+                    "DoChange" -> do
+                        case xs of
+                            [a] -> DoChange <$> A.parseJSON a
+                            _ -> fail "Action:DoChange"
+                    _ -> fail "Action"
+            _      -> fail "Action"
+
+instance A.FromJSON Action
+instance A.ToJSON Action
+
+component :: Component Int () (Int, Text) Action
+component = Component
+    { componentId = mkComponentId
+    , componentDisplayName = "app-display-name"
+    , initialComponentState = \i -> (i, "")
+    , componentEventListeners = \_ -> []
+    , componentHooks = constHooks
+    , receiveProps = receiveProps'
+    , renderComponent = view
+    , update = update'
+    , processLifecycleEvent = \_ s -> (s, [])
+    , componentSnapshot = A.toJSON
+    , restoreComponent = \v _ -> case A.fromJSON v of
+        A.Error e -> Left e
+        A.Success s' -> Right (s', [])
+    }
+
+  where
+    update' DoThat s = (s, [pure DoThis])
+    update' DoThis s = (s, [])
+    update' (DoClick t) (i, _) = ((i, t), [pure DoThis])
+    update' (DoChange t) (i, _) = ((i, t), [pure DoThis])
+
+    receiveProps' p (_, t) = ((p, t), [pure DoThat])
+
+    view (i, t) = ENode "span" Nothing [] [] noStyle
+        [ EText $ "Component " <> (T.pack $ show i)
+        , ENode "button" Nothing [Attribute "value" (AVString "TheButtonValue")] [onClick onClickHandler] noStyle [EText "Click Me!"]
+        , ENode "input" Nothing [Attribute "value" (AVString t)] [onChange onChangeHandler] noStyle []
+        , EText t
+        ]
+
+conDoClick :: Con1 Text Action
+conDoClick = njsCon1 "DoClick" DoClick
+
+conDoChange :: Con1 Text Action
+conDoChange = njsCon1 "DoChange" DoChange
+
+
+targetE :: Exp MouseEvent -> Exp t
+targetE = getE (litE ("target" :: Text))
+
+targetValueE :: Exp MouseEvent -> Exp Text
+targetValueE = getE (litE ("value" :: Text)) . targetE
+
+onClickHandler :: F1 MouseEvent (EventHandler Action)
+onClickHandler = eventHandler $ \ev -> do
+    stopPropagation
+    action $ value1E conDoClick (targetValueE ev)
+
+onChangeHandler :: FE MouseEvent Action
+onChangeHandler = eventHandler $ \ev -> do
+    action $ value1E conDoChange (targetValueE ev)
+
+
+data CanvasA
+    = Mouse Float Float
+    | SetSize Float Float
+    deriving (Generic)
+
+instance A.FromJSON CanvasA
+instance A.ToJSON CanvasA
+
+instance Value CanvasA where
+    parseValue v = do
+        list <- A.parseJSON $ unTagged v
+        case list of
+            (t:xs) -> do
+                ctag <- A.parseJSON t
+                case ctag :: Text of
+                    "Mouse" -> do
+                        case xs of
+                            [a, b] -> Mouse <$> A.parseJSON a <*> A.parseJSON b
+                            _ -> fail "CanvasA:Mouse"
+                    "SetSize" -> do
+                        case xs of
+                            [a, b] -> SetSize <$> A.parseJSON a <*> A.parseJSON b
+                            _ -> fail "CanvasA:SetSize"
+                    _ -> fail "CanvasA"
+            _      -> fail "CanvasA"
+
+data CanvasS = CanvasS
+    { _csMousePosition :: (Float, Float)
+    , _csRefKey :: RefKey
+    , _csOnResize :: FE MouseEvent CanvasA
+    , _csSize :: Maybe (Int, Int)
+    }
+
+instance A.ToJSON CanvasS where
+    toJSON (CanvasS mouse rk _ size) = A.toJSON (mouse, rk, size)
+
+canvas :: Component () () CanvasS CanvasA
+canvas = Component
+    { componentId = mkComponentId
+    , componentDisplayName = "Canvas"
+    , initialComponentState = \_ ->
+        let refKey = mkRefKey
+        in CanvasS (0,0) refKey (onResizeHandler refKey) Nothing
+    , componentEventListeners = \(CanvasS _ _ onResizeH _) ->
+        [onResize onResizeH]
+    , componentHooks = Hooks
+        { componentDidMount    = []
+        , componentWillUnmount = []
+        }
+    , receiveProps = receiveProps'
+    , renderComponent = view
+    , update = update'
+    , processLifecycleEvent = \_ s -> (s, [])
+    , componentSnapshot = A.toJSON
+    , restoreComponent = \_ s -> Right (s, [])
+    }
+
+  where
+    update' :: CanvasA -> CanvasS -> (CanvasS, [IO CanvasA])
+    update' (Mouse x y)   (CanvasS _ refKey onResizeH s) = (CanvasS (x, y - 100) refKey onResizeH s, [])
+    update' (SetSize w h) (CanvasS m refKey onResizeH _) = (CanvasS m refKey onResizeH (Just (floor w, floor h)), [])
+
+    receiveProps' () s = (s, [])
+
+    numCircles = 100
+
+    circles (width, height) n = flip map [1..numCircles] $ \i ->
+        let (x, stdGen) = next (mkStdGen $ n + i)
+            (y, _     ) = next stdGen
+        in ENode "circle" Nothing
+            [ intAttribute "r" 6
+            , intAttribute "cx" (x `mod` width)
+            , intAttribute "cy" (y `mod` height)
+            , stringAttribute "fill" "black"
+            ] [] noStyle []
+
+    -- attach = refHandler $ \componentH element -> do
+    --     storeRef componentH (litE "svg") element
+    --     action $ ....
+
+    attach = F2 mkFID $ \_ element ->
+        refHandlerE (justE $ value2E conSetSize (elementWidth element) (elementHeight element))
+
+    detach = F1 mkFID $ \_ -> refHandlerE nothingE
+
+    view :: CanvasS -> Element
+    view (CanvasS (x,y) refKey _ s) = ENode "div" (Just $ Ref (Just refKey) attach detach) [] [] style $
+        case s of
+            Nothing -> []
+            Just (w,h) -> [svg ((x,y), (w, h))]
+
+    style = M.fromList
+        [ ("flex", "1")
+        , ("display", "flex")
+        ]
+
+    svg ((x,y), (width, height)) = ENode "svg" Nothing
+        [Attribute "width" (AVInt width), Attribute "height" (AVInt height), stringAttribute "className" "canvas"]
+        [onMouseMove onMouseMoveHandler] svgStyle $
+        [ ENode "rect" Nothing [intAttribute "x" 0, intAttribute "y" 0, intAttribute "width" width, intAttribute "height" height, stringAttribute "fill" "#DDD"] [] noStyle []
+        , ENode "circle" Nothing [intAttribute "r" 12, stringAttribute "cx" (T.pack $ show x), stringAttribute "cy" (T.pack $ show y), stringAttribute "fill" "magenta"] [] noStyle []
+        ] ++ circles (width, height) (floor x)
+
+    svgStyle = M.fromList
+        [ ("flex", "1")
+        , ("display", "block")
+        ]
+
+
+conMouse :: Con2 Float Float CanvasA
+conMouse = njsCon2 "Mouse" Mouse
+
+conSetSize :: Con2 Float Float CanvasA
+conSetSize = njsCon2 "SetSize" SetSize
+
+
+onResizeHandler :: RefKey -> FE MouseEvent CanvasA
+onResizeHandler (RefKey refKey) = eventHandler $ \_ -> do
+    action $ value2E conSetSize (elementWidth element) (elementHeight element)
+  where
+    element = derefE refKey
+
+onMouseMoveHandler :: FE MouseEvent CanvasA
+onMouseMoveHandler = eventHandler $ \ev -> do
+    action $ value2E conMouse (clientXE ev) (clientYE ev)
+
+clientXE :: Exp MouseEvent -> Exp Float
+clientXE = getE (litE "clientX" :: Exp Text)
+
+clientYE :: Exp MouseEvent -> Exp Float
+clientYE = getE (litE "clientY" :: Exp Text)
+
+
+elementWidth :: Exp a -> Exp Float
+elementWidth element = domRectWidth $ getBoundingClientRect element
+
+elementHeight :: Exp a -> Exp Float
+elementHeight element = domRectHeight $ getBoundingClientRect element
