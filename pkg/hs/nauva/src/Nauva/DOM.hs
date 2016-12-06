@@ -73,18 +73,17 @@ instance FromJSON Tag where
 --
 -- https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
 
-data Attribute = Attribute
-    { attributeName :: !Text
-    , attributeValue :: !AttributeValue
-    } deriving (Eq, Ord)
+data Attribute
+    = AVAL !Text !AttributeValue
+    deriving (Eq, Ord)
 
 instance ToJSON Attribute where
-    toJSON (Attribute name value) = toJSON (name, value)
+    toJSON (AVAL name value) = toJSON (name, value)
 
 instance FromJSON Attribute where
     parseJSON v = do
         (name, value) <- parseJSON v
-        pure $ Attribute name value
+        pure $ AVAL name value
 
 
 
@@ -119,13 +118,13 @@ instance FromJSON AttributeValue where
 -- constructors.
 
 boolAttribute :: Text -> Bool -> Attribute
-boolAttribute name value = Attribute name (AVBool value)
+boolAttribute name value = AVAL name (AVBool value)
 
 stringAttribute :: Text -> Text -> Attribute
-stringAttribute name value = Attribute name (AVString value)
+stringAttribute name value = AVAL name (AVString value)
 
 intAttribute :: Text -> Int -> Attribute
-intAttribute name value = Attribute name (AVInt value)
+intAttribute name value = AVAL name (AVInt value)
 
 doubleAttribute :: Text -> Double -> Attribute
-doubleAttribute name value = Attribute name (AVDouble value)
+doubleAttribute name value = AVAL name (AVDouble value)
