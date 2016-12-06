@@ -108,8 +108,8 @@ component = Component
 
     view (i, t) = ENode "span" Nothing [] [] noStyle
         [ EText $ "Component " <> (T.pack $ show i)
-        , ENode "button" Nothing [Attribute "value" (AVString "TheButtonValue")] [onClick onClickHandler] noStyle [EText "Click Me!"]
-        , ENode "input" Nothing [Attribute "value" (AVString t)] [onChange onChangeHandler] noStyle []
+        , ENode "button" Nothing [stringAttribute "value" "TheButtonValue"] [onClick onClickHandler] noStyle [EText "Click Me!"]
+        , ENode "input" Nothing [stringAttribute "value" t] [onChange onChangeHandler] noStyle []
         , EText t
         ]
 
@@ -233,7 +233,7 @@ canvas = Component
         ]
 
     svg ((x,y), (width, height)) = ENode "svg" Nothing
-        [Attribute "width" (AVInt width), Attribute "height" (AVInt height), stringAttribute "className" "canvas"]
+        [intAttribute "width" width, intAttribute "height" height, stringAttribute "className" "canvas"]
         [onMouseMove onMouseMoveHandler] svgStyle $
         [ ENode "rect" Nothing [intAttribute "x" 0, intAttribute "y" 0, intAttribute "width" width, intAttribute "height" height, stringAttribute "fill" "#DDD"] [] noStyle []
         , ENode "circle" Nothing [intAttribute "r" 12, stringAttribute "cx" (T.pack $ show x), stringAttribute "cy" (T.pack $ show y), stringAttribute "fill" "magenta"] [] noStyle []
