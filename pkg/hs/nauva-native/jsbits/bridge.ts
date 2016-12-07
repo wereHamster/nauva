@@ -184,30 +184,35 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
             spineToReact(clientH, [].concat(path, index), ctx, child, index)
         );
 
-        const props: any = { key, style: spine.style };
-        spine.eventListeners.forEach(([fid, name]) => {
+        const props: any = { key };
+
+        const installEventListener = (fid, name) => {
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
                 console.log('getFn', fid, name);
                 return ev => {
                     clientH.dispatchNodeEvent(path, fid, ev);
                 };
             });
-        });
+        };
 
-        for (const [p,v] of spine.attributes) {
-            props[p] = v;
-        }
-
-        if (spine.ref) {
-            props.ref = getFn(ctx, path, 'ref', () => {
-                return ref => {
-                    if (ref === null) {
-                        clientH.detachRef(path);
-                    } else {
-                        clientH.attachRef(path, ref);
-                    }
-                };
-            });
+        for (const [k, a, b] of spine.attributes) {
+            if (k === 'AVAL') {
+                props[a] = b;
+            } else if (k === 'AEVL') {
+                installEventListener(a, b);
+            } else if (k === 'ASTY') {
+                props.style = a;
+            } else if (k === 'AREF') {
+                props.ref = getFn(ctx, path, 'ref', () => {
+                    return ref => {
+                        if (ref === null) {
+                            clientH.detachRef(path);
+                        } else {
+                            clientH.attachRef(path, ref);
+                        }
+                    };
+                });
+            }
         }
 
         if (spine.tag === 'input') {
