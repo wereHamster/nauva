@@ -338,7 +338,10 @@ instanceToJSVal = go []
 
                         pure $ jsval o
 
-            eventListeners' <- pure $ jsval $ fromList $ flip map eventListeners $ \el -> case el of
+            let evls = catMaybes $ map (\x -> case x of
+                        AEVL el -> Just el
+                        _       -> Nothing) attrs
+            eventListeners' <- pure $ jsval $ fromList $ flip map (eventListeners <> evls) $ \el -> case el of
                 (EventListener n fe) -> jsval $ fromList [js_intJSVal $ unFID $ f1Id fe, jsval $ textToJSString n]
 
             pure $ unsafePerformIO $ do
@@ -349,7 +352,11 @@ instanceToJSVal = go []
                 forM_ (M.toList style) $ \(k, v) ->
                     O.setProp (JSS.pack k) (jsval $ JSS.pack v) style'
 
-                attributes' <- pure $ jsval $ fromList $ flip map attrs $ \(Attribute an av) ->
+                let avals = catMaybes $ map (\x -> case x of
+                        AVAL an av -> Just $ (an, av)
+                        _          -> Nothing) attrs
+
+                attributes' <- pure $ jsval $ fromList $ flip map avals $ \(an, av) ->
                     case av of
                         AVBool b   -> jsval $ fromList [jsval $ textToJSString an, if b then js_true else js_false]
                         AVString s -> jsval $ fromList [jsval $ textToJSString an, jsval $ textToJSString s]

@@ -294,8 +294,9 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
             spineToReact(ws, [].concat(path, index), ctx, child, index)
         );
 
-        const props: any = { key, style: spine.style };
-        spine.eventListeners.forEach(([fid, name, expr]) => {
+        const props: any = { key };
+
+        const installEventListener = ([fid, name, expr]) => {
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
                 console.log('getFn', fid, name);
                 return ev => {
@@ -310,40 +311,44 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
                     }
                 };
             });
-        });
+        };
 
-        for (const [p,v] of spine.attributes) {
-            props[p] = v;
-        }
+        for (const [k, a, b] of spine.attributes) {
+            if (k === 'AVAL') {
+                props[a] = b;
+            } else if (k === 'AEVL') {
+                installEventListener(a);
+            } else if (k === 'ASTY') {
+                props.style = a;
+            } else if (k === 'AREF') {
+                props.ref = getFn(ctx, path, 'ref', () => {
+                    console.log('getFn ref', a)
+                    return ref => {
+                        if (ref === null) {
+                            // spine.ref.detach;
+                            if (a.key) {
+                                ctx.refs.delete(a.key);
+                            }
 
-        if (spine.ref) {
-            props.ref = getFn(ctx, path, 'ref', () => {
-                console.log('getFn ref')
-                return ref => {
-                    if (ref === null) {
-                        // spine.ref.detach;
-                        if (spine.ref.key) {
-                            ctx.refs.delete(spine.ref.key);
-                        }
+                            console.log('detach');
+                            const r = evalExp(a.detach, { ['1']: ref }, this.ctx);
+                            if (r.action) {
+                                ws.send(JSON.stringify(['ref', path, r.action]));
+                            }
+                        } else {
+                            if (a.key) {
+                                ctx.refs.set(a.key, ref);
+                            }
 
-                        console.log('detach');
-                        const r = evalExp(spine.ref.detach, { ['1']: ref }, this.ctx);
-                        if (r.action) {
-                            ws.send(JSON.stringify(['ref', path, r.action]));
+                            console.log('attach');
+                            const r = evalExp(a.attach, { ['1']: ref }, this.ctx);
+                            if (r.action) {
+                                ws.send(JSON.stringify(['ref', path, r.action]));
+                            }
                         }
-                    } else {
-                        if (spine.ref.key) {
-                            ctx.refs.set(spine.ref.key, ref);
-                        }
-
-                        console.log('attach');
-                        const r = evalExp(spine.ref.attach, { ['1']: ref }, this.ctx);
-                        if (r.action) {
-                            ws.send(JSON.stringify(['ref', path, r.action]));
-                        }
-                    }
-                };
-            });
+                    };
+                });
+            }
         }
 
         if (spine.tag === 'input') {

@@ -434,3 +434,63 @@ data ComponentInstance p h s a = ComponentInstance
 data SomeComponentInstance where
     SomeComponentInstance :: (Typeable p, FromJSON a, Value h, Value a) =>
         ComponentInstance p h s a -> SomeComponentInstance
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- | We try to model attributes after IDL attributes (see the link below for
+-- the difference between content attributes and IDL attributes). That means
+-- we don't treat 'attributeValue' as a simple string, but instead explicitly
+-- differentiate between the different types (String, Bool, Int, URL etc).
+--
+-- https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
+
+data Attribute
+    = AVAL !Text !AttributeValue
+    | AEVL !EventListener
+    | ASTY !(Map String String)
+    | AREF !Ref
+
+instance ToJSON Attribute where
+    toJSON (AVAL name value)    = toJSON ("AVAL" :: Text, name, value)
+    toJSON (AEVL eventListener) = toJSON ("AEVL" :: Text, eventListener)
+    toJSON (ASTY style)         = toJSON ("ASTY" :: Text, style)
+    toJSON (AREF ref)           = toJSON ("AREF" :: Text, ref)
+
+instance FromJSON Attribute where
+    parseJSON v = do
+        (name, value) <- parseJSON v
+        pure $ AVAL name value
+
+
+
+-- $attributeValueConstructors
+-- These constructors are here for convenience. You are encouraged to use
+-- these functions instead of the 'Attribute' and 'AttributeValue'
+-- constructors.
+
+boolAttribute :: Text -> Bool -> Attribute
+boolAttribute name value = AVAL name (AVBool value)
+
+stringAttribute :: Text -> Text -> Attribute
+stringAttribute name value = AVAL name (AVString value)
+
+intAttribute :: Text -> Int -> Attribute
+intAttribute name value = AVAL name (AVInt value)
+
+doubleAttribute :: Text -> Double -> Attribute
+doubleAttribute name value = AVAL name (AVDouble value)
+
+
+eventListenerAttribute :: EventListener -> Attribute
+eventListenerAttribute = AEVL
+
+
+styleAttribute :: Style -> Attribute
+styleAttribute = ASTY
+
+
+refAttribute :: Ref -> Attribute
+refAttribute = AREF

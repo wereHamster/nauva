@@ -12,16 +12,8 @@ module Nauva.DOM
     ( -- * Tag
       Tag(..)
 
-      -- * Attribute
-    , Attribute(..)
+      -- * AttributeValue
     , AttributeValue(..)
-
-      -- ** Attribute constructors
-      -- $attributeValueConstructors
-    , boolAttribute
-    , stringAttribute
-    , intAttribute
-    , doubleAttribute
     ) where
 
 
@@ -66,28 +58,6 @@ instance FromJSON Tag where
 
 
 --------------------------------------------------------------------------------
--- | We try to model attributes after IDL attributes (see the link below for
--- the difference between content attributes and IDL attributes). That means
--- we don't treat 'attributeValue' as a simple string, but instead explicitly
--- differentiate between the different types (String, Bool, Int, URL etc).
---
--- https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
-
-data Attribute
-    = AVAL !Text !AttributeValue
-    deriving (Eq, Ord)
-
-instance ToJSON Attribute where
-    toJSON (AVAL name value) = toJSON (name, value)
-
-instance FromJSON Attribute where
-    parseJSON v = do
-        (name, value) <- parseJSON v
-        pure $ AVAL name value
-
-
-
---------------------------------------------------------------------------------
 data AttributeValue
     = AVBool !Bool
     | AVString !Text
@@ -110,21 +80,3 @@ instance FromJSON AttributeValue where
     parseJSON   (String s) = pure $ AVString s
     parseJSON v@(Number _) = (AVInt <$> parseJSON v) <|> (AVDouble <$> parseJSON v)
     parseJSON    _         = fail "AttributeValue"
-
-
--- $attributeValueConstructors
--- These constructors are here for convenience. You are encouraged to use
--- these functions instead of the 'Attribute' and 'AttributeValue'
--- constructors.
-
-boolAttribute :: Text -> Bool -> Attribute
-boolAttribute name value = AVAL name (AVBool value)
-
-stringAttribute :: Text -> Text -> Attribute
-stringAttribute name value = AVAL name (AVString value)
-
-intAttribute :: Text -> Int -> Attribute
-intAttribute name value = AVAL name (AVInt value)
-
-doubleAttribute :: Text -> Double -> Attribute
-doubleAttribute name value = AVAL name (AVDouble value)

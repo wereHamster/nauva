@@ -30,14 +30,14 @@ import           Nauva.NJS
 -- contains both 'Thunk's and 'Component's, to demonstrate that they all work
 -- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
 rootElement :: Int -> Element
-rootElement i = ENode "div" Nothing [] [] rootStyle $
+rootElement i = ENode "div" Nothing [styleAttribute rootStyle] [] noStyle $
     [ EText $ "App Generation " <> (T.pack $ show i)
     , ENode "br" Nothing [] [] noStyle []
     , EThunk thunk (i `div` 2)
     , ENode "br" Nothing [] [] noStyle []
     , EComponent component (i `div` 3)
     , ENode "br" Nothing [] [] noStyle []
-    , ENode "div" Nothing [] [] (M.fromList [ ("flex", "1"), ("display", "flex"), ("flex-direction", "row") ]) $
+    , ENode "div" Nothing [styleAttribute canvasContainerStyle] [] noStyle $
         [ EComponent canvas ()
         , EComponent canvas ()
         ]
@@ -49,6 +49,12 @@ rootElement i = ENode "div" Nothing [] [] rootStyle $
         [ ("height", "100vh")
         , ("display", "flex")
         , ("flex-direction", "column")
+        ]
+
+    canvasContainerStyle = M.fromList
+        [ ("flex", "1")
+        , ("display", "flex")
+        , ("flex-direction", "row")
         ]
 
 
@@ -108,8 +114,8 @@ component = Component
 
     view (i, t) = ENode "span" Nothing [] [] noStyle
         [ EText $ "Component " <> (T.pack $ show i)
-        , ENode "button" Nothing [stringAttribute "value" "TheButtonValue"] [onClick onClickHandler] noStyle [EText "Click Me!"]
-        , ENode "input" Nothing [stringAttribute "value" t] [onChange onChangeHandler] noStyle []
+        , ENode "button" Nothing [eventListenerAttribute (onClick onClickHandler), stringAttribute "value" "TheButtonValue"] [] noStyle [EText "Click Me!"]
+        , ENode "input" Nothing [eventListenerAttribute (onChange onChangeHandler), stringAttribute "value" t] [] noStyle []
         , EText t
         ]
 
@@ -222,7 +228,7 @@ canvas = Component
     detach = F1 mkFID $ \_ -> refHandlerE nothingE
 
     view :: CanvasS -> Element
-    view (CanvasS (x,y) refKey _ s) = ENode "div" (Just $ Ref (Just refKey) attach detach) [] [] style $
+    view (CanvasS (x,y) refKey _ s) = ENode "div" Nothing [styleAttribute style, refAttribute (Ref (Just refKey) attach detach)] [] noStyle $
         case s of
             Nothing -> []
             Just (w,h) -> [svg ((x,y), (w, h))]
@@ -233,8 +239,8 @@ canvas = Component
         ]
 
     svg ((x,y), (width, height)) = ENode "svg" Nothing
-        [intAttribute "width" width, intAttribute "height" height, stringAttribute "className" "canvas"]
-        [onMouseMove onMouseMoveHandler] svgStyle $
+        [styleAttribute svgStyle, eventListenerAttribute (onMouseMove onMouseMoveHandler), intAttribute "width" width, intAttribute "height" height, stringAttribute "className" "canvas"]
+        [] noStyle $
         [ ENode "rect" Nothing [intAttribute "x" 0, intAttribute "y" 0, intAttribute "width" width, intAttribute "height" height, stringAttribute "fill" "#DDD"] [] noStyle []
         , ENode "circle" Nothing [intAttribute "r" 12, stringAttribute "cx" (T.pack $ show x), stringAttribute "cy" (T.pack $ show y), stringAttribute "fill" "magenta"] [] noStyle []
         ] ++ circles (width, height) (floor x)
