@@ -104,7 +104,7 @@ render h rootElement = do
         then pure inst
         else instantiate el
 
-    go path (ENode eTag eRef eAttrs eEventListeners eStyle eChildren) (INode _ _ _ _ _ iChildren) = do
+    go path (ENode eTag eAttrs eChildren) (INode _ _ iChildren) = do
         (newChildren, _remainingChildren) <- foldlM (\(newChildren, oldChildren) (i, childE) -> do
             let key = KIndex i
             case M.lookup key oldChildren of
@@ -119,7 +119,7 @@ render h rootElement = do
 
         -- TODO: dispose remainingChildren
 
-        pure $ INode eTag eRef eAttrs eEventListeners eStyle newChildren
+        pure $ INode eTag eAttrs newChildren
 
     go _ el@(EThunk eComp eProps) inst@(IThunk iComp iProps _) = do
         if not (shouldThunkUpdate' eComp eProps iComp iProps)
@@ -157,7 +157,7 @@ contextForPath h path = do
     go :: Maybe SomeComponentInstance -> Path -> Instance -> ExceptT String STM (Maybe SomeComponentInstance, Instance)
     go mbSCI (Path []) inst = case inst of
         (IText _)                       -> pure (mbSCI, inst)
-        (INode _ _ _ _ _ _)             -> pure (mbSCI, inst)
+        (INode _ _ _)             -> pure (mbSCI, inst)
         (IThunk _ _ childI)             -> go mbSCI (Path []) childI
         (IComponent component stateRef) -> do
             state <- lift $ readTMVar stateRef
@@ -168,7 +168,7 @@ contextForPath h path = do
         (IText _) -> do
             throwError $ "contextForPath: IText doesn't have any children"
 
-        (INode _ _ _ _ _ children) -> do
+        (INode _ _ children) -> do
             case lookup key children of
                 Nothing -> throwError $ "contextForPath: Child at key " ++ show key ++ " not found"
                 Just childI -> go mbSCI (Path rest) childI
@@ -229,7 +229,7 @@ dispatchHook h path rawValue = do
         (IText _) ->
             throwError $ "Can not dispatch hook to IText (at path " ++ show path ++ ")"
 
-        (INode _ _ _ _ _ _) ->
+        (INode _ _ _) ->
             throwError $ "Can not dispatch hook to INode (at path " ++ show path ++ ")"
 
         (IThunk _ _ childI) ->
@@ -254,7 +254,7 @@ dispatchHook h path rawValue = do
         (IText _) -> do
             throwError $ "IText doesn't have any children"
 
-        (INode _ _ _ _ _ children) -> do
+        (INode _ _ children) -> do
             case lookup key children of
                 Nothing -> throwError $ "Child at key " ++ show key ++ " not found"
                 Just childI -> go (Path rest) childI
@@ -286,11 +286,11 @@ dispatchRef h path rawValue = do
     go (appPath, appAncestor) (Path []) inst = case inst of
         (IText _) -> throwError $ "Can not dispatch ref to a Text node (at path " ++ show path ++ ")"
 
-        (INode _ _ _ _ _ _) -> case appAncestor of
+        (INode _ _ _) -> case appAncestor of
             -- We've reached the native element which emitted the event.
             -- Dispatch it to the closest 'IComponent' ancestor (if there is one).
             (IText _) -> throwError $ "No App is ancestor of " ++ show path
-            (INode _ _ _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
+            (INode _ _ _) -> throwError $ "No App is ancestor of " ++ show path
             (IThunk _ _ _) -> throwError $ "No App is ancestor of " ++ show path
             (IComponent component stateRef) -> lift $ case A.parseEither parseValue (taggedWithAction component rawValue) of
                 Left e -> error $ show e
@@ -307,7 +307,7 @@ dispatchRef h path rawValue = do
         (IText _) -> do
             throwError $ "IText doesn't have any children"
 
-        (INode _ _ _ _ _ children) -> do
+        (INode _ _ children) -> do
             case lookup key children of
                 Nothing -> throwError $ "Child at key " ++ show key ++ " not found"
                 Just childI -> go (appPath, appAncestor) (Path rest) childI
@@ -328,12 +328,12 @@ toSpine :: Instance -> STM Spine
 toSpine inst = case inst of
     (IText text) -> pure $ SText text
 
-    (INode tag ref attrs eventListeners style children) -> do
+    (INode tag attrs children) -> do
         newChildren <- forM children $ \(key, childI) -> do
             newChild <- toSpine childI
             pure (key, newChild)
 
-        pure $ SNode tag ref attrs eventListeners style newChildren
+        pure $ SNode tag attrs newChildren
 
     (IThunk _ _ childI) ->
         toSpine childI
@@ -379,8 +379,8 @@ instantiate :: Element -> STM Instance
 instantiate el = case el of
     (EText t) -> pure $ IText t
 
-    (ENode tag ref attributes eventListeners style children) ->
-        INode tag ref attributes eventListeners style <$>
+    (ENode tag attributes children) ->
+        INode tag attributes <$>
             mapM (\(key,child) -> (,) <$> pure key <*> instantiate child)
                 (zip (map KIndex [1..]) children)
 
@@ -432,7 +432,7 @@ createSnapshot h = Snapshot <$> execWriterT (do
     go path inst = case inst of
         (IText _) -> pure ()
 
-        (INode _ _ _ _ _ children) -> do
+        (INode _ _ children) -> do
             forM_ children $ \(key, child) ->
                 go (path <> [key]) child
 
@@ -463,7 +463,7 @@ restoreSnapshot h snapshot = do
     go path inst = case inst of
         (IText _) -> pure ()
 
-        (INode _ _ _ _ _ children) -> do
+        (INode _ _ children) -> do
             forM_ children $ \(key, child) ->
                 go (path <> [key]) child
 

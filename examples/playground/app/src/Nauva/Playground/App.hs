@@ -30,14 +30,14 @@ import           Nauva.NJS
 -- contains both 'Thunk's and 'Component's, to demonstrate that they all work
 -- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
 rootElement :: Int -> Element
-rootElement i = ENode "div" Nothing [styleAttribute rootStyle] [] noStyle $
+rootElement i = ENode "div" [styleAttribute rootStyle] $
     [ EText $ "App Generation " <> (T.pack $ show i)
-    , ENode "br" Nothing [] [] noStyle []
+    , ENode "br" [] []
     , EThunk thunk (i `div` 2)
-    , ENode "br" Nothing [] [] noStyle []
+    , ENode "br" [] []
     , EComponent component (i `div` 3)
-    , ENode "br" Nothing [] [] noStyle []
-    , ENode "div" Nothing [styleAttribute canvasContainerStyle] [] noStyle $
+    , ENode "br" [] []
+    , ENode "div" [styleAttribute canvasContainerStyle] $
         [ EComponent canvas ()
         , EComponent canvas ()
         ]
@@ -112,10 +112,10 @@ component = Component
 
     receiveProps' p (_, t) = ((p, t), [pure DoThat])
 
-    view (i, t) = ENode "span" Nothing [] [] noStyle
+    view (i, t) = ENode "span" []
         [ EText $ "Component " <> (T.pack $ show i)
-        , ENode "button" Nothing [eventListenerAttribute (onClick onClickHandler), stringAttribute "value" "TheButtonValue"] [] noStyle [EText "Click Me!"]
-        , ENode "input" Nothing [eventListenerAttribute (onChange onChangeHandler), stringAttribute "value" t] [] noStyle []
+        , ENode "button" [eventListenerAttribute (onClick onClickHandler), stringAttribute "value" "TheButtonValue"] [EText "Click Me!"]
+        , ENode "input" [eventListenerAttribute (onChange onChangeHandler), stringAttribute "value" t] []
         , EText t
         ]
 
@@ -211,12 +211,12 @@ canvas = Component
     circles (width, height) n = flip map [1..numCircles] $ \i ->
         let (x, stdGen) = next (mkStdGen $ n + i)
             (y, _     ) = next stdGen
-        in ENode "circle" Nothing
+        in ENode "circle"
             [ intAttribute "r" 6
             , intAttribute "cx" (x `mod` width)
             , intAttribute "cy" (y `mod` height)
             , stringAttribute "fill" "black"
-            ] [] noStyle []
+            ] []
 
     -- attach = refHandler $ \componentH element -> do
     --     storeRef componentH (litE "svg") element
@@ -228,7 +228,7 @@ canvas = Component
     detach = F1 mkFID $ \_ -> refHandlerE nothingE
 
     view :: CanvasS -> Element
-    view (CanvasS (x,y) refKey _ s) = ENode "div" Nothing [styleAttribute style, refAttribute (Ref (Just refKey) attach detach)] [] noStyle $
+    view (CanvasS (x,y) refKey _ s) = ENode "div" [styleAttribute style, refAttribute (Ref (Just refKey) attach detach)] $
         case s of
             Nothing -> []
             Just (w,h) -> [svg ((x,y), (w, h))]
@@ -238,11 +238,10 @@ canvas = Component
         , ("display", "flex")
         ]
 
-    svg ((x,y), (width, height)) = ENode "svg" Nothing
-        [styleAttribute svgStyle, eventListenerAttribute (onMouseMove onMouseMoveHandler), intAttribute "width" width, intAttribute "height" height, stringAttribute "className" "canvas"]
-        [] noStyle $
-        [ ENode "rect" Nothing [intAttribute "x" 0, intAttribute "y" 0, intAttribute "width" width, intAttribute "height" height, stringAttribute "fill" "#DDD"] [] noStyle []
-        , ENode "circle" Nothing [intAttribute "r" 12, stringAttribute "cx" (T.pack $ show x), stringAttribute "cy" (T.pack $ show y), stringAttribute "fill" "magenta"] [] noStyle []
+    svg ((x,y), (width, height)) = ENode "svg"
+        [styleAttribute svgStyle, eventListenerAttribute (onMouseMove onMouseMoveHandler), intAttribute "width" width, intAttribute "height" height, stringAttribute "className" "canvas"] $
+        [ ENode "rect" [intAttribute "x" 0, intAttribute "y" 0, intAttribute "width" width, intAttribute "height" height, stringAttribute "fill" "#DDD"] []
+        , ENode "circle" [intAttribute "r" 12, stringAttribute "cx" (T.pack $ show x), stringAttribute "cy" (T.pack $ show y), stringAttribute "fill" "magenta"] []
         ] ++ circles (width, height) (floor x)
 
     svgStyle = M.fromList

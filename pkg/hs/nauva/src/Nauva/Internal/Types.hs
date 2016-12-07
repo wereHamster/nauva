@@ -38,7 +38,7 @@ data Element where
     EText :: Text -> Element
     -- A text element.
 
-    ENode :: Tag -> Maybe Ref -> [Attribute] -> [EventListener] -> Style -> [Element] -> Element
+    ENode :: Tag -> [Attribute] -> [Element] -> Element
     -- An element representing a native DOM node.
 
     EThunk :: (Typeable p) => Thunk p -> p -> Element
@@ -63,7 +63,7 @@ data Element where
 data Instance where
     IText :: Text -> Instance
 
-    INode :: Tag -> Maybe Ref -> [Attribute] -> [EventListener] -> Style -> [(Key, Instance)] -> Instance
+    INode :: Tag -> [Attribute] -> [(Key, Instance)] -> Instance
 
     IThunk :: (Typeable p) => Thunk p -> p -> Instance -> Instance
     -- In the instance for 'EThunk', we remember the forced and instantiated
@@ -85,7 +85,7 @@ data Instance where
 
 data Spine where
     SText :: Text -> Spine
-    SNode :: Tag ->  Maybe Ref -> [Attribute] -> [EventListener] -> Style -> [(Key, Spine)] -> Spine
+    SNode :: Tag ->  [Attribute] -> [(Key, Spine)] -> Spine
     SComponent :: ComponentId -> [EventListener] -> Hooks h -> Spine -> Spine
 
 
@@ -93,13 +93,10 @@ instance A.ToJSON Spine where
     toJSON s = case s of
         (SText text) -> toJSON text
 
-        (SNode tag ref attrs eventListeners style children) -> object
+        (SNode tag attrs children) -> object
             [ "type" .= ("Node" :: String)
             , "tag" .= toJSON tag
-            , "ref" .= toJSON ref
             , "attributes" .= toJSON (map toJSON attrs)
-            , "style" .= toJSON style
-            , "eventListeners" .= toJSON (map toJSON eventListeners)
             , "children" .= toJSON (map toJSON children)
             ]
 

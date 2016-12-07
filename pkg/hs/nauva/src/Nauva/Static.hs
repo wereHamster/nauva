@@ -44,7 +44,7 @@ elementToMarkup el = case el of
     (EText text) ->
         B.toMarkup text
 
-    (ENode tag _ attributes _ _ children) ->
+    (ENode tag attributes children) ->
         let tagString = T.unpack $ unTag tag
             parent = B.Parent (fromString tagString) (fromString $ "<" <> tagString) (fromString $ "</" <> tagString <> ">")
             attrs = map toAttribute attributes
