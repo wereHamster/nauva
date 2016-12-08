@@ -161,13 +161,22 @@ componentWillUnmountHandler :: Nauva.Handle.Handle -> Path -> IO (Either String 
 componentWillUnmountHandler = hookHandler componentWillUnmount
 
 
+refFromAttributes :: [Attribute] -> Maybe Ref
+refFromAttributes attrs = case catMaybes (map unRef attrs) of
+    ref:_ -> Just ref
+    _     -> Nothing
+  where
+    unRef (AREF x) = Just x
+    unRef _        = Nothing
+
 
 attachRefHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, RefKey) JSVal) -> Path -> JSVal -> IO (Either String ())
 attachRefHandler h refsVar path jsVal = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
         case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ mbRef _ _ _ _) -> do
+            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ attrs _) -> do
+                let mbRef = refFromAttributes attrs
                 let mbRefKey = mbRef >>= \(Ref mbRefKey _ _) -> mbRefKey
                 case mbRefKey of
                     Nothing -> pure ()
@@ -200,7 +209,8 @@ detachRefHandler h refsVar path = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
         case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ mbRef _ _ _ _) -> do
+            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ attrs _) -> do
+                let mbRef = refFromAttributes attrs
                 let mbRefKey = mbRef >>= \(Ref mbRefKey _ _) -> mbRefKey
                 case mbRefKey of
                     Nothing -> pure ()
@@ -231,7 +241,8 @@ dispatchNodeEventHandler h refsVar path fid ev = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
         case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode tag _ _ eventListeners _ _) -> do
+            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode tag attrs _) -> do
+                let eventListeners = catMaybes $ map (\x -> case x of (AEVL el) -> Just el; _ -> Nothing) attrs
                 ctxRefs <- do
                     x <- lift $ readTVar refsVar
                     pure $ M.fromList $ map (\((_,k),v) -> (k,v)) $ M.toList x
@@ -314,7 +325,7 @@ instanceToJSVal = go []
     go path inst = case inst of
         (IText text) -> pure $ jsval $ textToJSString text
 
-        (INode tag ref attrs eventListeners style children) -> do
+        (INode tag attrs children) -> do
             newChildren <- forM children $ \(key, childI) -> do
                 newChild <- instanceToJSVal childI
                 key' <- case key of
@@ -323,10 +334,26 @@ instanceToJSVal = go []
 
                 pure $ jsval $ fromList [key', newChild]
 
-            ref' <- case ref of
-                Nothing -> pure $ nullRef
-                Just (Ref mbRefKey fra frd) -> do
-                    pure $ unsafePerformIO $ do
+
+            pure $ unsafePerformIO $ do
+                o <- O.create
+
+                attributes' <- pure $ jsval $ fromList $ flip map attrs $ \x -> case x of
+                    AVAL an (AVBool b)        -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, if b then js_true else js_false] 
+                    AVAL an (AVString s)      -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, jsval $ textToJSString s]
+                    AVAL an (AVInt i)         -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, js_intJSVal i]
+
+                    AEVL (EventListener n fe) -> jsval $ fromList [jsval $ textToJSString "AEVL", js_intJSVal $ unFID $ f1Id fe, jsval $ textToJSString n]
+
+                    ASTY style -> unsafePerformIO $ do
+                        style' <- O.create
+
+                        forM_ (M.toList style) $ \(k, v) ->
+                            O.setProp (JSS.pack k) (jsval $ JSS.pack v) style'
+
+                        pure $ jsval $ fromList [jsval $ textToJSString "ASTY", (jsval style')]
+
+                    AREF (Ref mbRefKey fra frd) -> unsafePerformIO $ do
                         o <- O.create
                 
                         case mbRefKey of
@@ -336,32 +363,11 @@ instanceToJSVal = go []
                         O.setProp "attach" (js_intJSVal $ unFID $ f2Id fra) o
                         O.setProp "detach" (js_intJSVal $ unFID $ f1Id frd) o
 
-                        pure $ jsval o
-
-            eventListeners' <- pure $ jsval $ fromList $ flip map eventListeners $ \el -> case el of
-                (EventListener n fe) -> jsval $ fromList [js_intJSVal $ unFID $ f1Id fe, jsval $ textToJSString n]
-
-            pure $ unsafePerformIO $ do
-                o <- O.create
-
-                style' <- O.create
-
-                forM_ (M.toList style) $ \(k, v) ->
-                    O.setProp (JSS.pack k) (jsval $ JSS.pack v) style'
-
-                attributes' <- pure $ jsval $ fromList $ flip map attrs $ \(Attribute an av) ->
-                    case av of
-                        AVBool b   -> jsval $ fromList [jsval $ textToJSString an, if b then js_true else js_false]
-                        AVString s -> jsval $ fromList [jsval $ textToJSString an, jsval $ textToJSString s]
-                        AVInt i    -> jsval $ fromList [jsval $ textToJSString an, js_intJSVal i]
-                        -- AVDouble d -> jsval $ fromList [jsval $ textToJSString an, js_doubleJSVal d]
+                        pure $ jsval $ fromList [jsval $ textToJSString "AREF", jsval o]
         
                 O.setProp "type" (jsval ("Node" :: JSString)) o
                 O.setProp "tag" (jsval $ textToJSString $ unTag tag) o
-                O.setProp "ref" (ref') o
                 O.setProp "attributes" attributes' o
-                O.setProp "style" (jsval style') o
-                O.setProp "eventListeners" eventListeners' o
                 O.setProp "children" (jsval $ fromList newChildren) o
 
                 pure $ jsval o

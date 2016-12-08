@@ -142,31 +142,38 @@ function spineToReact(clientH, path, ctx, spine, key) {
             var index = _a[0], child = _a[1];
             return spineToReact(clientH, [].concat(path, index), ctx, child, index);
         });
-        var props_1 = { key: key, style: spine.style };
-        spine.eventListeners.forEach(function (_a) {
-            var fid = _a[0], name = _a[1];
+        var props_1 = { key: key };
+        var installEventListener = function (fid, name) {
             props_1[("on" + capitalizeFirstLetter(name))] = getFn(ctx, path, fid, function () {
                 console.log('getFn', fid, name);
                 return function (ev) {
                     clientH.dispatchNodeEvent(path, fid, ev);
                 };
             });
-        });
+        };
         for (var _i = 0, _a = spine.attributes; _i < _a.length; _i++) {
-            var _b = _a[_i], p = _b[0], v = _b[1];
-            props_1[p] = v;
-        }
-        if (spine.ref) {
-            props_1.ref = getFn(ctx, path, 'ref', function () {
-                return function (ref) {
-                    if (ref === null) {
-                        clientH.detachRef(path);
-                    }
-                    else {
-                        clientH.attachRef(path, ref);
-                    }
-                };
-            });
+            var _b = _a[_i], k = _b[0], a = _b[1], b = _b[2];
+            if (k === 'AVAL') {
+                props_1[a] = b;
+            }
+            else if (k === 'AEVL') {
+                installEventListener(a, b);
+            }
+            else if (k === 'ASTY') {
+                props_1.style = a;
+            }
+            else if (k === 'AREF') {
+                props_1.ref = getFn(ctx, path, 'ref', function () {
+                    return function (ref) {
+                        if (ref === null) {
+                            clientH.detachRef(path);
+                        }
+                        else {
+                            clientH.attachRef(path, ref);
+                        }
+                    };
+                });
+            }
         }
         if (spine.tag === 'input') {
             return React.createElement.apply(React, [ControlledInput, {

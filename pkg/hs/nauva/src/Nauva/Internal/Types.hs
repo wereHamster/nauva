@@ -38,7 +38,7 @@ data Element where
     EText :: Text -> Element
     -- A text element.
 
-    ENode :: Tag -> Maybe Ref -> [Attribute] -> [EventListener] -> Style -> [Element] -> Element
+    ENode :: Tag -> [Attribute] -> [Element] -> Element
     -- An element representing a native DOM node.
 
     EThunk :: (Typeable p) => Thunk p -> p -> Element
@@ -63,7 +63,7 @@ data Element where
 data Instance where
     IText :: Text -> Instance
 
-    INode :: Tag -> Maybe Ref -> [Attribute] -> [EventListener] -> Style -> [(Key, Instance)] -> Instance
+    INode :: Tag -> [Attribute] -> [(Key, Instance)] -> Instance
 
     IThunk :: (Typeable p) => Thunk p -> p -> Instance -> Instance
     -- In the instance for 'EThunk', we remember the forced and instantiated
@@ -85,7 +85,7 @@ data Instance where
 
 data Spine where
     SText :: Text -> Spine
-    SNode :: Tag ->  Maybe Ref -> [Attribute] -> [EventListener] -> Style -> [(Key, Spine)] -> Spine
+    SNode :: Tag ->  [Attribute] -> [(Key, Spine)] -> Spine
     SComponent :: ComponentId -> [EventListener] -> Hooks h -> Spine -> Spine
 
 
@@ -93,13 +93,10 @@ instance A.ToJSON Spine where
     toJSON s = case s of
         (SText text) -> toJSON text
 
-        (SNode tag ref attrs eventListeners style children) -> object
+        (SNode tag attrs children) -> object
             [ "type" .= ("Node" :: String)
             , "tag" .= toJSON tag
-            , "ref" .= toJSON ref
             , "attributes" .= toJSON (map toJSON attrs)
-            , "style" .= toJSON style
-            , "eventListeners" .= toJSON (map toJSON eventListeners)
             , "children" .= toJSON (map toJSON children)
             ]
 
@@ -434,3 +431,63 @@ data ComponentInstance p h s a = ComponentInstance
 data SomeComponentInstance where
     SomeComponentInstance :: (Typeable p, FromJSON a, Value h, Value a) =>
         ComponentInstance p h s a -> SomeComponentInstance
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- | We try to model attributes after IDL attributes (see the link below for
+-- the difference between content attributes and IDL attributes). That means
+-- we don't treat 'attributeValue' as a simple string, but instead explicitly
+-- differentiate between the different types (String, Bool, Int, URL etc).
+--
+-- https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
+
+data Attribute
+    = AVAL !Text !AttributeValue
+    | AEVL !EventListener
+    | ASTY !(Map String String)
+    | AREF !Ref
+
+instance ToJSON Attribute where
+    toJSON (AVAL name value)    = toJSON ("AVAL" :: Text, name, value)
+    toJSON (AEVL eventListener) = toJSON ("AEVL" :: Text, eventListener)
+    toJSON (ASTY style)         = toJSON ("ASTY" :: Text, style)
+    toJSON (AREF ref)           = toJSON ("AREF" :: Text, ref)
+
+instance FromJSON Attribute where
+    parseJSON v = do
+        (name, value) <- parseJSON v
+        pure $ AVAL name value
+
+
+
+-- $attributeValueConstructors
+-- These constructors are here for convenience. You are encouraged to use
+-- these functions instead of the 'Attribute' and 'AttributeValue'
+-- constructors.
+
+boolAttribute :: Text -> Bool -> Attribute
+boolAttribute name value = AVAL name (AVBool value)
+
+stringAttribute :: Text -> Text -> Attribute
+stringAttribute name value = AVAL name (AVString value)
+
+intAttribute :: Text -> Int -> Attribute
+intAttribute name value = AVAL name (AVInt value)
+
+doubleAttribute :: Text -> Double -> Attribute
+doubleAttribute name value = AVAL name (AVDouble value)
+
+
+eventListenerAttribute :: EventListener -> Attribute
+eventListenerAttribute = AEVL
+
+
+styleAttribute :: Style -> Attribute
+styleAttribute = ASTY
+
+
+refAttribute :: Ref -> Attribute
+refAttribute = AREF

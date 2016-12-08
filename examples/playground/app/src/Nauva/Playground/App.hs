@@ -22,7 +22,7 @@ import           Nauva.DOM
 import           Nauva.Internal.Types
 import           Nauva.Internal.Events
 import           Nauva.NJS
-
+import           Nauva.View
 
 
 
@@ -30,31 +30,38 @@ import           Nauva.NJS
 -- contains both 'Thunk's and 'Component's, to demonstrate that they all work
 -- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
 rootElement :: Int -> Element
-rootElement i = ENode "div" Nothing [] [] rootStyle $
-    [ EText $ "App Generation " <> (T.pack $ show i)
-    , ENode "br" Nothing [] [] noStyle []
-    , EThunk thunk (i `div` 2)
-    , ENode "br" Nothing [] [] noStyle []
-    , EComponent component (i `div` 3)
-    , ENode "br" Nothing [] [] noStyle []
-    , ENode "div" Nothing [] [] (M.fromList [ ("flex", "1"), ("display", "flex"), ("flex-direction", "row") ]) $
-        [ EComponent canvas ()
-        , EComponent canvas ()
+rootElement i = div_ [style_ rootStyle] $
+    [ str_ $ "App Generation " <> (T.pack $ show i)
+    , br_ []
+    , thunk_ thunk (i `div` 2)
+    , br_ []
+    , component_ component (i `div` 3)
+    , br_ []
+    , div_ [style_ canvasContainerStyle] $
+        [ component_ canvas ()
+        , component_ canvas ()
         ]
-    ] -- <> (intersperse (ENode "br" [] [] []) $
-        -- map (\x -> EComponent component x) [1..restCount])
+    ]
 
   where
+    rootStyle :: Style
     rootStyle = M.fromList
         [ ("height", "100vh")
         , ("display", "flex")
         , ("flex-direction", "column")
         ]
 
+    canvasContainerStyle :: Style
+    canvasContainerStyle = M.fromList
+        [ ("flex", "1")
+        , ("display", "flex")
+        , ("flex-direction", "row")
+        ]
+
 
 thunk :: Thunk Int
 thunk = Thunk mkThunkId "thunk" (==) $ \i ->
-    EText $ "Thunk " <> (T.pack $ show i)
+    str_ $ "Thunk " <> (T.pack $ show i)
 
 
 data Action = DoThis | DoThat | DoClick Text | DoChange Text
@@ -106,11 +113,12 @@ component = Component
 
     receiveProps' p (_, t) = ((p, t), [pure DoThat])
 
-    view (i, t) = ENode "span" Nothing [] [] noStyle
-        [ EText $ "Component " <> (T.pack $ show i)
-        , ENode "button" Nothing [Attribute "value" (AVString "TheButtonValue")] [onClick onClickHandler] noStyle [EText "Click Me!"]
-        , ENode "input" Nothing [Attribute "value" (AVString t)] [onChange onChangeHandler] noStyle []
-        , EText t
+    view :: (Int, Text) -> Element
+    view (i, t) = span_
+        [ str_ $ "Component " <> (T.pack $ show i)
+        , button_ [onClick_ onClickHandler, value_ ("TheButtonValue" :: Text)] [str_ "Click Me!"]
+        , input_ [onChange_ onChangeHandler, value_ t] []
+        , str_ t
         ]
 
 conDoClick :: Con1 Text Action
@@ -205,12 +213,12 @@ canvas = Component
     circles (width, height) n = flip map [1..numCircles] $ \i ->
         let (x, stdGen) = next (mkStdGen $ n + i)
             (y, _     ) = next stdGen
-        in ENode "circle" Nothing
-            [ intAttribute "r" 6
-            , intAttribute "cx" (x `mod` width)
-            , intAttribute "cy" (y `mod` height)
-            , stringAttribute "fill" "black"
-            ] [] noStyle []
+        in circle_
+            [ r_ (6 :: Int)
+            , cx_ (x `mod` width)
+            , cy_ (y `mod` height)
+            , fill_ ("black" :: Text)
+            ] []
 
     -- attach = refHandler $ \componentH element -> do
     --     storeRef componentH (litE "svg") element
@@ -222,23 +230,24 @@ canvas = Component
     detach = F1 mkFID $ \_ -> refHandlerE nothingE
 
     view :: CanvasS -> Element
-    view (CanvasS (x,y) refKey _ s) = ENode "div" (Just $ Ref (Just refKey) attach detach) [] [] style $
+    view (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
         case s of
             Nothing -> []
             Just (w,h) -> [svg ((x,y), (w, h))]
 
+    style :: Style
     style = M.fromList
         [ ("flex", "1")
         , ("display", "flex")
         ]
 
-    svg ((x,y), (width, height)) = ENode "svg" Nothing
-        [Attribute "width" (AVInt width), Attribute "height" (AVInt height), stringAttribute "className" "canvas"]
-        [onMouseMove onMouseMoveHandler] svgStyle $
-        [ ENode "rect" Nothing [intAttribute "x" 0, intAttribute "y" 0, intAttribute "width" width, intAttribute "height" height, stringAttribute "fill" "#DDD"] [] noStyle []
-        , ENode "circle" Nothing [intAttribute "r" 12, stringAttribute "cx" (T.pack $ show x), stringAttribute "cy" (T.pack $ show y), stringAttribute "fill" "magenta"] [] noStyle []
+    svg ((x,y), (width, height)) = svg_
+        [style_ svgStyle, onMouseMove_ onMouseMoveHandler, width_ width, height_ height, className_ ("canvas" :: Text)] $
+        [ rect_ [x_ (0 :: Int), y_ (0 :: Int), width_ width, height_ height, fill_ ("#DDD" :: Text)] []
+        , circle_ [r_ (12 :: Int), cx_ (T.pack $ show x), cy_ (T.pack $ show y), fill_ ("magenta" :: Text)] []
         ] ++ circles (width, height) (floor x)
 
+    svgStyle :: Style
     svgStyle = M.fromList
         [ ("flex", "1")
         , ("display", "block")
