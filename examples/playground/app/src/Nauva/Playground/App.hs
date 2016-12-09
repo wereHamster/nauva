@@ -30,7 +30,7 @@ import           Nauva.View
 -- contains both 'Thunk's and 'Component's, to demonstrate that they all work
 -- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
 rootElement :: Int -> Element
-rootElement i = div_ [style_ rootStyle] $
+rootElement i = div_ [style_ rootStyle :: Attribute] $
     [ str_ $ "App Generation " <> (T.pack $ show i)
     , br_ []
     , thunk_ thunk (i `div` 2)
@@ -45,14 +45,14 @@ rootElement i = div_ [style_ rootStyle] $
 
   where
     rootStyle :: Style
-    rootStyle = M.fromList
+    rootStyle = Style $ M.fromList
         [ ("height", "100vh")
         , ("display", "flex")
         , ("flex-direction", "column")
         ]
 
     canvasContainerStyle :: Style
-    canvasContainerStyle = M.fromList
+    canvasContainerStyle = Style $ M.fromList
         [ ("flex", "1")
         , ("display", "flex")
         , ("flex-direction", "row")
@@ -236,7 +236,7 @@ canvas = Component
             Just (w,h) -> [svg ((x,y), (w, h))]
 
     style :: Style
-    style = M.fromList
+    style = Style $ M.fromList
         [ ("flex", "1")
         , ("display", "flex")
         ]
@@ -248,7 +248,7 @@ canvas = Component
         ] ++ circles (width, height) (floor x)
 
     svgStyle :: Style
-    svgStyle = M.fromList
+    svgStyle = Style $ M.fromList
         [ ("flex", "1")
         , ("display", "block")
         ]

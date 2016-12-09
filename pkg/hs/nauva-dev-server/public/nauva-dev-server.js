@@ -132,8 +132,7 @@ function getComponent(componentId) {
                 const { ws, path, spine, key } = this.props;
                 return spineToReact(ws, path, this.ctx, spine.spine, key);
             }
-        }
-        ;
+        };
         componentRegistry.set(componentId, component);
     }
     return component;

@@ -203,10 +203,14 @@ mkRefKey = RefKey $ unsafePerformIO $
 
 --------------------------------------------------------------------------------
 
-type Style = Map String String
+newtype Style = Style { runStyle :: Map String String }
+
+instance ToJSON Style where
+    toJSON = toJSON . runStyle
+
 
 noStyle :: Style
-noStyle = M.empty
+noStyle = Style M.empty
 
 
 
@@ -447,7 +451,7 @@ data SomeComponentInstance where
 data Attribute
     = AVAL !Text !AttributeValue
     | AEVL !EventListener
-    | ASTY !(Map String String)
+    | ASTY !Style
     | AREF !Ref
 
 instance ToJSON Attribute where
