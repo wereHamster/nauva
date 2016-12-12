@@ -33,17 +33,28 @@ makeTerm tag = unlines
 
 properties :: [String]
 properties =
-    [ "display"
-    , "height"
-    , "flex"
+    [ "background-color"
+    , "color"
+    , "display"
     , "flex-direction"
+    , "flex"
+    , "font-family"
+    , "font-size"
+    , "height"
+    , "line-height"
+    , "margin-left"
+    , "margin-right"
+    , "margin"
+    , "text-align"
     , "width"
     ]
 
 values :: [String]
 values =
     [ "block"
+    , "center"
     , "column"
+    , "right"
     , "row"
     ]
 
