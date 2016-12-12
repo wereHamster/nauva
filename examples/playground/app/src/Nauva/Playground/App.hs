@@ -45,18 +45,16 @@ rootElement i = div_ [style_ rootStyle :: Attribute] $
 
   where
     rootStyle :: Style
-    rootStyle = Style $ M.fromList
-        [ ("height", "100vh")
-        , ("display", "flex")
-        , ("flex-direction", "column")
-        ]
+    rootStyle = Style $ do
+        height (vh 100)
+        display flex
+        flexDirection column
 
     canvasContainerStyle :: Style
-    canvasContainerStyle = Style $ M.fromList
-        [ ("flex", "1")
-        , ("display", "flex")
-        , ("flex-direction", "row")
-        ]
+    canvasContainerStyle = Style $ do
+        flex "1"
+        display flex
+        flexDirection row
 
 
 thunk :: Thunk Int
@@ -236,10 +234,9 @@ canvas = Component
             Just (w,h) -> [svg ((x,y), (w, h))]
 
     style :: Style
-    style = Style $ M.fromList
-        [ ("flex", "1")
-        , ("display", "flex")
-        ]
+    style = Style $ do
+        flex "1"
+        display flex
 
     svg ((x,y), (width, height)) = svg_
         [style_ svgStyle, onMouseMove_ onMouseMoveHandler, width_ width, height_ height, className_ ("canvas" :: Text)] $
@@ -248,10 +245,9 @@ canvas = Component
         ] ++ circles (width, height) (floor x)
 
     svgStyle :: Style
-    svgStyle = Style $ M.fromList
-        [ ("flex", "1")
-        , ("display", "block")
-        ]
+    svgStyle = Style $ do
+        flex "1"
+        display block
 
 
 conMouse :: Con2 Float Float CanvasA

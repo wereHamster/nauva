@@ -16,7 +16,9 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable
 import           Data.Tagged
+import           Data.String
 
+import           Control.Monad.Writer.Lazy
 import           Control.Concurrent.STM
 
 import           System.IO.Unsafe
@@ -200,17 +202,37 @@ mkRefKey = RefKey $ unsafePerformIO $
 
 
 
-
 --------------------------------------------------------------------------------
+-- | The value-part of a CSS declaration. ie. whatever follows the colon. It
+-- is ulimately a string, which is why this is a newtype around 'Text'.
+-- You can make use of the 'IsString' instance or use one of the many helper
+-- functions which convert various types into a 'CSSValue' (eg. 'px', 'em', ...)
 
-newtype Style = Style { runStyle :: Map String String }
+newtype CSSValue = CSSValue { unCSSValue :: Text }
+
+instance ToJSON CSSValue where
+    toJSON = toJSON . unCSSValue
+
+instance FromJSON CSSValue where
+    parseJSON x = CSSValue <$> parseJSON x
+
+instance IsString CSSValue where
+    fromString = CSSValue . T.pack
+
+
+
+type StyleM = Writer [(Text, CSSValue)]
+newtype Style = Style { runStyle :: StyleM () }
 
 instance ToJSON Style where
-    toJSON = toJSON . runStyle
-
+    toJSON = toJSON . M.fromList . execWriter . runStyle
 
 noStyle :: Style
-noStyle = Style M.empty
+noStyle = Style (pure ())
+
+tellDeclaration :: Text -> Text -> StyleM ()
+tellDeclaration property value = tell [(property, CSSValue value)]
+
 
 
 

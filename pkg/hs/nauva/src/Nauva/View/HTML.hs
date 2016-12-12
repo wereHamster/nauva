@@ -2,12 +2,12 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE TypeFamilies      #-}
 
-module Nauva.View.Base where
+module Nauva.View.HTML where
 
 
 import           Data.Text (Text)
+import qualified Data.Text as T
 import           Data.Monoid
 import qualified Data.Aeson as A
 import           Data.Typeable
@@ -49,10 +49,6 @@ instance (Typeable p) => Term (Thunk p) (p -> Element) where
 
 instance (Typeable p, A.FromJSON a, Value h, Value a) => Term (Component p h s a) (p -> Element) where
     term _ = EComponent
-
-
-
-
 
 
 class With a where
