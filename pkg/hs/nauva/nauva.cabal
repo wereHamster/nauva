@@ -47,6 +47,9 @@ library
    , Nauva.View
    , Nauva.View.HTML
    , Nauva.View.CSS
+   , Nauva.View.CSS.Internal
+   , Nauva.View.CSS.Terms
+   , Nauva.View.CSS.Helpers
 
   build-depends:
      base >= 4.7 && < 5
