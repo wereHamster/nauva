@@ -1,11 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Nauva.View.CSS.Terms
-    ( backgroundColor
+module Nauva.CSS.Terms
+    ( alignItems
+    , auto
+    , backgroundColor
     , block
+    , border
     , center
     , color
     , column
+    , cursor
     , display
     , flex
     , flexDirection
@@ -16,15 +20,28 @@ module Nauva.View.CSS.Terms
     , margin
     , marginLeft
     , marginRight
+    , none
+    , outline
+    , padding
+    , pointer
     , right
     , row
+    , src
     , textAlign
     , width
     ) where
 
 
-import Nauva.View.CSS.Internal
+import Nauva.CSS.Types
 
+
+alignItems :: CSSTerm a => a
+alignItems = cssTerm "align-items"
+{-# INLINE alignItems #-}
+
+auto :: CSSTerm a => a
+auto = cssTerm "auto"
+{-# INLINE auto #-}
 
 backgroundColor :: CSSTerm a => a
 backgroundColor = cssTerm "background-color"
@@ -33,6 +50,10 @@ backgroundColor = cssTerm "background-color"
 block :: CSSTerm a => a
 block = cssTerm "block"
 {-# INLINE block #-}
+
+border :: CSSTerm a => a
+border = cssTerm "border"
+{-# INLINE border #-}
 
 center :: CSSTerm a => a
 center = cssTerm "center"
@@ -45,6 +66,10 @@ color = cssTerm "color"
 column :: CSSTerm a => a
 column = cssTerm "column"
 {-# INLINE column #-}
+
+cursor :: CSSTerm a => a
+cursor = cssTerm "cursor"
+{-# INLINE cursor #-}
 
 display :: CSSTerm a => a
 display = cssTerm "display"
@@ -86,6 +111,22 @@ marginRight :: CSSTerm a => a
 marginRight = cssTerm "margin-right"
 {-# INLINE marginRight #-}
 
+none :: CSSTerm a => a
+none = cssTerm "none"
+{-# INLINE none #-}
+
+outline :: CSSTerm a => a
+outline = cssTerm "outline"
+{-# INLINE outline #-}
+
+padding :: CSSTerm a => a
+padding = cssTerm "padding"
+{-# INLINE padding #-}
+
+pointer :: CSSTerm a => a
+pointer = cssTerm "pointer"
+{-# INLINE pointer #-}
+
 right :: CSSTerm a => a
 right = cssTerm "right"
 {-# INLINE right #-}
@@ -93,6 +134,10 @@ right = cssTerm "right"
 row :: CSSTerm a => a
 row = cssTerm "row"
 {-# INLINE row #-}
+
+src :: CSSTerm a => a
+src = cssTerm "src"
+{-# INLINE src #-}
 
 textAlign :: CSSTerm a => a
 textAlign = cssTerm "text-align"

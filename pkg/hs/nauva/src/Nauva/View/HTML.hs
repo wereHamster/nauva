@@ -16,6 +16,7 @@ import           Nauva.DOM
 import           Nauva.Internal.Types
 import           Nauva.Internal.Events
 import           Nauva.NJS
+import           Nauva.CSS
 
 
 class Term arg res | arg -> res where

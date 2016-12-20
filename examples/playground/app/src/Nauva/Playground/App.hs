@@ -45,13 +45,13 @@ rootElement i = div_ [style_ rootStyle :: Attribute] $
 
   where
     rootStyle :: Style
-    rootStyle = Style $ do
+    rootStyle = mkStyle $ do
         height (vh 100)
         display flex
         flexDirection column
 
     canvasContainerStyle :: Style
-    canvasContainerStyle = Style $ do
+    canvasContainerStyle = mkStyle $ do
         flex "1"
         display flex
         flexDirection row
@@ -114,10 +114,31 @@ component = Component
     view :: (Int, Text) -> Element
     view (i, t) = span_
         [ str_ $ "Component " <> (T.pack $ show i)
-        , button_ [onClick_ onClickHandler, value_ ("TheButtonValue" :: Text)] [str_ "Click Me!"]
+        , button_ [style_ buttonStyle, onClick_ onClickHandler, value_ ("TheButtonValue" :: Text)] [str_ "Click Me!"]
         , input_ [onChange_ onChangeHandler, value_ t] []
         , str_ t
         ]
+
+    buttonStyle :: Style
+    buttonStyle = mkStyle $ do
+        fontFamily_ $ do
+            src "local('GeosansLight-NMS')"
+
+        outline none
+        border none
+        fontSize (px 18)
+
+        padding (px 4) (px 8) (px 5)
+
+        backgroundColor "black"
+        color "white"
+
+        onHover $ do
+            backgroundColor "green"
+
+        media "max-width: 400px" $ do
+            color "red"
+            
 
 conDoClick :: Con1 Text Action
 conDoClick = njsCon1 "DoClick" DoClick
@@ -234,7 +255,7 @@ canvas = Component
             Just (w,h) -> [svg ((x,y), (w, h))]
 
     style :: Style
-    style = Style $ do
+    style = mkStyle $ do
         flex "1"
         display flex
 
@@ -245,7 +266,7 @@ canvas = Component
         ] ++ circles (width, height) (floor x)
 
     svgStyle :: Style
-    svgStyle = Style $ do
+    svgStyle = mkStyle $ do
         flex "1"
         display block
 

@@ -1,5 +1,5 @@
-name:                nauva
-version:             0.1.0
+name:                nauva-css
+version:             0.0.0
 
 synopsis:            It will. It will be good.
 description:         React in Haskell.
@@ -37,15 +37,9 @@ library
     ghc-options:       -Wall -Werror
 
   exposed-modules:
-     Nauva.Handle
-   , Nauva.Static
-   , Nauva.NJS
-   , Nauva.NJS.Language
-   , Nauva.Internal.Types
-   , Nauva.DOM
-   , Nauva.Internal.Events
-   , Nauva.View
-   , Nauva.View.HTML
+     Nauva.CSS.Helpers
+   , Nauva.CSS.Terms
+   , Nauva.CSS.Types
 
   build-depends:
      base >= 4.7 && < 5
@@ -59,4 +53,4 @@ library
    , blaze-html
    , tagged
    , scientific
-   , nauva-css
+   , siphash
