@@ -2,12 +2,14 @@
 
 module Nauva.CSS.Terms
     ( alignItems
+    , auto
     , backgroundColor
     , block
     , border
     , center
     , color
     , column
+    , cursor
     , display
     , flex
     , flexDirection
@@ -20,6 +22,8 @@ module Nauva.CSS.Terms
     , marginRight
     , none
     , outline
+    , padding
+    , pointer
     , right
     , row
     , src
@@ -34,6 +38,10 @@ import Nauva.CSS.Types
 alignItems :: CSSTerm a => a
 alignItems = cssTerm "align-items"
 {-# INLINE alignItems #-}
+
+auto :: CSSTerm a => a
+auto = cssTerm "auto"
+{-# INLINE auto #-}
 
 backgroundColor :: CSSTerm a => a
 backgroundColor = cssTerm "background-color"
@@ -58,6 +66,10 @@ color = cssTerm "color"
 column :: CSSTerm a => a
 column = cssTerm "column"
 {-# INLINE column #-}
+
+cursor :: CSSTerm a => a
+cursor = cssTerm "cursor"
+{-# INLINE cursor #-}
 
 display :: CSSTerm a => a
 display = cssTerm "display"
@@ -106,6 +118,14 @@ none = cssTerm "none"
 outline :: CSSTerm a => a
 outline = cssTerm "outline"
 {-# INLINE outline #-}
+
+padding :: CSSTerm a => a
+padding = cssTerm "padding"
+{-# INLINE padding #-}
+
+pointer :: CSSTerm a => a
+pointer = cssTerm "pointer"
+{-# INLINE pointer #-}
 
 right :: CSSTerm a => a
 right = cssTerm "right"

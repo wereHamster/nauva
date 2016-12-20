@@ -251,8 +251,17 @@ class CSSTerm a where
 instance CSSTerm CSSValue where
     cssTerm = CSSValue
 
-instance (a ~ (), v ~ CSSValue) => CSSTerm (v -> Writer [Statement] a) where
-    cssTerm property value = tell [SEmit $ DPlain property value]
+instance (a ~ (), v1 ~ CSSValue) => CSSTerm (v1 -> Writer [Statement] a) where
+    cssTerm property v1 = tell [SEmit $ DPlain property v1]
+
+instance (a ~ (), v1 ~ CSSValue, v2 ~ CSSValue) => CSSTerm (v1 -> v2 -> Writer [Statement] a) where
+    cssTerm property (CSSValue v1) (CSSValue v2) = tell [SEmit $ DPlain property $ CSSValue $ v1 <> " " <> v2]
+
+instance (a ~ (), v1 ~ CSSValue, v2 ~ CSSValue, v3 ~ CSSValue) => CSSTerm (v1 -> v2 -> v3 -> Writer [Statement] a) where
+    cssTerm property (CSSValue v1) (CSSValue v2) (CSSValue v3) = tell [SEmit $ DPlain property $ CSSValue $ v1 <> " " <> v2 <> " " <> v3]
+
+instance (a ~ (), v1 ~ CSSValue, v2 ~ CSSValue, v3 ~ CSSValue, v4 ~ CSSValue) => CSSTerm (v1 -> v2 -> v3 -> v4 -> Writer [Statement] a) where
+    cssTerm property (CSSValue v1) (CSSValue v2) (CSSValue v3) (CSSValue v4) = tell [SEmit $ DPlain property $ CSSValue $ v1 <> " " <> v2 <> " " <> v3 <> " " <> v4]
 
 instance (a ~ (), v ~ CSSValue) => CSSTerm (v -> Writer [CSSDeclaration] a) where
     cssTerm property value = tell [(property, value)]

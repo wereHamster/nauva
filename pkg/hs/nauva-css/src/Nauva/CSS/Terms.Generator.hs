@@ -38,6 +38,7 @@ properties =
     , "background-color"
     , "border"
     , "color"
+    , "cursor"
     , "display"
     , "flex-direction"
     , "flex"
@@ -49,6 +50,7 @@ properties =
     , "margin-right"
     , "margin"
     , "outline"
+    , "padding"
     , "src"
     , "text-align"
     , "width"
@@ -57,10 +59,12 @@ properties =
 -- Terms which only appear as values.
 values :: [String]
 values =
-    [ "block"
+    [ "auto"
+    , "block"
     , "center"
     , "column"
     , "none"
+    , "pointer"
     , "right"
     , "row"
     ]

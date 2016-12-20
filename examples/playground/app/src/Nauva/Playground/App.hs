@@ -128,6 +128,8 @@ component = Component
         border none
         fontSize (px 18)
 
+        padding (px 4) (px 8) (px 5)
+
         backgroundColor "black"
         color "white"
 
