@@ -31,10 +31,12 @@ makeTerm tag = unlines
   where
     function = sanitize tag
 
+-- Terms which can appear both as properties and values.
 properties :: [String]
 properties =
     [ "align-items"
     , "background-color"
+    , "border"
     , "color"
     , "display"
     , "flex-direction"
@@ -46,15 +48,19 @@ properties =
     , "margin-left"
     , "margin-right"
     , "margin"
+    , "outline"
+    , "src"
     , "text-align"
     , "width"
     ]
 
+-- Terms which only appear as values.
 values :: [String]
 values =
     [ "block"
     , "center"
     , "column"
+    , "none"
     , "right"
     , "row"
     ]

@@ -4,6 +4,7 @@ module Nauva.CSS.Terms
     ( alignItems
     , backgroundColor
     , block
+    , border
     , center
     , color
     , column
@@ -17,8 +18,11 @@ module Nauva.CSS.Terms
     , margin
     , marginLeft
     , marginRight
+    , none
+    , outline
     , right
     , row
+    , src
     , textAlign
     , width
     ) where
@@ -38,6 +42,10 @@ backgroundColor = cssTerm "background-color"
 block :: CSSTerm a => a
 block = cssTerm "block"
 {-# INLINE block #-}
+
+border :: CSSTerm a => a
+border = cssTerm "border"
+{-# INLINE border #-}
 
 center :: CSSTerm a => a
 center = cssTerm "center"
@@ -91,6 +99,14 @@ marginRight :: CSSTerm a => a
 marginRight = cssTerm "margin-right"
 {-# INLINE marginRight #-}
 
+none :: CSSTerm a => a
+none = cssTerm "none"
+{-# INLINE none #-}
+
+outline :: CSSTerm a => a
+outline = cssTerm "outline"
+{-# INLINE outline #-}
+
 right :: CSSTerm a => a
 right = cssTerm "right"
 {-# INLINE right #-}
@@ -98,6 +114,10 @@ right = cssTerm "right"
 row :: CSSTerm a => a
 row = cssTerm "row"
 {-# INLINE row #-}
+
+src :: CSSTerm a => a
+src = cssTerm "src"
+{-# INLINE src #-}
 
 textAlign :: CSSTerm a => a
 textAlign = cssTerm "text-align"

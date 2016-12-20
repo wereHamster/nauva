@@ -122,10 +122,10 @@ component = Component
     buttonStyle :: Style
     buttonStyle = mkStyle $ do
         fontFamily_ $ do
-            cssTerm "src" "local('GeosansLight-NMS')"
+            src "local('GeosansLight-NMS')"
 
-        cssTerm "outline" "none"
-        cssTerm "border" "none"
+        outline none
+        border none
         fontSize (px 18)
 
         backgroundColor "black"
