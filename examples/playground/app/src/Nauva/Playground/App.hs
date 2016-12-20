@@ -133,6 +133,9 @@ component = Component
 
         onHover $ do
             backgroundColor "green"
+
+        media "max-width: 400px" $ do
+            color "red"
             
 
 conDoClick :: Con1 Text Action

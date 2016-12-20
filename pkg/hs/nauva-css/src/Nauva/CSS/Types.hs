@@ -80,14 +80,15 @@ type CSSStyleDeclaration = [CSSDeclaration]
 -- the same 'CSSRule' multiple times.
 
 data CSSRule
-    = CSSStyleRule !Hash ![Suffix] !CSSStyleDeclaration
+    = CSSStyleRule !Hash ![Condition] ![Suffix] !CSSStyleDeclaration
     | CSSFontFaceRule !Hash !CSSStyleDeclaration
     deriving (Show)
 
 instance A.ToJSON CSSRule where
-    toJSON (CSSStyleRule hash suffixes styleDeclaration) = A.toJSON
+    toJSON (CSSStyleRule hash conditions suffixes styleDeclaration) = A.toJSON
         [ A.toJSON (1 :: Int)
         , A.toJSON hash
+        , A.toJSON conditions
         , A.toJSON suffixes
         , A.toJSON $ M.fromList styleDeclaration
         ]
@@ -107,6 +108,8 @@ instance A.ToJSON CSSRule where
 data Statement  
     = SEmit !Declaration
       -- ^ Emit a single CSS declaration into the current context.
+    | SCondition !Condition !(Writer [Statement] ())
+      -- ^ Wrap a block in a condition (@media or @supports).
     | SSuffix !Suffix !(Writer [Statement] ())
       -- ^ Wrap a block in a suffix (pseudo selector or pseudo class).
 
@@ -140,18 +143,19 @@ mkStyle = Style . execWriter . writeRules . M.toList . flatten . execWriter
   where
     -- Convert a list of statements into unique declaration blocks (unique by the
     -- context, which is the list of suffixes for now).
-    flatten :: [Statement] -> Map [Suffix] [Declaration]
-    flatten = foldl (go []) mempty
+    flatten :: [Statement] -> Map ([Condition], [Suffix]) [Declaration]
+    flatten = foldl (go ([],[])) mempty
       where
-        go k m (SEmit decl)  = M.insertWith (<>) k [decl] m
-        go k m (SSuffix s n) = foldl (go (k <> [s])) (M.insert (k <> [s]) [] m) (execWriter n)
+        go k       m (SEmit decl)     = M.insertWith (<>) k [decl] m
+        go (cs,ss) m (SCondition c n) = foldl (go (cs <> [c], ss)) (M.insert (cs <> [c], ss) [] m) (execWriter n)
+        go (cs,ss) m (SSuffix s n)    = foldl (go (cs, ss <> [s])) (M.insert (cs, ss <> [s]) [] m) (execWriter n)
 
     -- Convert a list of declaration blocks into a list of CSS rules. One declaration block
     -- may map to multiple CSS rules (in the presence of DFontFamily and other special
     -- declaration types).
-    writeRules :: [([Suffix], [Declaration])] -> Writer [CSSRule] ()
+    writeRules :: [(([Condition], [Suffix]), [Declaration])] -> Writer [CSSRule] ()
     writeRules [] = pure ()
-    writeRules ((suffixes, decls):xs) = do
+    writeRules (((conditions, suffixes), decls):xs) = do
         styleDeclaration <- forM decls $ \decl -> case decl of
             (DPlain property value) -> pure (property, value)
             (DFontFamily ffdecl) -> do
@@ -167,7 +171,7 @@ mkStyle = Style . execWriter . writeRules . M.toList . flatten . execWriter
                 pure ("font-family", fontFamily)
 
         let hash = cssStyleDeclarationHash styleDeclaration
-        tell [CSSStyleRule hash suffixes styleDeclaration]
+        tell [CSSStyleRule hash conditions suffixes styleDeclaration]
 
         writeRules xs 
 
@@ -200,7 +204,30 @@ cssStyleDeclarationHash = Hash . T.pack . show . unSipHash . hash sipKey . toStr
 
 
 -------------------------------------------------------------------------------
+-- | A condition under which a 'CSSStyleRule' should be active. Corresponds to
+-- @media and @supports conditional group rules.
+--
+-- NB. There is also @document, but it's weird and we don't support that.
+
+data Condition
+    = CMedia !Text
+    | CSupports !Text
+    deriving (Eq, Ord)
+
+instance Show Condition where
+    show (CMedia    x) = "@media(" <> T.unpack x <> ")"
+    show (CSupports x) = "@supports(" <> T.unpack x <> ")"
+
+instance A.ToJSON Condition where
+    toJSON (CMedia    x) = A.toJSON [A.toJSON (1 :: Int), A.toJSON x]
+    toJSON (CSupports x) = A.toJSON [A.toJSON (2 :: Int), A.toJSON x]
+
+
+
+-------------------------------------------------------------------------------
 -- | A suffix is a pseudo-class or pseudo-element.
+--
+-- The inner text includes any leading colons that are required by the selector.
 
 newtype Suffix = Suffix { unSuffix :: Text }
     deriving (Eq, Ord)

@@ -236,8 +236,9 @@ const renderCSSDeclarations = (() => {
     }, "");
 })();
 const cssRuleExText = (() => {
-    const wrapWithCondition = (c, text) => c.length === 0 ? text : wrapWithCondition(c.slice(1), c[0] + "{" + text + "}");
-    const cssStyleRuleExText = (rule) => wrapWithCondition([], [".",
+    const renderCondition = c => (c[0] == 1 ? `@media (` : `@supports (`) + c[1] + ')';
+    const wrapWithCondition = (c, text) => c.length === 0 ? text : wrapWithCondition(c.slice(1), renderCondition(c[0]) + "{" + text + "}");
+    const cssStyleRuleExText = (rule) => wrapWithCondition(rule.conditions, [".",
         's' + rule.hash,
         rule.suffixes.join(""),
         "{",
@@ -282,7 +283,7 @@ function spineToReact(ws, path, ctx, spine, key) {
             else if (k === 'ASTY') {
                 props.className = a.map(v => {
                     switch (v[0]) {
-                        case 1: return emitRule({ type: v[0], hash: v[1], suffixes: v[2], cssDeclarations: v[3] });
+                        case 1: return emitRule({ type: v[0], hash: v[1], conditions: v[2], suffixes: v[3], cssDeclarations: v[4] });
                         case 5: return emitRule({ type: v[0], hash: v[1], cssDeclarations: v[2] });
                     }
                 }).filter(x => x !== undefined).join(" ");

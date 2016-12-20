@@ -35,3 +35,6 @@ onHover style = tell [SSuffix ":hover" style]
 
 onActive :: Writer [Statement] () -> Writer [Statement] ()
 onActive style = tell [SSuffix ":active" style]
+
+media :: Text -> Writer [Statement] () -> Writer [Statement] ()
+media m style = tell [SCondition (CMedia m) style]
