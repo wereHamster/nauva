@@ -146,7 +146,7 @@ mkStyle = Style . execWriter . writeRules . M.toList . flatten . execWriter
     flatten :: [Statement] -> Map ([Condition], [Suffix]) [Declaration]
     flatten = foldl (go ([],[])) mempty
       where
-        go k       m (SEmit decl)     = M.insertWith (<>) k [decl] m
+        go k       m (SEmit decl)     = M.insertWith (flip (<>)) k [decl] m
         go (cs,ss) m (SCondition c n) = foldl (go (cs <> [c], ss)) (M.insert (cs <> [c], ss) [] m) (execWriter n)
         go (cs,ss) m (SSuffix s n)    = foldl (go (cs, ss <> [s])) (M.insert (cs, ss <> [s]) [] m) (execWriter n)
 
