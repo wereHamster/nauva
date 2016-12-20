@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Nauva.View.CSS.Terms
-    ( backgroundColor
+module Nauva.CSS.Terms
+    ( alignItems
+    , backgroundColor
     , block
     , center
     , color
@@ -23,8 +24,12 @@ module Nauva.View.CSS.Terms
     ) where
 
 
-import Nauva.View.CSS.Internal
+import Nauva.CSS.Types
 
+
+alignItems :: CSSTerm a => a
+alignItems = cssTerm "align-items"
+{-# INLINE alignItems #-}
 
 backgroundColor :: CSSTerm a => a
 backgroundColor = cssTerm "background-color"

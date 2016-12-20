@@ -1,4 +1,4 @@
-module Nauva.View.CSS.Terms.Generator (main) where
+module Nauva.CSS.Terms.Generator (main) where
 
 import Data.List (sort, nub)
 import Data.Char (toUpper)
@@ -15,7 +15,7 @@ sanitize str = removeDash str
 exportList :: [String] -> String
 exportList []            = error "exportList without functions."
 exportList (f:functions) = unlines $
-    [ "module Nauva.View.CSS.Terms"
+    [ "module Nauva.CSS.Terms"
     , "    ( " ++ f
     ] ++
     map ("    , " ++) functions ++
@@ -33,7 +33,8 @@ makeTerm tag = unlines
 
 properties :: [String]
 properties =
-    [ "background-color"
+    [ "align-items"
+    , "background-color"
     , "color"
     , "display"
     , "flex-direction"
@@ -68,7 +69,7 @@ main = do
         , ""
         , exportList (map sanitize terms)
         , ""
-        , "import Nauva.View.CSS.Internal"
+        , "import Nauva.CSS.Types"
         , ""
         , ""
         , unlines $ map makeTerm terms

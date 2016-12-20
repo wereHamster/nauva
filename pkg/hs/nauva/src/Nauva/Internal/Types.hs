@@ -28,7 +28,7 @@ import           Prelude
 import           Nauva.DOM
 import           Nauva.Internal.Events
 import           Nauva.NJS (Value, F1(..), F2(..), FRA, FRD, mkFID, njsCon0, holeE, value0E)
-
+import           Nauva.CSS.Types
 
 
 --------------------------------------------------------------------------------
@@ -199,40 +199,6 @@ refKeyCounter = unsafePerformIO $ newIORef 1
 mkRefKey :: RefKey
 mkRefKey = RefKey $ unsafePerformIO $
     atomicModifyIORef' refKeyCounter $ \i -> (i + 1, i)
-
-
-
---------------------------------------------------------------------------------
--- | The value-part of a CSS declaration. ie. whatever follows the colon. It
--- is ulimately a string, which is why this is a newtype around 'Text'.
--- You can make use of the 'IsString' instance or use one of the many helper
--- functions which convert various types into a 'CSSValue' (eg. 'px', 'em', ...)
-
-newtype CSSValue = CSSValue { unCSSValue :: Text }
-
-instance ToJSON CSSValue where
-    toJSON = toJSON . unCSSValue
-
-instance FromJSON CSSValue where
-    parseJSON x = CSSValue <$> parseJSON x
-
-instance IsString CSSValue where
-    fromString = CSSValue . T.pack
-
-
-
-type StyleM = Writer [(Text, CSSValue)]
-newtype Style = Style { runStyle :: StyleM () }
-
-instance ToJSON Style where
-    toJSON = toJSON . M.fromList . execWriter . runStyle
-
-noStyle :: Style
-noStyle = Style (pure ())
-
-tellDeclaration :: Text -> Text -> StyleM ()
-tellDeclaration property value = tell [(property, CSSValue value)]
-
 
 
 

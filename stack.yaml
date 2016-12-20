@@ -2,5 +2,6 @@ resolver: nightly-2016-11-03
 packages:
 - pkg/hs/nauva
 - pkg/hs/nauva-dev-server
+- pkg/hs/nauva-css
 - examples/playground/app
 - examples/playground/server
