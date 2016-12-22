@@ -37,7 +37,8 @@ library
     ghc-options:       -Wall -Werror
 
   exposed-modules:
-     Nauva.CSS.Helpers
+     Nauva.CSS
+   , Nauva.CSS.Helpers
    , Nauva.CSS.Terms
    , Nauva.CSS.Types
 
