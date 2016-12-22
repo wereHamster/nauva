@@ -5,3 +5,6 @@ packages:
 - pkg/hs/nauva-css
 - examples/playground/app
 - examples/playground/server
+
+extra-deps:
+- snap-blaze-0.2.1.4

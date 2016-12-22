@@ -8,6 +8,7 @@ module Nauva.Server.Settings
 
 
 import           Data.ByteString  (ByteString)
+import qualified Data.ByteString.Char8 as BS8
 import           Data.Monoid
 import           Data.FileEmbed   (embedDir)
 
@@ -15,11 +16,12 @@ import           System.Directory
 import           System.Environment
 import           System.FilePath
 
-import           Network.Wai.Application.Static
-
 import           Language.Haskell.TH (Q, Loc(loc_filename), location, runIO, reportWarning)
 
 import           Prelude
+
+import           Snap.Core (Snap, MonadSnap (..), route, addHeader, modifyResponse, writeBS)
+import           Snap.Util.FileServe (serveDirectory)
 
 
 
@@ -29,13 +31,20 @@ embeddedPublicDir = $(do
     embedDir $ (takeDirectory $ loc_filename loc) <> "/../../../public")
 
 
-mkStaticSettings :: IO StaticSettings
+mkStaticSettings :: IO (Snap ())
 mkStaticSettings = do
     mbPublicPath <- lookupEnv "NAUVA_PUBLIC_PATH"
     case mbPublicPath of
         Nothing -> do
             putStrLn $ "Nauva.Server: serving embedded files"
-            pure $ embeddedSettings embeddedPublicDir
+            pure $ route $ map toRoute embeddedPublicDir
         Just publicPath -> do
             putStrLn $ "Nauva.Server: serving files from " <> publicPath
-            pure $ defaultFileServerSettings publicPath
+            pure $ serveDirectory publicPath
+
+toRoute :: MonadSnap m => (FilePath, ByteString) -> (ByteString, m ())
+toRoute (path, content) =
+    ( BS8.pack path, do
+        -- modifyResponse $ addHeader "Content-Type" "text/html; charset=UTF-8"
+        writeBS content
+    )

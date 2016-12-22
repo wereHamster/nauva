@@ -103,7 +103,7 @@ function loadingScreen() {
 
 
 function runClient() {
-    const ws = new WebSocket('ws://localhost:8000');
+    const ws = new WebSocket('ws://localhost:8000/ws');
 
     ws.addEventListener('message', msg => {
         // console.time('JSON.parse');

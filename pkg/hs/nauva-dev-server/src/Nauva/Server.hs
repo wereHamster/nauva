@@ -11,8 +11,16 @@ import           Data.Default
 import           Data.Text             (Text)
 import qualified Data.Aeson            as A
 import           Data.ByteString       (ByteString)
+import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy  as LBS
+import           Data.Monoid
+import           Data.String
 
+import qualified Text.Blaze.Html5               as H
+import qualified Text.Blaze.Html5.Attributes    as A
+import qualified Text.Blaze.Html.Renderer.Utf8  as H
+
+import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
@@ -22,30 +30,17 @@ import           System.Directory
 import           Nauva.Handle
 import           Nauva.Internal.Types
 
-import           Network.Wai.Handler.Warp
-import           Network.Wai.Handler.WebSockets (websocketsOr)
-import           Network.Wai.Application.Static
-import           Network.Wai.Middleware.RequestLogger
-
 import qualified Network.WebSockets as WS
+import           Network.WebSockets.Snap
 
-
--- The actual module that is imported is selected in the cabal file,
--- depending on flags. It contains a function which generates the settings
--- for 'staticApp'. We have two modes:
---
---  - Embed files directly into the binary (by use of file-embed). This
---    is useful when building the production build of the binary. It makes
---    deployment easier (single binary without any external dependencies,
---    well, beyond the GHC runtime). But it doesn't work well with GHCi,
---    as GHCi won't recompile the Haskell module when any of the embedded
---    files change.
---
---  - Load the files from a directory on the filesystem. This is useful
---    when you are developing nauva-dev-server and are frequently editing
---    those files.
+import           Snap.Core           (path, pass)
+import           Snap.Http.Server    (ConfigLog(..), httpServe, setPort, setAccessLog, setErrorLog)
+import           Snap.Util.FileServe (serveDirectory)
+import           Snap.Blaze          (blaze)
 
 import           Nauva.Server.Settings (mkStaticSettings)
+
+import           Prelude
 
 
 
@@ -53,9 +48,20 @@ data Config = Config
     { cPort :: Int
       -- ^ The HTTP port on which the server will listen and accept WebSocket
       -- connections.
+
     , cElement :: Element
       -- ^ The root elment of the application. This will be rendered into the
       -- Handle once.
+
+    , cPublicDir :: Maybe String
+      -- ^ If present, files from this directory will be made available to the
+      -- client. These files are served /after/ the stuff that is needed by
+      -- nauva.
+
+    , cHead :: H.Html
+      -- ^ Extra stuff to inject into the HTML <head>. It is added /after/
+      -- the code that is needed by nauva. In particular, it means that
+      -- React and ReactDOM are available to scripts loaded here.
     }
 
 
@@ -81,11 +87,19 @@ runServer c = do
         LBS.writeFile "snapshot.json" (A.encode m)
 
 
-    logger <- mkRequestLogger def
-    staticSettings <- mkStaticSettings
-    run (cPort c) $ logger $ websocketsOr WS.defaultConnectionOptions
-        (websocketApplication nauvaH)
-        (staticApp staticSettings)
+    staticApp <- mkStaticSettings
+
+    let config = setPort (cPort c) . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
+    httpServe config $ foldl1 (<|>)
+        [ path "ws" (runWebSocketsSnap (websocketApplication nauvaH))
+        , staticApp
+
+        , case cPublicDir c of
+            Nothing -> pass
+            Just publicDir -> serveDirectory publicDir
+
+        , blaze $ index $ cHead c
+        ]
 
 
 websocketApplication :: Handle -> WS.PendingConnection -> IO ()
@@ -154,3 +168,20 @@ instance A.FromJSON Message where
                 <*> A.parseJSON value
 
             _ -> fail "Message"
+
+
+index :: H.Html -> H.Html
+index headExtras = H.docTypeHtml $ do
+    H.head $ do
+        H.title "Nauva Dev Server"
+
+        H.script H.! A.src "/react.min.js" $ ""
+        H.script H.! A.src "/react-dom.min.js" $ ""
+
+        H.link H.! A.rel "stylesheet" H.! A.type_ "text/css" H.! A.href "/nauva-dev-server.css"
+
+        headExtras
+
+    H.body $ do
+        H.div H.! A.id "root" $ ""
+        H.script H.! A.src "/nauva-dev-server.js" $ ""

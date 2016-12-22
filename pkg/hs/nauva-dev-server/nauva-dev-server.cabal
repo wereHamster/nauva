@@ -59,11 +59,12 @@ library
    , data-default
    , directory
    , websockets
-   , wai-extra
-   , wai-app-static
-   , wai-websockets
-   , warp
    , file-embed
    , nauva
    , template-haskell
    , filepath
+   , snap
+   , snap-core
+   , snap-server
+   , snap-blaze
+   , websockets-snap
