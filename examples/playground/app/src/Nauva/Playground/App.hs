@@ -115,7 +115,7 @@ component = Component
     view (i, t) = span_
         [ str_ $ "Component " <> (T.pack $ show i)
         , button_ [style_ buttonStyle, onClick_ onClickHandler, value_ ("TheButtonValue" :: Text)] [str_ "Click Me!"]
-        , input_ [onChange_ onChangeHandler, value_ t] []
+        , input_ [onChange_ onChangeHandler, value_ t]
         , str_ t
         ]
 
@@ -138,7 +138,7 @@ component = Component
 
         media "max-width: 400px" $ do
             color "red"
-            
+
 
 conDoClick :: Con1 Text Action
 conDoClick = njsCon1 "DoClick" DoClick

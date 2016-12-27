@@ -46,6 +46,8 @@ library
    , Nauva.Internal.Events
    , Nauva.View
    , Nauva.View.HTML
+   , Nauva.View.Types
+   , Nauva.View.Terms
 
   build-depends:
      base >= 4.7 && < 5

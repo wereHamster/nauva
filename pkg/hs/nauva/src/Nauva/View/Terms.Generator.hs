@@ -1,0 +1,113 @@
+module Nauva.View.Terms.Generator (main) where
+
+import Data.List (sort, nub)
+import Data.Char (toUpper)
+
+
+sanitize :: String -> String
+sanitize str = removeDash str ++ "_"
+  where
+    removeDash ('-' : x : xs) = toUpper x : removeDash xs
+    removeDash (x : xs)       = x : removeDash xs
+    removeDash []             = []
+
+
+exportList :: [String] -> String
+exportList []            = error "exportList without functions."
+exportList (f:functions) = unlines $
+    [ "module Nauva.View.Terms"
+    , "    ( " ++ f
+    ] ++
+    map ("    , " ++) functions ++
+    [ "    ) where"]
+
+
+makeVoidTerm :: String -> String
+makeVoidTerm tag = unlines
+    [ function ++ " :: [Attribute] -> Element"
+    , function ++ " = with (ENode \"" ++ tag ++ "\" [] [])"
+    , "{-# INLINE " ++ function ++ " #-}"
+    ]
+  where
+    function = sanitize tag
+
+makeTerm :: String -> String
+makeTerm tag = unlines
+    [ function ++ " :: Term arg res => arg -> res"
+    , function ++ " = term \"" ++ tag ++ "\""
+    , "{-# INLINE " ++ function ++ " #-}"
+    ]
+  where
+    function = sanitize tag
+
+
+-- For distinction between void and normal elements, please refer to
+-- https://www.w3.org/TR/html5/syntax.html#elements-0
+
+voidElements :: [String]
+voidElements =
+    [ "area"
+    , "base"
+    , "br"
+    , "col"
+    , "embed"
+    , "hr"
+    , "img"
+    , "input"
+    , "keygen"
+    , "link"
+    , "meta"
+    , "param"
+    , "source"
+    , "track"
+    , "wbr"
+    ]
+
+normalElements :: [String]
+normalElements =
+    [ "a"
+    , "div"
+    , "span"
+    , "button"
+    , "circle"
+    , "svg"
+    , "rect"
+    , "style"
+    , "value"
+    ]
+
+attributes :: [String]
+attributes =
+    [ "className"
+    , "width"
+    , "height"
+    , "r"
+    , "x"
+    , "y"
+    , "cx"
+    , "cy"
+    , "fill"
+    , "ref"
+    ]
+
+terms :: [String]
+terms = nub $ sort $ voidElements ++ normalElements ++ attributes
+
+main :: IO ()
+main = do
+    putStr $ removeTrailingNewlines $ unlines
+        [ "{-# LANGUAGE OverloadedStrings #-}"
+        , ""
+        , exportList (map sanitize terms)
+        , ""
+        , "import Nauva.Internal.Types"
+        , "import Nauva.View.Types"
+        , ""
+        , ""
+        , unlines $ map makeVoidTerm (nub $ sort $ voidElements)
+        , ""
+        , unlines $ map makeTerm (nub $ sort $ normalElements ++ attributes)
+        ]
+
+  where
+    removeTrailingNewlines = reverse . drop 2 . reverse
