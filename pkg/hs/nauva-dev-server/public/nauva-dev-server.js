@@ -67,6 +67,9 @@ function loadingScreen() {
 }
 function runClient() {
     const ws = new WebSocket('ws://localhost:8000/ws');
+    ws.addEventListener('open', () => {
+        ws.send(JSON.stringify(['location', window.location.pathname]));
+    });
     ws.addEventListener('message', msg => {
         // console.time('JSON.parse');
         const data = JSON.parse(msg.data);

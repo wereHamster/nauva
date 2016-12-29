@@ -90,7 +90,7 @@ component :: Component Int () (Int, Text) Action
 component = Component
     { componentId = mkComponentId
     , componentDisplayName = "app-display-name"
-    , initialComponentState = \i -> (i, "")
+    , initialComponentState = \i -> pure ((i, ""), [])
     , componentEventListeners = \_ -> []
     , componentHooks = constHooks
     , receiveProps = receiveProps'
@@ -109,7 +109,7 @@ component = Component
     update' (DoClick t) (i, _) = ((i, t), [pure DoThis])
     update' (DoChange t) (i, _) = ((i, t), [pure DoThis])
 
-    receiveProps' p (_, t) = ((p, t), [pure DoThat])
+    receiveProps' p (_, t) = pure ((p, t), [], [pure DoThat])
 
     view :: (Int, Text) -> Element
     view (i, t) = span_
@@ -205,7 +205,7 @@ canvas = Component
     , componentDisplayName = "Canvas"
     , initialComponentState = \_ ->
         let refKey = mkRefKey
-        in CanvasS (0,0) refKey (onResizeHandler refKey) Nothing
+        in pure (CanvasS (0,0) refKey (onResizeHandler refKey) Nothing, [])
     , componentEventListeners = \(CanvasS _ _ onResizeH _) ->
         [onResize onResizeH]
     , componentHooks = Hooks
@@ -225,7 +225,7 @@ canvas = Component
     update' (Mouse x y)   (CanvasS _ refKey onResizeH s) = (CanvasS (x, y - 100) refKey onResizeH s, [])
     update' (SetSize w h) (CanvasS m refKey onResizeH _) = (CanvasS m refKey onResizeH (Just (floor w, floor h)), [])
 
-    receiveProps' () s = (s, [])
+    receiveProps' () s = pure (s, [], [])
 
     numCircles = 100
 

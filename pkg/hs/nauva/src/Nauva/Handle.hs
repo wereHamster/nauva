@@ -10,6 +10,7 @@ module Nauva.Handle
     , executeEffects
     , applyAction
     , contextForPath
+    , processSignals
 
     , render
     , dispatchEvent
@@ -163,7 +164,7 @@ contextForPath h path = do
             state <- lift $ readTMVar stateRef
             let sci = SomeComponentInstance $ ComponentInstance path component stateRef
             go (Just sci) (Path []) $ componentInstance state
-        
+
     go mbSCI (Path (key:rest)) inst = case inst of
         (IText _) -> do
             throwError $ "contextForPath: IText doesn't have any children"
@@ -201,7 +202,7 @@ dispatchEvent h path rawEvent = do
                     Left e -> error $ show e
                     Right action -> applyAction h action ci
             _ -> throwError $ "dispatchEvent: no context for path " ++ show path
-            
+
     case res of
         Left e -> pure $ Left e
         Right effect -> do
@@ -243,7 +244,7 @@ dispatchHook h path rawValue = do
                         state <- takeTMVar stateRef
                         let (newState, actions) = processLifecycleEvent component value (componentState state)
                         newInst <- instantiate $ renderComponent component newState
-                        putTMVar stateRef (State newState newInst)
+                        putTMVar stateRef (State newState (componentSignals state) newInst)
                         writeTChan (changeSignal h) (ChangeComponent path inst)
                         pure actions
 
@@ -351,12 +352,12 @@ toSpine inst = case inst of
 
 
 
-sendProps :: Component p h s a -> TMVar (State s) -> p -> STM [IO a]
+sendProps :: Component p h s a -> TMVar (State s a) -> p -> STM [IO a]
 sendProps component stateRef newProps = do
     state <- takeTMVar stateRef
-    let (newState, actions) = receiveProps component newProps (componentState state)
+    (newState, signals, actions) <- receiveProps component newProps (componentState state)
     inst <- instantiate $ renderComponent component newState
-    putTMVar stateRef $ State newState inst
+    putTMVar stateRef $ State newState signals inst
     pure actions
 
 
@@ -366,7 +367,7 @@ applyAction h action (ComponentInstance path component stateRef) = do
     state <- takeTMVar stateRef
     let (newState, actions) = update component action (componentState state)
     newInst <- instantiate $ renderComponent component newState
-    putTMVar stateRef (State newState newInst)
+    putTMVar stateRef (State newState (componentSignals state) newInst)
     writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
     pure $ Effect (ComponentInstance path component stateRef) actions
 
@@ -388,9 +389,9 @@ instantiate el = case el of
         IThunk thunk p <$> instantiate (forceThunk thunk p)
 
     (EComponent component p) -> do
-        let s = initialComponentState component p
+        (s, signals) <- initialComponentState component p
         inst <- instantiate $ renderComponent component s
-        IComponent component <$> newTMVar (State s inst)
+        IComponent component <$> newTMVar (State s signals inst)
 
 
 executeEffects :: Handle -> [Effect] -> IO ()
@@ -413,6 +414,7 @@ executeEffects h effects = do
 --
 -- Internally, a 'Snapshot' is a map from component instance paths to their
 -- serialized state snapshot.
+
 newtype Snapshot = Snapshot { unSnapshot :: Map [Key] A.Value }
 
 instance A.ToJSON Snapshot where
@@ -440,7 +442,7 @@ createSnapshot h = Snapshot <$> execWriterT (do
             go path childI
 
         (IComponent component stateRef) -> do
-            State s _ <- lift $ readTMVar stateRef
+            State s _ _ <- lift $ readTMVar stateRef
             tell $ M.singleton path $ componentSnapshot component s
 
 
@@ -480,7 +482,52 @@ restoreSnapshot h snapshot = do
                         Right (newState, effects) -> do
                             tell [Effect (ComponentInstance (Path path) component stateRef) effects]
                             newInst <- lift $ instantiate $ renderComponent component newState
-                            pure $ State newState newInst
+                            pure $ State newState (componentSignals state) newInst
 
             lift $ putTMVar stateRef newState
             go path (componentInstance newState)
+
+
+
+-- | Go through the instance tree once, and process all signal channels which
+-- have a value in them that is ready to be consumed.
+--
+-- The tree is traversed breadth-first.
+
+processSignals :: Handle -> IO ()
+processSignals h = do
+    effects <- atomically $ do
+        currentInstance <- takeTMVar (hInstance h)
+        someSignals <- execWriterT $ go [] currentInstance
+        putTMVar (hInstance h) currentInstance
+
+        effects <- forM someSignals $ \(SomeSignal ci@(ComponentInstance path component stateRef) (Signal chan f)) -> do
+            mbA <- tryReadTChan chan
+            case mbA of
+                Nothing -> pure []
+                Just a  -> do
+                    state <- takeTMVar stateRef
+                    let (newState, actions) = f a (componentState state)
+                    newInst <- instantiate $ renderComponent component newState
+                    putTMVar stateRef (State newState (componentSignals state) newInst)
+                    writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
+                    pure $ [Effect ci actions]
+
+        pure $ mconcat effects
+
+    executeEffects h effects
+
+  where
+    go :: [Key] -> Instance -> WriterT [SomeSignal] STM ()
+    go path inst = case inst of
+        (IText _)                       -> pure ()
+
+        (INode _ _ children)            -> do
+            forM_ children $ \(key, childI) -> go (path <> [key]) childI
+
+        (IThunk _ _ childI)             -> go path childI
+
+        (IComponent component stateRef) -> do
+            (State _ signals childI) <- lift $ readTMVar stateRef
+            tell $ map (SomeSignal (ComponentInstance (Path path) component stateRef)) signals
+            go path childI

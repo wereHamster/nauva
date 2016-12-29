@@ -39,10 +39,10 @@ import           Prelude
 -- that the way how Nauva 'Attribute's are converted into blaze-markup
 -- Attributes is not accurate: 'Nauva' models them after IDL attributes, while
 -- 'blaze-html' uses content attributes.
-elementToMarkup :: Element -> B.Html
+elementToMarkup :: Element -> STM B.Html
 elementToMarkup el = case el of
     (EText text) ->
-        B.toMarkup text
+        pure $ B.toMarkup text
 
     (ENode tag attributes children) ->
         let tagString = T.unpack $ unTag tag
@@ -54,14 +54,14 @@ elementToMarkup el = case el of
                 AVInt i -> B.stringValue $ show i
                 AVDouble d -> B.stringValue $ show d
             parentWithAttributes = foldl (\a b -> a B.! b) parent attrs
-        in parentWithAttributes (mconcat $ map elementToMarkup children)
+        in parentWithAttributes <$> (mconcat <$> mapM elementToMarkup children)
 
     (EThunk thunk p) ->
         elementToMarkup $ forceThunk thunk p
 
-    (EComponent component p) ->
-        elementToMarkup $ renderComponent component $
-            initialComponentState component p
+    (EComponent component p) -> do
+        (s, _) <- initialComponentState component p
+        elementToMarkup $ renderComponent component s
 
 
 -- | Not implemented yet!
