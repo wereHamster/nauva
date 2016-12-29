@@ -352,7 +352,7 @@ toSpine inst = case inst of
 
 
 
-sendProps :: Component p h s a -> TMVar (State s a) -> p -> STM [IO a]
+sendProps :: Component p h s a -> TMVar (State s a) -> p -> STM [IO (Maybe a)]
 sendProps component stateRef newProps = do
     state <- takeTMVar stateRef
     (newState, signals, actions) <- receiveProps component newProps (componentState state)
@@ -398,9 +398,12 @@ executeEffects :: Handle -> [Effect] -> IO ()
 executeEffects h effects = do
     forM_ effects $ \(Effect ci actions) -> do
         forM_ actions $ \m -> forkIO $ do
-            a <- m
-            nextEffect <- atomically $ applyAction h a ci
-            executeEffects h [nextEffect]
+            mbA <- m
+            case mbA of
+                Nothing -> pure ()
+                Just a -> do
+                    nextEffect <- atomically $ applyAction h a ci
+                    executeEffects h [nextEffect]
 
 
 --------------------------------------------------------------------------------

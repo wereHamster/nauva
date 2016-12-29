@@ -104,12 +104,12 @@ component = Component
     }
 
   where
-    update' DoThat s = (s, [pure DoThis])
+    update' DoThat s = (s, [pure $ Just DoThis])
     update' DoThis s = (s, [])
-    update' (DoClick t) (i, _) = ((i, t), [pure DoThis])
-    update' (DoChange t) (i, _) = ((i, t), [pure DoThis])
+    update' (DoClick t) (i, _) = ((i, t), [pure $ Just DoThis])
+    update' (DoChange t) (i, _) = ((i, t), [pure $ Just DoThis])
 
-    receiveProps' p (_, t) = pure ((p, t), [], [pure DoThat])
+    receiveProps' p (_, t) = pure ((p, t), [], [pure $ Just DoThat])
 
     view :: (Int, Text) -> Element
     view (i, t) = span_
@@ -221,7 +221,7 @@ canvas = Component
     }
 
   where
-    update' :: CanvasA -> CanvasS -> (CanvasS, [IO CanvasA])
+    update' :: CanvasA -> CanvasS -> (CanvasS, [IO (Maybe CanvasA)])
     update' (Mouse x y)   (CanvasS _ refKey onResizeH s) = (CanvasS (x, y - 100) refKey onResizeH s, [])
     update' (SetSize w h) (CanvasS m refKey onResizeH _) = (CanvasS m refKey onResizeH (Just (floor w, floor h)), [])
 

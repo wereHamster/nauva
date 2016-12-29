@@ -343,22 +343,22 @@ data Component p h s a = Component
       -- ^ This describes how lifecycle events (on the client) are translated
       -- into values of type 'h'.
 
-    , processLifecycleEvent :: h -> s -> (s, [IO a])
+    , processLifecycleEvent :: h -> s -> (s, [IO (Maybe a)])
       -- ^ Allows the App to act on lifecycle events.
 
-    , receiveProps :: p -> s -> STM (s, [Signal s a], [IO a])
+    , receiveProps :: p -> s -> STM (s, [Signal s a], [IO (Maybe a)])
       -- ^ When the component receives new props from its parent. This only
       -- happens if the component is embedded inside inside another 'Element'
       -- in the tree.
 
-    , update :: a -> s -> (s, [IO a])
+    , update :: a -> s -> (s, [IO (Maybe a)])
     , renderComponent :: s -> Element
 
     , componentSnapshot :: s -> A.Value
       -- ^ Extract the essential parts from the state and generate a 'Value'
       -- for the 'Snapshot'.
 
-    , restoreComponent :: A.Value -> s -> Either String (s, [IO a])
+    , restoreComponent :: A.Value -> s -> Either String (s, [IO (Maybe a)])
       -- ^ Restore the state from a 'Value' which is loaded from a 'Snapshot'.
     }
 
@@ -403,7 +403,7 @@ data State s a = State
 -- Signals act as an additional source of inputs into a 'Component'.
 
 data Signal s a where
-    Signal :: TChan i -> (i -> s -> (s, [IO a])) -> Signal s a
+    Signal :: TChan i -> (i -> s -> (s, [IO (Maybe a)])) -> Signal s a
 
 data SomeSignal where
     SomeSignal :: (Typeable p, A.FromJSON a, Value h, Value a) => ComponentInstance p h s a -> Signal s a -> SomeSignal
@@ -420,7 +420,7 @@ data SomeSignal where
 
 data Effect where
     Effect :: (Typeable p, FromJSON a, Value h, Value a) =>
-        ComponentInstance p h s a -> [IO a] -> Effect
+        ComponentInstance p h s a -> [IO (Maybe a)] -> Effect
 
 
 
