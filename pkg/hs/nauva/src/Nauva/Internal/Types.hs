@@ -71,7 +71,7 @@ data Instance where
     -- In the instance for 'EThunk', we remember the forced and instantiated
     -- result of the thunk.
 
-    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Component p h s a -> TMVar (State s) -> Instance
+    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Component p h s a -> TMVar (State s a) -> Instance
 
 
 -------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ data Component p h s a = Component
     , componentDisplayName :: String
       -- ^ Same purpose as 'thunkDisplayName'.
 
-    , initialComponentState :: p -> s
+    , initialComponentState :: p -> STM (s, [Signal s a])
       -- ^ The initial state of the application may only depend on the props.
 
     , componentEventListeners :: s -> [EventListener]
@@ -346,7 +346,7 @@ data Component p h s a = Component
     , processLifecycleEvent :: h -> s -> (s, [IO a])
       -- ^ Allows the App to act on lifecycle events.
 
-    , receiveProps :: p -> s -> (s, [IO a])
+    , receiveProps :: p -> s -> STM (s, [Signal s a], [IO a])
       -- ^ When the component receives new props from its parent. This only
       -- happens if the component is embedded inside inside another 'Element'
       -- in the tree.
@@ -390,10 +390,23 @@ taggedWithHook _ = Tagged
 -- instantiated. This object is stored in a 'IORef', so it can be mutated as
 -- needed (when the component receives input from outside).
 
-data State s = State
-    { componentState :: s
-    , componentInstance :: Instance
+data State s a = State
+    { componentState :: !s
+    , componentSignals :: ![Signal s a]
+    , componentInstance :: !Instance
     }
+
+
+
+--------------------------------------------------------------------------------
+-- | A 'Signal' is a pair of 'TChan' and a corresponding state update function.
+-- Signals act as an additional source of inputs into a 'Component'.
+
+data Signal s a where
+    Signal :: TChan i -> (i -> s -> (s, [IO a])) -> Signal s a
+
+data SomeSignal where
+    SomeSignal :: (Typeable p, A.FromJSON a, Value h, Value a) => ComponentInstance p h s a -> Signal s a -> SomeSignal
 
 
 
@@ -417,7 +430,7 @@ data Effect where
 data ComponentInstance p h s a = ComponentInstance
     { ciPath :: Path
     , ciComponent :: Component p h s a
-    , ciState :: TMVar (State s)
+    , ciState :: TMVar (State s a)
     }
 
 data SomeComponentInstance where

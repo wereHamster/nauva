@@ -9,6 +9,8 @@ module Nauva.Server
 
 import           Data.Default
 import           Data.Text             (Text)
+import qualified Data.Text             as T
+import qualified Data.Text.Encoding    as T
 import qualified Data.Aeson            as A
 import           Data.ByteString       (ByteString)
 import qualified Data.ByteString.Char8 as BS8
@@ -24,6 +26,7 @@ import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
+import           Control.Monad.IO.Class
 
 import           System.Directory
 
@@ -39,6 +42,7 @@ import           Snap.Util.FileServe (serveDirectory)
 import           Snap.Blaze          (blaze)
 
 import           Nauva.Server.Settings (mkStaticSettings)
+import           Nauva.Service.Router
 
 import           Prelude
 
@@ -49,7 +53,7 @@ data Config = Config
       -- ^ The HTTP port on which the server will listen and accept WebSocket
       -- connections.
 
-    , cElement :: Element
+    , cElement :: RouterH -> Element
       -- ^ The root elment of the application. This will be rendered into the
       -- Handle once.
 
@@ -68,7 +72,24 @@ data Config = Config
 runServer :: Config -> IO ()
 runServer c = do
     nauvaH <- newHandle
-    render nauvaH (cElement c)
+
+    routerH <- do
+        var <- newTVarIO (Location "/")
+        chan <- newTChanIO
+
+        pure $ RouterH
+            { hLocation = (var, chan)
+            , hPush = \url -> do
+                putStrLn $ "Router hPush: " <> T.unpack url
+
+                atomically $ do
+                    writeTVar var (Location url)
+                    writeTChan chan (Location url)
+
+                processSignals nauvaH
+            }
+
+    render nauvaH (cElement c routerH)
 
     -- Try to restore the application from the snapshot.
     stateExists <- doesFileExist "snapshot.json"
@@ -91,7 +112,7 @@ runServer c = do
 
     let config = setPort (cPort c) . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
-        [ path "ws" (runWebSocketsSnap (websocketApplication nauvaH))
+        [ path "ws" (runWebSocketsSnap (websocketApplication nauvaH routerH))
         , staticApp
 
         , case cPublicDir c of
@@ -102,8 +123,8 @@ runServer c = do
         ]
 
 
-websocketApplication :: Handle -> WS.PendingConnection -> IO ()
-websocketApplication nauvaH pendingConnection = do
+websocketApplication :: Handle -> RouterH -> WS.PendingConnection -> IO ()
+websocketApplication nauvaH routerH pendingConnection = do
     conn <- WS.acceptRequest pendingConnection
     WS.forkPingThread conn 30
 
@@ -134,6 +155,8 @@ websocketApplication nauvaH pendingConnection = do
                 print e
 
             Right msg -> do
+                processSignals nauvaH
+
                 case msg of
                     (HookM path value) -> do
                         void $ dispatchHook nauvaH path value
@@ -144,11 +167,15 @@ websocketApplication nauvaH pendingConnection = do
                     (RefM path value) -> do
                         void $ dispatchRef nauvaH path value
 
+                    (LocationM path) -> do
+                        hPush routerH path
+
 
 data Message
-    = HookM Path A.Value
-    | ActionM Path Text A.Value
-    | RefM Path A.Value
+    = HookM !Path !A.Value
+    | ActionM !Path !Text !A.Value
+    | RefM !Path !A.Value
+    | LocationM !Text
 
 instance A.FromJSON Message where
     parseJSON v = do
@@ -166,6 +193,9 @@ instance A.FromJSON Message where
             (A.String "ref"):path:value:[] -> RefM
                 <$> A.parseJSON path
                 <*> A.parseJSON value
+
+            (A.String "location"):path:[] -> LocationM
+                <$> A.parseJSON path
 
             _ -> fail "Message"
 

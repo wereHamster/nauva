@@ -105,6 +105,10 @@ function loadingScreen() {
 function runClient() {
     const ws = new WebSocket('ws://localhost:8000/ws');
 
+    ws.addEventListener('open', () => {
+        ws.send(JSON.stringify(['location', window.location.pathname]));
+    });
+
     ws.addEventListener('message', msg => {
         // console.time('JSON.parse');
         const data = JSON.parse(msg.data);
@@ -299,7 +303,7 @@ const cssRules: Set<string> = new Set();
 
 const emitRule = (rule: any): string => {
     const {hash} = rule;
-    
+
     if (!cssRules.has(hash)) {
         cssRules.add(hash);
         const text = cssRuleExText(rule);
@@ -391,7 +395,7 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
                     switch (v[0]) {
                     case 1: return emitRule({ type: v[0], hash: v[1], conditions: v[2], suffixes: v[3], cssDeclarations: v[4] });
                     case 5: return emitRule({ type: v[0], hash: v[1], cssDeclarations: v[2] });
-                    } 
+                    }
                 }).filter(x => x !== undefined).join(" ");
             } else if (k === 'AREF') {
                 props.ref = getFn(ctx, path, 'ref', () => {
