@@ -67,16 +67,31 @@ function loadingScreen() {
 }
 function runClient() {
     const ws = new WebSocket('ws://localhost:8000/ws');
+    function onPopState(ev) {
+        console.log('onPopState', ev);
+        ws.send(JSON.stringify(['location', window.location.pathname]));
+    }
     ws.addEventListener('open', () => {
+        window.addEventListener('popstate', onPopState);
+        componentRegistry = new Map;
+        ctx = new Context;
         ws.send(JSON.stringify(['location', window.location.pathname]));
     });
     ws.addEventListener('message', msg => {
-        // console.time('JSON.parse');
         const data = JSON.parse(msg.data);
-        // console.timeEnd('JSON.parse');
-        renderSpine(ws, data);
+        switch (data[0]) {
+            case 'location':
+                if (window.location.pathname !== data[1]) {
+                    window.history.pushState({}, '', data[1]);
+                }
+                break;
+            case 'spine':
+                renderSpine(ws, data[1]);
+                break;
+        }
     });
     ws.addEventListener('close', ev => {
+        window.removeEventListener('popstate', onPopState);
         componentRegistry = new Map;
         ctx = new Context;
         loadingScreen();
@@ -84,6 +99,7 @@ function runClient() {
         runClient();
     });
     ws.addEventListener('error', ev => {
+        window.removeEventListener('popstate', onPopState);
         componentRegistry = new Map;
         ctx = new Context;
         loadingScreen();
@@ -114,7 +130,7 @@ function getComponent(componentId) {
                             eh.stopPropagation && ev.stopPropagation();
                             eh.stopImmediatePropagation && ev.stopImmediatePropagation();
                             if (eh.action) {
-                                ws.send(JSON.stringify(['action', path, name, eh.action]));
+                                this.props.ws.send(JSON.stringify(['action', path, name, eh.action]));
                             }
                         };
                     }));
@@ -123,7 +139,7 @@ function getComponent(componentId) {
             componentWillUnmount() {
                 const { ws, path, spine: { eventListeners, hooks: { componentWillUnmount } } } = this.props;
                 componentWillUnmount.forEach(exp => {
-                    ws.send(JSON.stringify(['hook', path, evalExp(exp, {}, this.ctx)]));
+                    this.props.ws.send(JSON.stringify(['hook', path, evalExp(exp, {}, this.ctx)]));
                 });
                 eventListeners.forEach(([fid, name, expr]) => {
                     window.removeEventListener(name, getFn(this.ctx, path, fid, () => {
@@ -239,7 +255,7 @@ const renderCSSDeclarations = (() => {
     }, "");
 })();
 const cssRuleExText = (() => {
-    const renderCondition = c => (c[0] == 1 ? `@media (` : `@supports (`) + c[1] + ')';
+    const renderCondition = c => (c[0] == 1 ? `@media ` : `@supports `) + c[1] + ' ';
     const wrapWithCondition = (c, text) => c.length === 0 ? text : wrapWithCondition(c.slice(1), renderCondition(c[0]) + "{" + text + "}");
     const cssStyleRuleExText = (rule) => wrapWithCondition(rule.conditions, [".",
         's' + rule.hash,

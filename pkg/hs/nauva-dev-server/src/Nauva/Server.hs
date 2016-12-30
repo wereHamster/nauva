@@ -14,6 +14,7 @@ import qualified Data.Text.Encoding    as T
 import qualified Data.Aeson            as A
 import           Data.ByteString       (ByteString)
 import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Lazy  as LBS
 import           Data.Monoid
 import           Data.String
@@ -126,7 +127,16 @@ runServer c = do
 websocketApplication :: Handle -> RouterH -> WS.PendingConnection -> IO ()
 websocketApplication nauvaH routerH pendingConnection = do
     conn <- WS.acceptRequest pendingConnection
-    WS.forkPingThread conn 30
+    WS.forkPingThread conn 5
+
+    locationSignalCopy <- atomically $ dupTChan (snd $ hLocation routerH)
+    void $ forkIO $ forever $ do
+        path <- atomically $ do
+            Location path <- readTChan locationSignalCopy
+            pure path
+
+
+        WS.sendTextData conn $ A.encode [A.toJSON ("location" :: Text), A.toJSON path]
 
     -- Fork a thread to the background and send the spine to the client
     -- whenever the root instance in the 'Handle' changes.
@@ -137,13 +147,14 @@ websocketApplication nauvaH routerH pendingConnection = do
             rootInstance <- readTMVar (hInstance nauvaH)
             toSpine rootInstance
 
-        WS.sendTextData conn $ A.encode spine
+        WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine]
 
     -- Send the current state of the application.
     spine <- atomically $ do
         rootInstance <- readTMVar (hInstance nauvaH)
         toSpine rootInstance
-    WS.sendTextData conn $ A.encode spine
+
+    WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine]
 
     -- Forever read messages from the WebSocket and process.
     forever $ do
