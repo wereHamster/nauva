@@ -40,6 +40,15 @@ makeTerm tag = unlines
   where
     function = sanitize tag
 
+makeAttributeTerm :: String -> String
+makeAttributeTerm tag = unlines
+    [ function ++ " :: Term arg res => arg -> res"
+    , function ++ " = term \"" ++ tag ++ "\""
+    , "{-# INLINE " ++ function ++ " #-}"
+    ]
+  where
+    function = sanitize tag
+
 
 -- For distinction between void and normal elements, please refer to
 -- https://www.w3.org/TR/html5/syntax.html#elements-0
@@ -66,13 +75,28 @@ voidElements =
 normalElements :: [String]
 normalElements =
     [ "a"
-    , "div"
-    , "span"
+    , "blockquote"
     , "button"
     , "circle"
-    , "svg"
+    , "code"
+    , "div"
+    , "h1"
+    , "h2"
+    , "h3"
+    , "h4"
+    , "h5"
+    , "h6"
+    , "i"
+    , "li"
+    , "p"
+    , "pre"
     , "rect"
+    , "section"
+    , "span"
+    , "strong"
     , "style"
+    , "svg"
+    , "ul"
     , "value"
     ]
 
@@ -81,6 +105,7 @@ attributes =
     [ "className"
     , "width"
     , "height"
+    , "href"
     , "r"
     , "x"
     , "y"
@@ -88,6 +113,7 @@ attributes =
     , "cy"
     , "fill"
     , "ref"
+    , "src"
     ]
 
 terms :: [String]
@@ -97,16 +123,20 @@ main :: IO ()
 main = do
     putStr $ removeTrailingNewlines $ unlines
         [ "{-# LANGUAGE OverloadedStrings #-}"
+        , "{-# LANGUAGE TypeFamilies      #-}"
         , ""
         , exportList (map sanitize terms)
         , ""
+        , "import Data.Text"
         , "import Nauva.Internal.Types"
         , "import Nauva.View.Types"
         , ""
         , ""
         , unlines $ map makeVoidTerm (nub $ sort $ voidElements)
         , ""
-        , unlines $ map makeTerm (nub $ sort $ normalElements ++ attributes)
+        , unlines $ map makeTerm (nub $ sort $ normalElements)
+        , ""
+        , unlines $ map makeAttributeTerm (nub $ sort $ attributes)
         ]
 
   where
