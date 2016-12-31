@@ -7,6 +7,9 @@ module Nauva.Catalog.Elements
     , pageH3
     , pageH4
 
+    , pageUL
+    , pageOL
+
     , pageParagraph
     , pageBlockquote
     , pageCodeBlock
@@ -214,3 +217,44 @@ pageCode = code_ [style_ style]
         lineHeight "1"
         padding "0.12em 0.2em"
         cssTerm "text-indent" "0"
+
+
+pageUL :: [Element] -> Element
+pageUL = ul_ [style_ style]
+  where
+    style = mkStyle $ do
+        width "100%"
+        marginLeft "0"
+        paddingLeft "2rem"
+        fontStyle "normal"
+        fontWeight "400"
+        -- textRendering "optimizeLegibility"
+        -- -webkit-font-smoothing "antialiased"
+        -- -moz-osx-font-smoothing "grayscale"
+        color "#333333"
+        fontFamily "'Roboto', sans-serif"
+        fontSize "16px"
+        lineHeight "1.44"
+        listStyle "disc"
+        marginTop "16px"
+        marginBottom "0"
+
+pageOL :: [Element] -> Element
+pageOL = ol_ [style_ style]
+  where
+    style = mkStyle $ do
+        width "100%"
+        marginLeft "0"
+        paddingLeft "2rem"
+        fontStyle "normal"
+        fontWeight "400"
+        -- textRendering "optimizeLegibility"
+        -- -webkit-font-smoothing "antialiased"
+        -- -moz-osx-font-smoothing "grayscale"
+        color "#333333"
+        fontFamily "'Roboto', sans-serif"
+        fontSize "16px"
+        lineHeight "1.44"
+        listStyle "disc"
+        marginTop "16px"
+        marginBottom "0"

@@ -71,6 +71,14 @@ renderBlock (BlockCode mbType x) = case mbType of
 
     _ -> [| [pageCodeBlock x] |]
 
+renderBlock (BlockList Ordered inlineOrBlocks) =
+    appE [| \x -> [pageOL $ mconcat x] |] $ case inlineOrBlocks of
+        Left inline -> (ListE <$> mapM renderInline inline)
+
+renderBlock (BlockList Unordered inlineOrBlocks) =
+    appE [| \x -> [pageUL $ mconcat x] |] $ case inlineOrBlocks of
+        Left inline -> (ListE <$> mapM renderInline inline)
+
 
 renderInline :: Inline -> Q Exp -- [Q Element]
 renderInline (InlineText x) = [| [str_ x] |]
