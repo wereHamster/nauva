@@ -10,6 +10,7 @@ module Nauva.Client
 
 import           Data.Default
 import           Data.Text               (Text)
+import qualified Data.Text               as T
 import qualified Data.Text.Encoding      as T
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Aeson              as A
@@ -25,6 +26,7 @@ import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.Except
+import           Control.Monad.Writer.Lazy
 
 import           System.IO.Unsafe
 
@@ -348,8 +350,8 @@ instanceToJSVal = go []
                     ASTY style -> unsafePerformIO $ do
                         style' <- O.create
 
-                        forM_ (M.toList style) $ \(k, v) ->
-                            O.setProp (JSS.pack k) (jsval $ JSS.pack v) style'
+                        forM_ (execWriter $ runStyle style) $ \(k, v) ->
+                            O.setProp (JSS.pack $ T.unpack k) (jsval $ JSS.pack $ T.unpack $ unCSSValue v) style'
 
                         pure $ jsval $ fromList [jsval $ textToJSString "ASTY", (jsval style')]
 
