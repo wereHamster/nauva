@@ -16,3 +16,4 @@ library
    , text
    , containers
    , nauva
+   , nauva-catalog

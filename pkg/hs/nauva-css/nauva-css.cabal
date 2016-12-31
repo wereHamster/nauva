@@ -48,10 +48,5 @@ library
    , bytestring
    , text
    , mtl
-   , stm
    , containers
-   , blaze-markup
-   , blaze-html
-   , tagged
-   , scientific
    , siphash

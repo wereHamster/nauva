@@ -16,16 +16,9 @@ module App.Varna.Element.Card
 
 import           Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Aeson as A
 import           Data.Monoid
-import qualified Data.Map as M
-import           Data.Tagged
 
 import           Control.Monad
-
-import           System.Random
-
-import           GHC.Generics (Generic)
 
 import           Nauva.DOM
 import           Nauva.Internal.Types

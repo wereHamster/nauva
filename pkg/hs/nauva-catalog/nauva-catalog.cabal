@@ -48,14 +48,7 @@ library
    , aeson
    , bytestring
    , text
-   , mtl
    , stm
-   , containers
-   , blaze-markup
-   , blaze-html
-   , tagged
-   , scientific
-   , siphash
    , nauva
    , nauva-css
    , template-haskell

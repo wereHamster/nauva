@@ -53,7 +53,6 @@ library
   build-depends:
      base >= 4.7 && < 5
    , aeson
-   , bytestring
    , text
    , mtl
    , stm
@@ -61,5 +60,4 @@ library
    , blaze-markup
    , blaze-html
    , tagged
-   , scientific
    , nauva-css
