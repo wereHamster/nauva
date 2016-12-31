@@ -52,6 +52,10 @@ module Nauva.CSS.Terms
     , overflow
     , overflowY
     , padding
+    , paddingBottom
+    , paddingLeft
+    , paddingRight
+    , paddingTop
     , pointer
     , position
     , quotes
@@ -278,6 +282,22 @@ overflowY = cssTerm "overflowY"
 padding :: CSSTerm a => a
 padding = cssTerm "padding"
 {-# INLINE padding #-}
+
+paddingBottom :: CSSTerm a => a
+paddingBottom = cssTerm "padding-bottom"
+{-# INLINE paddingBottom #-}
+
+paddingLeft :: CSSTerm a => a
+paddingLeft = cssTerm "padding-left"
+{-# INLINE paddingLeft #-}
+
+paddingRight :: CSSTerm a => a
+paddingRight = cssTerm "padding-right"
+{-# INLINE paddingRight #-}
+
+paddingTop :: CSSTerm a => a
+paddingTop = cssTerm "padding-top"
+{-# INLINE paddingTop #-}
 
 pointer :: CSSTerm a => a
 pointer = cssTerm "pointer"
