@@ -175,6 +175,73 @@ function getFn(ctx: Context, path, fid, mkFn) {
         : (pathCtx[fid] = mkFn());
 }
 
+type CSSDeclarations = {
+    [key: string]: number | string | string[];
+}
+
+const style = <any> document.createElement("style");
+style.type = "text/css";
+document.head.appendChild(style);
+
+const styleSheet = <CSSStyleSheet> document.styleSheets[document.styleSheets.length - 1];
+const cssRules: Set<string> = new Set();
+
+const emitRule = (rule: any): string => {
+    const {hash} = rule;
+
+    if (!cssRules.has(hash)) {
+        cssRules.add(hash);
+        const text = cssRuleExText(rule);
+        console.log('emitRule', hash, rule);
+        console.log(text);
+        styleSheet.insertRule(text, styleSheet.cssRules.length);
+    }
+
+    return 's' + hash;
+};
+
+const renderCSSDeclarations = (() => {
+    const hyphenate = (x: string): string => x
+        .replace(/([A-Z])/g, "-$1")
+        .replace(/^ms-/, "-ms-") // Internet Explorer vendor prefix.
+        .toLowerCase();
+
+    const append = (str: string, k: string, v: string | number): string =>
+        str + (str.length === 0 ? "" : ";") + hyphenate(k) + ":" + v;
+
+    return (x: CSSDeclarations): string => Object.keys(x).reduce((str, k) => {
+        const v = x[k];
+        return Array.isArray(v)
+            ? v.reduce((a, v) => append(a, k, v), str)
+            : append(str, k, v);
+    }, "");
+})();
+
+const cssRuleExText = (() => {
+    const renderCondition = c =>
+        (c[0] == 1 ? `@media ` : `@supports `) + c[1] + ' ';
+
+    const wrapWithCondition = (c: string[], text: string): string =>
+        c.length === 0 ? text : wrapWithCondition(c.slice(1), renderCondition(c[0]) + "{" + text + "}");
+
+    const cssStyleRuleExText = (rule: any): string =>
+        wrapWithCondition(rule.conditions,
+            [ "."
+            , 's' + rule.hash
+            , rule.suffixes.join("")
+            , "{"
+            , renderCSSDeclarations(rule.cssDeclarations)
+            , "}"
+            ].join(""));
+
+    return (rule: any): string => {
+        switch (rule.type) {
+        case 1: return cssStyleRuleExText(rule);
+        case 5: return `@font-face{${renderCSSDeclarations(rule.cssDeclarations)}}`;
+        }
+    };
+})();
+
 function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
     if (typeof spine === 'string') {
         return spine;
@@ -201,7 +268,12 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
             } else if (k === 'AEVL') {
                 installEventListener(a, b);
             } else if (k === 'ASTY') {
-                props.style = a;
+                props.className = a.map(v => {
+                    switch (v[0]) {
+                    case 1: return emitRule({ type: v[0], hash: v[1], conditions: v[2], suffixes: v[3], cssDeclarations: v[4] });
+                    case 5: return emitRule({ type: v[0], hash: v[1], cssDeclarations: v[2] });
+                    }
+                }).filter(x => x !== undefined).join(" ");
             } else if (k === 'AREF') {
                 props.ref = getFn(ctx, path, 'ref', () => {
                     return ref => {

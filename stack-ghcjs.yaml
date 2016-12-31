@@ -11,9 +11,12 @@ allow-newer: true
 
 packages:
 - pkg/hs/nauva
+- pkg/hs/nauva-catalog
+- pkg/hs/nauva-css
 - pkg/hs/nauva-native
-- examples/playground/app
-- examples/playground/native
+
+- app/varna/shared
+- app/varna/native
 
 extra-deps:
 - ghcjs-dom-0.5.0.2

@@ -38,6 +38,7 @@ import           Nauva.NJS
 import           Nauva.NJS.Language
 import           Nauva.NJS.Eval
 import           Nauva.Native.Bridge
+import           Nauva.CSS.Types
 
 import           GHCJS.Types
 import           GHCJS.Marshal
@@ -99,7 +100,7 @@ runClient c = do
                     instanceToJSVal inst
                     -- rootInstance <- readTMVar (hInstance nauvaH)
                     -- instanceToJSVal rootInstance
-                
+
                 renderSpine bridge spine
             (ChangeComponent path inst) -> do
                 spine <- atomically $ instanceToJSVal inst
@@ -109,7 +110,7 @@ runClient c = do
                 --     rootInstance <- readTMVar (hInstance nauvaH)
                 --     instanceToJSVal rootInstance
                 -- renderSpine bridge spine
-        
+
 
     spine <- atomically $ do
         rootInstance <- readTMVar (hInstance nauvaH)
@@ -142,7 +143,7 @@ hookHandler accessor h path = do
                                 state <- takeTMVar stateRef
                                 let (newState, actions) = processLifecycleEvent component value (componentState state)
                                 newInst <- instantiate $ renderComponent component newState
-                                putTMVar stateRef (State newState newInst)
+                                putTMVar stateRef (State newState (componentSignals state) newInst)
                                 -- traceShowM path
                                 writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
                                 pure actions
@@ -183,7 +184,7 @@ attachRefHandler h refsVar path jsVal = do
                 case mbRefKey of
                     Nothing -> pure ()
                     Just refKey -> lift $ do
-                        modifyTVar refsVar $ M.insert (componentId component, refKey) jsVal 
+                        modifyTVar refsVar $ M.insert (componentId component, refKey) jsVal
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
@@ -217,7 +218,7 @@ detachRefHandler h refsVar path = do
                 case mbRefKey of
                     Nothing -> pure ()
                     Just refKey -> lift $ do
-                        modifyTVar refsVar $ M.delete (componentId component, refKey) 
+                        modifyTVar refsVar $ M.delete (componentId component, refKey)
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
@@ -320,6 +321,37 @@ foreign import javascript unsafe "true"
 foreign import javascript unsafe "false"
     js_false :: JSVal
 
+jsCondition :: Condition -> JSVal
+jsCondition (CMedia    x) = jsval $ fromList [js_intJSVal 1, jsval $ textToJSString x]
+jsCondition (CSupports x) = jsval $ fromList [js_intJSVal 2, jsval $ textToJSString x]
+
+jsCSSRule :: CSSRule -> JSVal
+jsCSSRule (CSSStyleRule hash conditions suffixes styleDeclaration) = jsval $ fromList
+    [ js_intJSVal 1
+    , jsval $ textToJSString $ unHash hash
+    , jsval $ fromList $ map jsCondition conditions
+    , jsval $ fromList $ map (jsval . JSS.pack . T.unpack . unSuffix) suffixes
+    , unsafePerformIO $ do
+        o <- O.create
+
+        forM_ styleDeclaration $ \(k, v) -> do
+            O.setProp (JSS.pack $ T.unpack k) (jsval $ JSS.pack $ T.unpack $ unCSSValue v) o
+
+        pure $ jsval o
+    ]
+jsCSSRule (CSSFontFaceRule hash styleDeclaration) = jsval $ fromList
+    [ js_intJSVal 5
+    , jsval $ textToJSString $ unHash hash
+    , unsafePerformIO $ do
+        o <- O.create
+
+        forM_ styleDeclaration $ \(k, v) -> do
+            O.setProp (JSS.pack $ T.unpack k) (jsval $ JSS.pack $ T.unpack $ unCSSValue v) o
+
+        pure $ jsval o
+    ]
+
+
 instanceToJSVal :: Instance -> STM JSVal
 instanceToJSVal = go []
   where
@@ -341,23 +373,20 @@ instanceToJSVal = go []
                 o <- O.create
 
                 attributes' <- pure $ jsval $ fromList $ flip map attrs $ \x -> case x of
-                    AVAL an (AVBool b)        -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, if b then js_true else js_false] 
+                    AVAL an (AVBool b)        -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, if b then js_true else js_false]
                     AVAL an (AVString s)      -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, jsval $ textToJSString s]
                     AVAL an (AVInt i)         -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, js_intJSVal i]
 
                     AEVL (EventListener n fe) -> jsval $ fromList [jsval $ textToJSString "AEVL", js_intJSVal $ unFID $ f1Id fe, jsval $ textToJSString n]
 
-                    ASTY style -> unsafePerformIO $ do
-                        style' <- O.create
-
-                        forM_ (execWriter $ runStyle style) $ \(k, v) ->
-                            O.setProp (JSS.pack $ T.unpack k) (jsval $ JSS.pack $ T.unpack $ unCSSValue v) style'
-
-                        pure $ jsval $ fromList [jsval $ textToJSString "ASTY", (jsval style')]
+                    ASTY style                -> jsval $ fromList
+                        [ jsval $ textToJSString "ASTY"
+                        , jsval $ fromList $ map jsCSSRule (unStyle style)
+                        ]
 
                     AREF (Ref mbRefKey fra frd) -> unsafePerformIO $ do
                         o <- O.create
-                
+
                         case mbRefKey of
                             Nothing -> pure ()
                             Just (RefKey k) -> O.setProp "key" (js_intJSVal $ k) o
@@ -366,7 +395,7 @@ instanceToJSVal = go []
                         O.setProp "detach" (js_intJSVal $ unFID $ f1Id frd) o
 
                         pure $ jsval $ fromList [jsval $ textToJSString "AREF", jsval o]
-        
+
                 O.setProp "type" (jsval ("Node" :: JSString)) o
                 O.setProp "tag" (jsval $ textToJSString $ unTag tag) o
                 O.setProp "attributes" attributes' o
@@ -377,7 +406,7 @@ instanceToJSVal = go []
         (IThunk _ _ childI) ->
             instanceToJSVal childI
 
-        (IComponent component stateRef) -> do            
+        (IComponent component stateRef) -> do
             state <- readTMVar stateRef
             spine <- instanceToJSVal $ componentInstance state
 
@@ -390,7 +419,7 @@ instanceToJSVal = go []
                 hooks <- O.create
                 O.setProp "componentDidMount" (jsval $ fromList []) hooks
                 O.setProp "componentWillUnmount" (jsval $ fromList []) hooks
-        
+
                 O.setProp "type" (jsval ("Component" :: JSString)) o
                 O.setProp "id" (js_intJSVal $ unComponentId $ componentId component) o
                 O.setProp "eventListeners" eventListeners' o

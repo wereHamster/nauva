@@ -54,9 +54,10 @@ function getComponent(clientH, componentId) {
         component = (function (_super) {
             __extends(class_1, _super);
             function class_1(props) {
-                _super.call(this, props);
-                this.ctx = new Context;
-                this.state = { spine: props.spine };
+                var _this = _super.call(this, props) || this;
+                _this.ctx = new Context;
+                _this.state = { spine: props.spine };
+                return _this;
             }
             class_1.prototype.componentDidMount = function () {
                 var _this = this;
@@ -105,15 +106,15 @@ function capitalizeFirstLetter(string) {
 var ControlledInput = (function (_super) {
     __extends(ControlledInput, _super);
     function ControlledInput(props) {
-        var _this = this;
-        _super.call(this, props);
-        this.state = { value: props.props.value || '' };
-        this.onChange = function (ev) {
+        var _this = _super.call(this, props) || this;
+        _this.state = { value: props.props.value || '' };
+        _this.onChange = function (ev) {
             _this.setState({ value: ev.target.value });
             if (_this.props.props.onChange) {
                 _this.props.props.onChange(ev);
             }
         };
+        return _this;
     }
     ControlledInput.prototype.componentWillReceiveProps = function (nextProps) {
         if (nextProps.props.value !== this.state.value) {
@@ -133,6 +134,60 @@ function getFn(ctx, path, fid, mkFn) {
         ? pathCtx[fid]
         : (pathCtx[fid] = mkFn());
 }
+var style = document.createElement("style");
+style.type = "text/css";
+document.head.appendChild(style);
+var styleSheet = document.styleSheets[document.styleSheets.length - 1];
+var cssRules = new Set();
+var emitRule = function (rule) {
+    var hash = rule.hash;
+    if (!cssRules.has(hash)) {
+        cssRules.add(hash);
+        var text = cssRuleExText(rule);
+        console.log('emitRule', hash, rule);
+        console.log(text);
+        styleSheet.insertRule(text, styleSheet.cssRules.length);
+    }
+    return 's' + hash;
+};
+var renderCSSDeclarations = (function () {
+    var hyphenate = function (x) { return x
+        .replace(/([A-Z])/g, "-$1")
+        .replace(/^ms-/, "-ms-") // Internet Explorer vendor prefix.
+        .toLowerCase(); };
+    var append = function (str, k, v) {
+        return str + (str.length === 0 ? "" : ";") + hyphenate(k) + ":" + v;
+    };
+    return function (x) { return Object.keys(x).reduce(function (str, k) {
+        var v = x[k];
+        return Array.isArray(v)
+            ? v.reduce(function (a, v) { return append(a, k, v); }, str)
+            : append(str, k, v);
+    }, ""); };
+})();
+var cssRuleExText = (function () {
+    var renderCondition = function (c) {
+        return (c[0] == 1 ? "@media " : "@supports ") + c[1] + ' ';
+    };
+    var wrapWithCondition = function (c, text) {
+        return c.length === 0 ? text : wrapWithCondition(c.slice(1), renderCondition(c[0]) + "{" + text + "}");
+    };
+    var cssStyleRuleExText = function (rule) {
+        return wrapWithCondition(rule.conditions, [".",
+            's' + rule.hash,
+            rule.suffixes.join(""),
+            "{",
+            renderCSSDeclarations(rule.cssDeclarations),
+            "}"
+        ].join(""));
+    };
+    return function (rule) {
+        switch (rule.type) {
+            case 1: return cssStyleRuleExText(rule);
+            case 5: return "@font-face{" + renderCSSDeclarations(rule.cssDeclarations) + "}";
+        }
+    };
+})();
 function spineToReact(clientH, path, ctx, spine, key) {
     if (typeof spine === 'string') {
         return spine;
@@ -144,7 +199,7 @@ function spineToReact(clientH, path, ctx, spine, key) {
         });
         var props_1 = { key: key };
         var installEventListener = function (fid, name) {
-            props_1[("on" + capitalizeFirstLetter(name))] = getFn(ctx, path, fid, function () {
+            props_1["on" + capitalizeFirstLetter(name)] = getFn(ctx, path, fid, function () {
                 console.log('getFn', fid, name);
                 return function (ev) {
                     clientH.dispatchNodeEvent(path, fid, ev);
@@ -160,7 +215,12 @@ function spineToReact(clientH, path, ctx, spine, key) {
                 installEventListener(a, b);
             }
             else if (k === 'ASTY') {
-                props_1.style = a;
+                props_1.className = a.map(function (v) {
+                    switch (v[0]) {
+                        case 1: return emitRule({ type: v[0], hash: v[1], conditions: v[2], suffixes: v[3], cssDeclarations: v[4] });
+                        case 5: return emitRule({ type: v[0], hash: v[1], cssDeclarations: v[2] });
+                    }
+                }).filter(function (x) { return x !== undefined; }).join(" ");
             }
             else if (k === 'AREF') {
                 props_1.ref = getFn(ctx, path, 'ref', function () {
@@ -177,8 +237,8 @@ function spineToReact(clientH, path, ctx, spine, key) {
         }
         if (spine.tag === 'input') {
             return React.createElement.apply(React, [ControlledInput, {
-                elementType: 'input', props: props_1
-            }].concat(children));
+                    elementType: 'input', props: props_1
+                }].concat(children));
         }
         else {
             return React.createElement.apply(React, [spine.tag, props_1].concat(children));

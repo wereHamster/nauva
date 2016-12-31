@@ -58,5 +58,6 @@ library
    , ghcjs-base
    , ghcjs-dom
    , nauva
+   , nauva-css
 
   js-sources: jsbits/index.js
