@@ -9,22 +9,13 @@ executable app-varna-dev
 
   build-depends:
      base >= 4.7 && < 5
-   , aeson
-   , bytestring
-   , safe
-   , text
-   , mtl
-   , stm
-   , containers
-   , blaze-markup
-   , blaze-html
-   , data-default
-   , nauva
-   , tagged
-   , random
-   , nauva-dev-server
-   , nauva-catalog
    , app-varna-shared
-   , markdown
-   , conduit
+   , blaze-html
    , bytestring
+   , bytestring
+   , conduit
+   , markdown
+   , nauva
+   , nauva-catalog
+   , nauva-dev-server
+   , text

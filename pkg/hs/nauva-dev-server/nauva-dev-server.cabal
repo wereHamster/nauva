@@ -46,25 +46,18 @@ library
   build-depends:
      base >= 4.7 && < 5
    , aeson
-   , bytestring
-   , safe
-   , text
-   , mtl
-   , stm
-   , containers
-   , blaze-markup
    , blaze-html
-   , tagged
-   , scientific
+   , bytestring
    , data-default
    , directory
-   , websockets
    , file-embed
-   , nauva
-   , template-haskell
    , filepath
-   , snap
+   , nauva
+   , snap-blaze
    , snap-core
    , snap-server
-   , snap-blaze
+   , stm
+   , template-haskell
+   , text
+   , websockets
    , websockets-snap
