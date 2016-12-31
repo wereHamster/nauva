@@ -1,11 +1,11 @@
-{-# LANGUAGE JavaScriptFFI     #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE JavaScriptFFI              #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Nauva.NJS.Eval
     ( Context(..)
-    , evalExp
-    , evalExpVal
+    , eval
     ) where
 
 
@@ -21,6 +21,9 @@ import           Data.Map         (Map)
 import qualified Data.Map         as M
 
 import           Control.Monad    (when)
+import           Control.Monad.Except
+import           Control.Monad.Reader
+import           Control.Monad.Writer
 
 import           System.IO.Unsafe
 
@@ -40,104 +43,109 @@ data Context = Context
     , ctxArg1 :: Maybe JSVal
     }
 
-evalExpVal :: (FromJSVal r) => Context -> Exp a -> Either () r
-evalExpVal ctx exp = do
-    r <- fst <$> evalExp ctx exp
-    case unsafePerformIO (fromJSVal r) of
-        Nothing -> Left ()
-        Just x -> Right x
+newtype Eval a = Eval { runEval :: ReaderT Context (WriterT [IO ()] (Except ())) a }
+    deriving (Functor, Applicative, Monad, MonadError (), MonadWriter [IO ()], MonadReader Context)
+
+eval :: Context -> Exp a -> Either () (JSVal, IO ())
+eval ctx e = do
+    (a, io) <- runExcept $ runWriterT $ runReaderT (runEval (evalExp e)) ctx
+    pure (a, sequence_ io)
 
 
-
-evalExp :: Context -> Exp a -> Either () (JSVal, IO ())
-
-evalExp _ UnitE = error "UnitE"
-
-evalExp ctx (HoleE i) = case i of
-    0 -> pure $ (fromJust $ ctxArg0 ctx, pure ())
-    1 -> pure $ (fromJust $ ctxArg1 ctx, pure ())
-
-evalExp _ (LitE (StringL x)) = pure $ (unsafePerformIO $ toJSVal x, pure ())
-evalExp _ (LitE (IntL x)) = pure $ (unsafePerformIO $ toJSVal x, pure ())
-evalExp _ (LitE (BoolL x)) = pure $ (unsafePerformIO $ toJSVal x, pure ())
-
-evalExp _ GlobalE = pure $ (unsafePerformIO js_globalE, pure ())
-
-evalExp ctx (GetE prop obj) = do
-    prop' <- evalExpVal ctx prop
-    obj' <- evalExpVal ctx obj
-
-    unsafePerformIO $ do
-        val <- js_getE (textToJSString prop') obj'
-        case cast val of
-            Nothing -> pure $ Left ()
-            Just r -> pure $ Right (r, pure ())
+evalExpVal :: (FromJSVal r) => Exp a -> Eval r
+evalExpVal exp = do
+    r <- evalExp exp
+    maybe (throwError ()) pure (unsafePerformIO (fromJSVal r))
 
 
-evalExp ctx (InvokeE prop obj args) = do
-    prop' <- evalExpVal ctx prop
-    obj' <- evalExpVal ctx obj
+evalExp :: Exp a -> Eval JSVal
+
+evalExp UnitE = throwError ()
+
+evalExp (HoleE i) = do
+    ctx <- ask
+    case i of
+        0 -> maybe (throwError ()) pure $ ctxArg0 ctx
+        1 -> maybe (throwError ()) pure $ ctxArg1 ctx
+        _ -> throwError ()
+
+evalExp (LitE (StringL x)) = pure $ unsafePerformIO $ toJSVal x
+evalExp (LitE (IntL x)) = pure $ unsafePerformIO $ toJSVal x
+evalExp (LitE (BoolL x)) = pure $ unsafePerformIO $ toJSVal x
+
+
+evalExp GlobalE = pure $ unsafePerformIO js_globalE
+
+evalExp (GetE prop obj) = do
+    prop' <- evalExpVal prop
+    obj' <- evalExpVal obj
+
+    let val = unsafePerformIO $ js_getE (textToJSString prop') obj'
+    maybe (throwError ()) pure (cast val)
+
+
+evalExp (InvokeE prop obj args) = do
+    prop' <- evalExpVal prop
+    obj' <- evalExpVal obj
 
     args' <- forM args $ \(SomeExp arg) ->
-        evalExpVal ctx arg
+        evalExpVal arg
 
-    unsafePerformIO $ do
-        let args'' = JSA.fromList args'
-        val <- js_invokeE (textToJSString prop') obj' args''
-        case cast val of
-            Nothing -> pure $ Left ()
-            Just r -> pure $ Right (r, pure ())
+    let val = unsafePerformIO $ js_invokeE (textToJSString prop') obj' ( JSA.fromList args')
+    maybe (throwError ()) pure (cast val)
 
-evalExp ctx (Value0E (Con0 (CTag tag) _)) =
-    pure $ (unsafePerformIO $ do
+evalExp (Value0E (Con0 (CTag tag) _)) =
+    pure $ unsafePerformIO $ do
         t <- toJSVal tag
-        toJSVal [t], pure ())
+        toJSVal [t]
 
-evalExp ctx (Value1E (Con1 (CTag tag) _) a) = do
-    a' <- evalExpVal ctx a
-    pure $ (unsafePerformIO $ do
+evalExp (Value1E (Con1 (CTag tag) _) a) = do
+    a' <- evalExpVal a
+    pure $ unsafePerformIO $ do
         t <- toJSVal tag
-        toJSVal [t, a'], pure ())
+        toJSVal [t, a']
 
-evalExp ctx (Value2E (Con2 (CTag tag) _) a b) = do
-    a' <- evalExpVal ctx a
-    b' <- evalExpVal ctx b
-    pure $ (unsafePerformIO $ do
+evalExp (Value2E (Con2 (CTag tag) _) a b) = do
+    a' <- evalExpVal a
+    b' <- evalExpVal b
+    pure $ unsafePerformIO $ do
         t <- toJSVal tag
-        toJSVal [t, a', b'], pure ())
+        toJSVal [t, a', b']
 
-evalExp ctx (Value3E _ _ _ _) = error "Value3E"
+evalExp (Value3E _ _ _ _) = error "Value3E"
 
-evalExp ctx NothingE = pure (js_null, pure ())
-evalExp ctx (JustE exp) = evalExp ctx exp
+evalExp NothingE = pure js_null
+evalExp (JustE exp) = evalExp exp
 
-evalExp ctx (RefHandlerE exp) = evalExp ctx exp
+evalExp (RefHandlerE exp) = evalExp exp
 
-evalExp ctx (EventHandlerE a b c d) = do
-    preventDefault <- evalExpVal ctx a
-    stopPropagation <- evalExpVal ctx b
-    stopImmediatePropagation <- evalExpVal ctx c
-    action <- evalExpVal ctx d
+evalExp (EventHandlerE a b c d) = do
+    preventDefault <- evalExpVal a
+    stopPropagation <- evalExpVal b
+    stopImmediatePropagation <- evalExpVal c
+    action <- evalExpVal d
 
-    pure
-        ( action
-        , do
-            case evalExp ctx (HoleE 1) of
-                Left _ -> pure ()
-                Right (ev, _) -> do
-                    when preventDefault $ do
-                        js_preventDefault ev
-                    when stopPropagation $ do
-                        js_stopPropagation ev
-                    when stopImmediatePropagation $ do
-                        js_stopImmediatePropagation ev
+    ev <- evalExp (HoleE 1)
 
-                    pure ()
-        )
+    tell
+        [ do
+            when preventDefault $ do
+                js_preventDefault ev
+            when stopPropagation $ do
+                js_stopPropagation ev
+            when stopImmediatePropagation $ do
+                js_stopImmediatePropagation ev
+        ]
 
-evalExp ctx (DerefE i) = case M.lookup (RefKey i) (ctxRefs ctx) of
-    Nothing -> error "DerefE"
-    Just x  -> pure (x, pure ())
+    pure action
+
+
+evalExp (DerefE i) = do
+    ctx <- ask
+    case M.lookup (RefKey i) (ctxRefs ctx) of
+        Nothing -> error "DerefE"
+        Just x  -> pure x
+
 
 
 foreign import javascript unsafe "$2[$1]" js_getE
