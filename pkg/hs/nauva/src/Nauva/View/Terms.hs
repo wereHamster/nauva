@@ -33,6 +33,7 @@ module Nauva.View.Terms
     , li_
     , link_
     , meta_
+    , ol_
     , p_
     , param_
     , pre_
@@ -179,6 +180,10 @@ li_ :: Term arg res => arg -> res
 li_ = term "li"
 {-# INLINE li_ #-}
 
+ol_ :: Term arg res => arg -> res
+ol_ = term "ol"
+{-# INLINE ol_ #-}
+
 p_ :: Term arg res => arg -> res
 p_ = term "p"
 {-# INLINE p_ #-}
@@ -221,50 +226,50 @@ value_ = term "value"
 
 
 
-className_ :: (Term arg res) => arg -> res
+className_ :: Term arg res => arg -> res
 className_ = term "className"
 {-# INLINE className_ #-}
 
-cx_ :: (Term arg res) => arg -> res
+cx_ :: Term arg res => arg -> res
 cx_ = term "cx"
 {-# INLINE cx_ #-}
 
-cy_ :: (Term arg res) => arg -> res
+cy_ :: Term arg res => arg -> res
 cy_ = term "cy"
 {-# INLINE cy_ #-}
 
-fill_ :: (Term arg res) => arg -> res
+fill_ :: Term arg res => arg -> res
 fill_ = term "fill"
 {-# INLINE fill_ #-}
 
-height_ :: (Term arg res) => arg -> res
+height_ :: Term arg res => arg -> res
 height_ = term "height"
 {-# INLINE height_ #-}
 
-href_ :: (Term arg res) => arg -> res
+href_ :: Term arg res => arg -> res
 href_ = term "href"
 {-# INLINE href_ #-}
 
-r_ :: (Term arg res) => arg -> res
+r_ :: Term arg res => arg -> res
 r_ = term "r"
 {-# INLINE r_ #-}
 
-ref_ :: (Term arg res) => arg -> res
+ref_ :: Term arg res => arg -> res
 ref_ = term "ref"
 {-# INLINE ref_ #-}
 
-src_ :: (Term arg res) => arg -> res
+src_ :: Term arg res => arg -> res
 src_ = term "src"
 {-# INLINE src_ #-}
 
-width_ :: (Term arg res) => arg -> res
+width_ :: Term arg res => arg -> res
 width_ = term "width"
 {-# INLINE width_ #-}
 
-x_ :: (Term arg res) => arg -> res
+x_ :: Term arg res => arg -> res
 x_ = term "x"
 {-# INLINE x_ #-}
 
-y_ :: (Term arg res) => arg -> res
+y_ :: Term arg res => arg -> res
 y_ = term "y"
 {-# INLINE y_ #-}

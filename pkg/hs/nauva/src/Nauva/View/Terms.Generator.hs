@@ -97,6 +97,7 @@ normalElements =
     , "style"
     , "svg"
     , "ul"
+    , "ol"
     , "value"
     ]
 
