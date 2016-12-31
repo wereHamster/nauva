@@ -136,34 +136,48 @@ function capitalizeFirstLetter(string) {
 }
 
 
-class ControlledInput extends React.Component {
-    props: any;
-    state: any;
-    setState: any;
-    onChange: any;
+const ControlledInput = (() => {
+    let ci = undefined;
 
-    constructor(props) {
-        super(props);
+    function mkControlledInput() {
+        ci = class ControlledInput extends React.Component {
+            props: any;
+            state: any;
+            setState: any;
+            onChange: any;
 
-        this.state = { value: props.props.value || '' };
-        this.onChange = ev => {
-            this.setState({ value: ev.target.value });
-            if (this.props.props.onChange) {
-                this.props.props.onChange(ev);
+            constructor(props) {
+                super(props);
+
+                this.state = { value: props.props.value || '' };
+                this.onChange = ev => {
+                    this.setState({ value: ev.target.value });
+                    if (this.props.props.onChange) {
+                        this.props.props.onChange(ev);
+                    }
+                };
             }
-        };
-    }
-    componentWillReceiveProps(nextProps) {
-        if (nextProps.props.value !== this.state.value) {
-            this.setState({ value: nextProps.props.value });
+            componentWillReceiveProps(nextProps) {
+                if (nextProps.props.value !== this.state.value) {
+                    this.setState({ value: nextProps.props.value });
+                }
+            }
+            render() {
+                return React.createElement(this.props.elementType, Object.assign({},
+                    this.props.props, { value: this.state.value, onChange: this.onChange }
+                ), ...(this.props.children || []));
+            }
         }
     }
-    render() {
-        return React.createElement(this.props.elementType, Object.assign({},
-            this.props.props, { value: this.state.value, onChange: this.onChange }
-        ), ...(this.props.children || []));
+
+    return () => {
+        if (ci === undefined) {
+            mkControlledInput();
+        }
+
+        return ci;
     }
-}
+})();
 
 function getFn(ctx: Context, path, fid, mkFn) {
     const pathCtx = ctx.fn[path] !== undefined
@@ -179,12 +193,26 @@ type CSSDeclarations = {
     [key: string]: number | string | string[];
 }
 
-const style = <any> document.createElement("style");
-style.type = "text/css";
-document.head.appendChild(style);
+const cssRules = new Set();
+const styleSheet = (() => {
+    let ss;
+    function mk() {
+        const style = <any> document.createElement("style");
+        style.type = "text/css";
 
-const styleSheet = <CSSStyleSheet> document.styleSheets[document.styleSheets.length - 1];
-const cssRules: Set<string> = new Set();
+        document.head.appendChild(style);
+
+        ss = <CSSStyleSheet> document.styleSheets[document.styleSheets.length - 1];
+    }
+
+    return () => {
+        if (ss === undefined) {
+            mk()
+        };
+
+        return ss;
+    };
+})();
 
 const emitRule = (rule: any): string => {
     const {hash} = rule;
@@ -194,7 +222,7 @@ const emitRule = (rule: any): string => {
         const text = cssRuleExText(rule);
         console.log('emitRule', hash, rule);
         console.log(text);
-        styleSheet.insertRule(text, styleSheet.cssRules.length);
+        styleSheet().insertRule(text, styleSheet().cssRules.length);
     }
 
     return 's' + hash;
@@ -288,7 +316,7 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
         }
 
         if (spine.tag === 'input') {
-            return React.createElement(ControlledInput, {
+            return React.createElement(ControlledInput(), {
                 elementType: 'input', props: props
             }, ...children);
         } else {
@@ -306,14 +334,16 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
 }
 
 
-window['newBridge'] = function(appE, callbacks) {
-    return new ClientH
-        ( appE
-        , callbacks.componentEvent
-        , callbacks.nodeEvent
-        , callbacks.attachRef
-        , callbacks.detachRef
-        , callbacks.componentDidMount
-        , callbacks.componentWillUnmount
-        );
+if (this != null && typeof this.window !== 'undefined') {
+    window['newBridge'] = function(appE, callbacks) {
+        return new ClientH
+            ( appE
+            , callbacks.componentEvent
+            , callbacks.nodeEvent
+            , callbacks.attachRef
+            , callbacks.detachRef
+            , callbacks.componentDidMount
+            , callbacks.componentWillUnmount
+            );
+    }
 }

@@ -17,6 +17,7 @@ packages:
 
 - app/varna/shared
 - app/varna/native
+- app/varna/catalog
 
 extra-deps:
 - ghcjs-dom-0.5.0.2

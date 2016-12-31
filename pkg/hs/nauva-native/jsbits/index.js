@@ -103,29 +103,40 @@ function getComponent(clientH, componentId) {
 function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
-var ControlledInput = (function (_super) {
-    __extends(ControlledInput, _super);
-    function ControlledInput(props) {
-        var _this = _super.call(this, props) || this;
-        _this.state = { value: props.props.value || '' };
-        _this.onChange = function (ev) {
-            _this.setState({ value: ev.target.value });
-            if (_this.props.props.onChange) {
-                _this.props.props.onChange(ev);
+var ControlledInput = (function () {
+    var ci = undefined;
+    function mkControlledInput() {
+        ci = (function (_super) {
+            __extends(ControlledInput, _super);
+            function ControlledInput(props) {
+                var _this = _super.call(this, props) || this;
+                _this.state = { value: props.props.value || '' };
+                _this.onChange = function (ev) {
+                    _this.setState({ value: ev.target.value });
+                    if (_this.props.props.onChange) {
+                        _this.props.props.onChange(ev);
+                    }
+                };
+                return _this;
             }
-        };
-        return _this;
+            ControlledInput.prototype.componentWillReceiveProps = function (nextProps) {
+                if (nextProps.props.value !== this.state.value) {
+                    this.setState({ value: nextProps.props.value });
+                }
+            };
+            ControlledInput.prototype.render = function () {
+                return React.createElement.apply(React, [this.props.elementType, Object.assign({}, this.props.props, { value: this.state.value, onChange: this.onChange })].concat((this.props.children || [])));
+            };
+            return ControlledInput;
+        }(React.Component));
     }
-    ControlledInput.prototype.componentWillReceiveProps = function (nextProps) {
-        if (nextProps.props.value !== this.state.value) {
-            this.setState({ value: nextProps.props.value });
+    return function () {
+        if (ci === undefined) {
+            mkControlledInput();
         }
+        return ci;
     };
-    ControlledInput.prototype.render = function () {
-        return React.createElement.apply(React, [this.props.elementType, Object.assign({}, this.props.props, { value: this.state.value, onChange: this.onChange })].concat((this.props.children || [])));
-    };
-    return ControlledInput;
-}(React.Component));
+})();
 function getFn(ctx, path, fid, mkFn) {
     var pathCtx = ctx.fn[path] !== undefined
         ? ctx.fn[path]
@@ -134,11 +145,23 @@ function getFn(ctx, path, fid, mkFn) {
         ? pathCtx[fid]
         : (pathCtx[fid] = mkFn());
 }
-var style = document.createElement("style");
-style.type = "text/css";
-document.head.appendChild(style);
-var styleSheet = document.styleSheets[document.styleSheets.length - 1];
 var cssRules = new Set();
+var styleSheet = (function () {
+    var ss;
+    function mk() {
+        var style = document.createElement("style");
+        style.type = "text/css";
+        document.head.appendChild(style);
+        ss = document.styleSheets[document.styleSheets.length - 1];
+    }
+    return function () {
+        if (ss === undefined) {
+            mk();
+        }
+        ;
+        return ss;
+    };
+})();
 var emitRule = function (rule) {
     var hash = rule.hash;
     if (!cssRules.has(hash)) {
@@ -146,7 +169,7 @@ var emitRule = function (rule) {
         var text = cssRuleExText(rule);
         console.log('emitRule', hash, rule);
         console.log(text);
-        styleSheet.insertRule(text, styleSheet.cssRules.length);
+        styleSheet().insertRule(text, styleSheet().cssRules.length);
     }
     return 's' + hash;
 };
@@ -236,7 +259,7 @@ function spineToReact(clientH, path, ctx, spine, key) {
             }
         }
         if (spine.tag === 'input') {
-            return React.createElement.apply(React, [ControlledInput, {
+            return React.createElement.apply(React, [ControlledInput(), {
                     elementType: 'input', props: props_1
                 }].concat(children));
         }
@@ -253,6 +276,8 @@ function spineToReact(clientH, path, ctx, spine, key) {
         throw new Error('spineToReact: unexpected value: ' + spine);
     }
 }
-window['newBridge'] = function (appE, callbacks) {
-    return new ClientH(appE, callbacks.componentEvent, callbacks.nodeEvent, callbacks.attachRef, callbacks.detachRef, callbacks.componentDidMount, callbacks.componentWillUnmount);
-};
+if (this != null && typeof this.window !== 'undefined') {
+    window['newBridge'] = function (appE, callbacks) {
+        return new ClientH(appE, callbacks.componentEvent, callbacks.nodeEvent, callbacks.attachRef, callbacks.detachRef, callbacks.componentDidMount, callbacks.componentWillUnmount);
+    };
+}

@@ -39,6 +39,7 @@ import           Nauva.NJS.Language
 import           Nauva.NJS.Eval
 import           Nauva.Native.Bridge
 import           Nauva.CSS.Types
+import           Nauva.Service.Router
 
 import           GHCJS.Types
 import           GHCJS.Marshal
@@ -61,7 +62,7 @@ import           Debug.Trace
 
 
 data Config = Config
-    { cElement :: Element
+    { cElement :: RouterH -> Element
       -- ^ The root elment of the application. This will be rendered into the
       -- Handle once.
     }
@@ -78,8 +79,34 @@ runClient c = do
     appEl <- getElementByIdUnsafe document ("app" :: JSString)
 
     nauvaH <- newHandle
-    render nauvaH (cElement c)
     refsVar <- newTVarIO (M.empty :: Map (ComponentId, RefKey) JSVal)
+
+    routerH <- do
+        var <- newTVarIO (Location "/")
+        chan <- newTChanIO
+
+        pure $ RouterH
+            { hLocation = (var, chan)
+            , hPush = \url -> do
+                putStrLn $ "Router hPush: " <> T.unpack url
+
+                atomically $ do
+                    writeTVar var (Location url)
+                    writeTChan chan (Location url)
+
+                processSignals nauvaH
+            }
+
+    render nauvaH (cElement c routerH)
+
+    locationSignalCopy <- atomically $ dupTChan (snd $ hLocation routerH)
+    void $ forkIO $ forever $ do
+        path <- atomically $ do
+            Location path <- readTChan locationSignalCopy
+            pure path
+
+        print path
+
 
     bridge <- newBridge appEl $ Impl
         { componentEventImpl = \path fid val -> void $ dispatchComponentEventHandler nauvaH refsVar path fid val
