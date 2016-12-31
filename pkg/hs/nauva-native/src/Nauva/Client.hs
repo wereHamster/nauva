@@ -161,8 +161,8 @@ hookHandler accessor h path = do
                 let fs = accessor $ componentHooks component
 
                 let rawHookActions = catMaybes $ map (\f -> case evalExp (Context M.empty Nothing Nothing) (f1Fn f UnitE) of
-                        Left _ -> Nothing; Right x -> unsafePerformIO (fromJSVal x)) fs
-                forM rawHookActions $ \rawValue -> do
+                        Left _ -> Nothing; Right (x, ioa) -> (\v -> (v, ioa)) <$> unsafePerformIO (fromJSVal x)) fs
+                forM rawHookActions $ \(rawValue, ioAction) -> do
                     case A.parseEither parseValue (taggedWithHook component rawValue) of
                         Left e -> throwError e
                         Right value -> do
@@ -175,12 +175,13 @@ hookHandler accessor h path = do
                                 writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
                                 pure actions
 
-                            pure $ Effect (ComponentInstance path component stateRef) actions
+                            pure $ (Effect (ComponentInstance path component stateRef) actions, ioAction)
 
     case res of
         Left e -> pure $ Left e
         Right effects -> do
-            executeEffects h effects
+            sequence_ $ map snd effects
+            executeEffects h (map fst effects)
             pure $ Right ()
 
 
@@ -217,11 +218,13 @@ attachRefHandler h refsVar path jsVal = do
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
                     Just (Ref _ fra _) -> case evalExp (Context M.empty Nothing (Just jsVal)) (f2Fn fra UnitE (holeE 1)) of
                         Left e -> Prelude.error $ show e
-                        Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
+                        Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
                             Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
                                 Left e -> Prelude.error $ show e
-                                Right action -> applyAction h action ci
+                                Right action -> do
+                                    eff <- applyAction h action ci
+                                    pure (eff, ioAction)
 
             _ -> throwError $ "attachRefHandler: " ++ show (unPath path)
 
@@ -229,7 +232,8 @@ attachRefHandler h refsVar path jsVal = do
         Left e -> do
             print e
             pure $ Left e
-        Right effect -> do
+        Right (effect, ioAction) -> do
+            ioAction
             executeEffects h [effect]
             pure $ Right ()
 
@@ -251,17 +255,20 @@ detachRefHandler h refsVar path = do
                     Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
                     Just (Ref _ _ frd) -> case evalExp (Context M.empty Nothing Nothing) (f1Fn frd UnitE) of
                         Left e -> Prelude.error $ show e
-                        Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
+                        Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "detachRefHandler: fromJSVal"
                             Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
                                 Left e -> Prelude.error $ show e
-                                Right action -> applyAction h action ci
+                                Right action -> do
+                                    eff <- applyAction h action ci
+                                    pure (eff, ioAction)
 
             _ -> throwError $ "detachRefHandler: " ++ show (unPath path)
 
     case res of
         Left e -> pure $ Left e
-        Right effect -> do
+        Right (effect, ioAction) -> do
+            ioAction
             executeEffects h [effect]
             pure $ Right ()
 
@@ -283,13 +290,13 @@ dispatchNodeEventHandler h refsVar path fid ev = do
                         else do
                             case evalExp (Context ctxRefs Nothing (Just ev)) (f1Fn fe (holeE 1)) of
                                 Left e -> Prelude.error $ show e
-                                Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
+                                Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                                     Nothing -> Prelude.error "dispatchNodeEventHandler: fromJSVal"
                                     Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
                                         Left e -> Prelude.error $ show e
                                         Right action -> do
                                             effect <- lift $ applyAction h action ci
-                                            pure $ Just effect
+                                            pure $ Just (effect, ioAction)
 
                 pure $ catMaybes mbRes
 
@@ -299,7 +306,8 @@ dispatchNodeEventHandler h refsVar path fid ev = do
         Left e -> do
             pure $ Left e
         Right effects -> do
-            executeEffects h effects
+            sequence_ $ map snd effects
+            executeEffects h $ map fst effects
             pure $ Right ()
 
 
@@ -322,20 +330,21 @@ dispatchComponentEventHandler h refsVar path fid ev = do
                         else do
                             case evalExp (Context ctxRefs Nothing (Just ev)) (f1Fn fe (holeE 1)) of
                                 Left e -> Prelude.error $ show e
-                                Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
+                                Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                                     Nothing -> Prelude.error "dispatchNodeEventHandler: fromJSVal"
                                     Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
                                         Left e -> Prelude.error $ show e
                                         Right action -> do
                                             effect <- lift $ applyAction h action ci
-                                            pure $ Just effect
+                                            pure $ Just (effect, ioAction)
 
                 pure $ catMaybes mbRes
 
     case res of
         Left e -> pure $ Left e
         Right effects -> do
-            executeEffects h effects
+            sequence_ $ map snd effects
+            executeEffects h $ map fst effects
             pure $ Right ()
 
 foreign import javascript unsafe "$r = $1"
