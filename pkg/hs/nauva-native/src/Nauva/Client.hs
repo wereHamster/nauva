@@ -160,7 +160,7 @@ hookHandler accessor h path = do
                 state <- lift $ readTMVar stateRef
                 let fs = accessor $ componentHooks component
 
-                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty Nothing Nothing) (f1Fn f UnitE) of
+                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty M.empty) (f1Fn f UnitE) of
                         Left _ -> Nothing; Right (x, ioa) -> (\v -> (v, ioa)) <$> unsafePerformIO (fromJSVal x)) fs
                 forM rawHookActions $ \(rawValue, ioAction) -> do
                     case A.parseEither parseValue (taggedWithHook component rawValue) of
@@ -216,7 +216,7 @@ attachRefHandler h refsVar path jsVal = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
-                    Just (Ref _ fra _) -> case eval (Context M.empty Nothing (Just jsVal)) (f2Fn fra UnitE (holeE 1)) of
+                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 1 jsVal)) (f2Fn fra UnitE (holeE 1)) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
@@ -253,7 +253,7 @@ detachRefHandler h refsVar path = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
-                    Just (Ref _ _ frd) -> case eval (Context M.empty Nothing Nothing) (f1Fn frd UnitE) of
+                    Just (Ref _ _ frd) -> case eval (Context M.empty M.empty) (f1Fn frd UnitE) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "detachRefHandler: fromJSVal"
@@ -288,7 +288,7 @@ dispatchNodeEventHandler h refsVar path fid ev = do
                     if f1Id fe /= fid
                         then pure Nothing
                         else do
-                            case eval (Context ctxRefs Nothing (Just ev)) (f1Fn fe (holeE 1)) of
+                            case eval (Context ctxRefs (M.singleton 1 ev)) (f1Fn fe (holeE 1)) of
                                 Left e -> Prelude.error $ show e
                                 Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                                     Nothing -> Prelude.error "dispatchNodeEventHandler: fromJSVal"
@@ -328,7 +328,7 @@ dispatchComponentEventHandler h refsVar path fid ev = do
                     if f1Id fe /= fid
                         then pure Nothing
                         else do
-                            case eval (Context ctxRefs Nothing (Just ev)) (f1Fn fe (holeE 1)) of
+                            case eval (Context ctxRefs (M.singleton 1 ev)) (f1Fn fe (holeE 1)) of
                                 Left e -> Prelude.error $ show e
                                 Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                                     Nothing -> Prelude.error "dispatchNodeEventHandler: fromJSVal"

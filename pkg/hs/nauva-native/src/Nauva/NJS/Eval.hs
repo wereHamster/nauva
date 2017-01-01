@@ -1,7 +1,7 @@
-{-# LANGUAGE JavaScriptFFI              #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE JavaScriptFFI              #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Nauva.NJS.Eval
     ( Context(..)
@@ -39,8 +39,7 @@ import           Nauva.Internal.Types
 
 data Context = Context
     { ctxRefs :: Map RefKey JSVal
-    , ctxArg0 :: Maybe JSVal
-    , ctxArg1 :: Maybe JSVal
+    , ctxArgs :: Map Int JSVal
     }
 
 newtype Eval a = Eval { runEval :: ReaderT Context (WriterT [IO ()] (Except ())) a }
@@ -64,15 +63,11 @@ evalExp UnitE = throwError ()
 
 evalExp (HoleE i) = do
     ctx <- ask
-    case i of
-        0 -> maybe (throwError ()) pure $ ctxArg0 ctx
-        1 -> maybe (throwError ()) pure $ ctxArg1 ctx
-        _ -> throwError ()
+    maybe (throwError ()) pure (M.lookup i (ctxArgs ctx))
 
 evalExp (LitE (StringL x)) = pure $ unsafePerformIO $ toJSVal x
 evalExp (LitE (IntL x)) = pure $ unsafePerformIO $ toJSVal x
 evalExp (LitE (BoolL x)) = pure $ unsafePerformIO $ toJSVal x
-
 
 evalExp GlobalE = pure $ unsafePerformIO js_globalE
 
