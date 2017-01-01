@@ -19,7 +19,7 @@ import           Prelude hiding (rem)
 
 
 rootElement :: Int -> Element
-rootElement i = div_ [style_ rootStyle] $
+rootElement _ = div_ [style_ rootStyle] $
     [ navbar
     , batteries
         [ batteryCard

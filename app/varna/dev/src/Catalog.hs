@@ -5,26 +5,10 @@
 module Main (main) where
 
 
-import           Data.ByteString    (ByteString)
-import qualified Data.ByteString    as BS
-import           Data.Text          (Text)
-import qualified Data.Text.Encoding as T
-import           Text.Markdown      (def, MarkdownSettings(..))
-import           Text.Markdown.Block
-import           Text.Markdown.Inline
-import           Data.Conduit
-import qualified Data.Conduit.List as CL
-import           Data.Functor.Identity (runIdentity)
-
 import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 import           Nauva.Server
-import           Nauva.DOM
-import           Nauva.Internal.Types
-import           Nauva.Internal.Events
-import           Nauva.NJS
-import           Nauva.View
 
 import           Nauva.Catalog
 import           Nauva.Catalog.Types

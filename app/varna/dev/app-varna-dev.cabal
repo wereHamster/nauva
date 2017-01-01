@@ -14,13 +14,7 @@ executable app-varna-dev
      base >= 4.7 && < 5
    , app-varna-shared
    , blaze-html
-   , bytestring
-   , bytestring
-   , conduit
-   , markdown
-   , nauva
    , nauva-dev-server
-   , text
 
 
 executable app-varna-dev-catalog
@@ -33,11 +27,5 @@ executable app-varna-dev-catalog
      base >= 4.7 && < 5
    , app-varna-shared
    , blaze-html
-   , bytestring
-   , bytestring
-   , conduit
-   , markdown
-   , nauva
    , nauva-catalog
    , nauva-dev-server
-   , text
