@@ -18,16 +18,11 @@ module Nauva.View.HTML
 
 
 import           Data.Text (Text)
-import qualified Data.Text as T
-import           Data.Monoid
 import qualified Data.Aeson as A
-import           Data.Typeable
 
-import           Nauva.DOM
 import           Nauva.Internal.Types
 import           Nauva.Internal.Events
 import           Nauva.NJS
-import           Nauva.CSS
 
 import           Nauva.View.Types
 import           Nauva.View.Terms
