@@ -15,15 +15,10 @@ module App.Varna.Element.Card
 
 
 import           Data.Text (Text)
-import qualified Data.Text as T
-import           Data.Monoid
 
 import           Control.Monad
 
-import           Nauva.DOM
 import           Nauva.Internal.Types
-import           Nauva.Internal.Events
-import           Nauva.NJS
 import           Nauva.View
 
 import           Nauva.Catalog.Elements

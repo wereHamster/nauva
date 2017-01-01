@@ -7,10 +7,8 @@ module App.Varna.Catalog (catalogPages) where
 
 import           Nauva.Internal.Types
 
-import           Nauva.Catalog
 import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
-import           Nauva.Catalog.Shell
 import           Nauva.Catalog.Elements
 
 import           App.Varna.Element.Card as Card
