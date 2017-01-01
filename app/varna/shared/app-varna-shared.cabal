@@ -9,6 +9,7 @@ library
 
   exposed-modules:
      App.Varna.Shared
+   , App.Varna.Catalog
    , App.Varna.Element.Card
 
   build-depends:

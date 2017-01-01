@@ -2,11 +2,11 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuasiQuotes           #-}
 
-module Main (main) where
+module App.Varna.Catalog (catalogPages) where
 
 
 import           Nauva.Internal.Types
-import           Nauva.Client
+
 import           Nauva.Catalog
 import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
@@ -16,13 +16,6 @@ import           Nauva.Catalog.Elements
 import           App.Varna.Element.Card as Card
 
 
-
-main :: IO ()
-main = do
-    putStrLn "Varna Catalog"
-    runClient $ Config
-        { cElement = \routerH -> catalog $ CatalogProps routerH catalogPages
-        }
 
 catalogPages :: [Page]
 catalogPages =
@@ -44,11 +37,7 @@ catalogPages =
     ]
 
 
-
-
-
 introductionPage :: Element
 introductionPage = [nauvaCatalogPage|
 # Welcome to the Varna catalog
 |]
-
