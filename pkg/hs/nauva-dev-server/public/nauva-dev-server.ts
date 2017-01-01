@@ -106,7 +106,6 @@ function runClient() {
     const ws = new WebSocket('ws://localhost:8000/ws');
 
     function onPopState(ev) {
-        console.log('onPopState', ev);
         ws.send(JSON.stringify(['location', window.location.pathname]));
     }
 
@@ -137,7 +136,6 @@ function runClient() {
         componentRegistry = new Map;
         ctx = new Context;
         loadingScreen();
-        // console.log(ev);
         runClient();
     });
 
@@ -146,7 +144,6 @@ function runClient() {
         componentRegistry = new Map;
         ctx = new Context;
         loadingScreen();
-        // console.log(ev);
         // runClient();
     });
 }
@@ -182,7 +179,6 @@ function getComponent(componentId: ComponentId) {
 
                 eventListeners.forEach(([fid, name, expr]) => {
                     window.addEventListener(name, getFn(this.ctx, path, fid, () => {
-                        console.log('componentEventListeners', fid, name);
                         return ev => {
                             const eh = evalExp(expr, { '0': ev }, this.ctx);
 
@@ -324,8 +320,6 @@ const emitRule = (rule: any): string => {
     if (!cssRules.has(hash)) {
         cssRules.add(hash);
         const text = cssRuleExText(rule);
-        console.log('emitRule', hash, rule);
-        console.log(text);
         styleSheet.insertRule(text, styleSheet.cssRules.length);
     }
 
@@ -387,7 +381,6 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
 
         const installEventListener = ([fid, name, expr]) => {
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
-                console.log('getFn', fid, name);
                 return ev => {
                     const eh = evalExp(expr, { '0': ev }, ctx);
 
@@ -416,7 +409,6 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
                 }).filter(x => x !== undefined).join(" ");
             } else if (k === 'AREF') {
                 props.ref = getFn(ctx, path, 'ref', () => {
-                    console.log('getFn ref', a)
                     return ref => {
                         if (ref === null) {
                             // spine.ref.detach;
@@ -424,7 +416,6 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
                                 ctx.refs.delete(a.key);
                             }
 
-                            console.log('detach');
                             const r = evalExp(a.detach, { ['1']: ref }, this.ctx);
                             if (r.action) {
                                 ws.send(JSON.stringify(['ref', path, r.action]));
@@ -434,7 +425,6 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
                                 ctx.refs.set(a.key, ref);
                             }
 
-                            console.log('attach');
                             const r = evalExp(a.attach, { ['1']: ref }, this.ctx);
                             if (r.action) {
                                 ws.send(JSON.stringify(['ref', path, r.action]));
