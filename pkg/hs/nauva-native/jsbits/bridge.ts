@@ -54,7 +54,6 @@ class ClientH {
 
     renderSpineAtPath(key: string, spine: any): void {
         const component = this.components.get(key);
-        // console.log('renderSpineAtPath', key, spine, component);
         if (component) {
             component.setState({ spine });
         }
@@ -89,7 +88,6 @@ function getComponent(clientH: ClientH, componentId: ComponentId) {
             componentDidMount() {
                 const {clientH, path, spine: {eventListeners}} = this.props;
                 clientH.components.set(path.join('.'), this);
-                console.log('Registering component at key', path.join('.'));
                 clientH.componentDidMount(path);
 
                 eventListeners.forEach(([fid, name]) => {
@@ -220,8 +218,6 @@ const emitRule = (rule: any): string => {
     if (!cssRules.has(hash)) {
         cssRules.add(hash);
         const text = cssRuleExText(rule);
-        console.log('emitRule', hash, rule);
-        console.log(text);
         styleSheet().insertRule(text, styleSheet().cssRules.length);
     }
 
@@ -283,7 +279,6 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
 
         const installEventListener = (fid, name) => {
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
-                console.log('getFn', fid, name);
                 return ev => {
                     clientH.dispatchNodeEvent(path, fid, ev);
                 };

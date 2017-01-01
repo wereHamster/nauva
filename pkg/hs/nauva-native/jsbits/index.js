@@ -41,7 +41,6 @@ var ClientH = (function () {
     };
     ClientH.prototype.renderSpineAtPath = function (key, spine) {
         var component = this.components.get(key);
-        // console.log('renderSpineAtPath', key, spine, component);
         if (component) {
             component.setState({ spine: spine });
         }
@@ -63,7 +62,6 @@ function getComponent(clientH, componentId) {
                 var _this = this;
                 var _a = this.props, clientH = _a.clientH, path = _a.path, eventListeners = _a.spine.eventListeners;
                 clientH.components.set(path.join('.'), this);
-                console.log('Registering component at key', path.join('.'));
                 clientH.componentDidMount(path);
                 eventListeners.forEach(function (_a) {
                     var fid = _a[0], name = _a[1];
@@ -167,8 +165,6 @@ var emitRule = function (rule) {
     if (!cssRules.has(hash)) {
         cssRules.add(hash);
         var text = cssRuleExText(rule);
-        console.log('emitRule', hash, rule);
-        console.log(text);
         styleSheet().insertRule(text, styleSheet().cssRules.length);
     }
     return 's' + hash;
@@ -223,7 +219,6 @@ function spineToReact(clientH, path, ctx, spine, key) {
         var props_1 = { key: key };
         var installEventListener = function (fid, name) {
             props_1["on" + capitalizeFirstLetter(name)] = getFn(ctx, path, fid, function () {
-                console.log('getFn', fid, name);
                 return function (ev) {
                     clientH.dispatchNodeEvent(path, fid, ev);
                 };
