@@ -8,6 +8,8 @@ executable app-varna-native
   default-language:    Haskell2010
   main-is:             src/Main.hs
 
+  ghc-options:         -Wall
+
   build-depends:
       base >= 4.7 && < 5
     , ghcjs-base
@@ -19,6 +21,8 @@ executable app-varna-native
 executable app-varna-native-catalog
   default-language:    Haskell2010
   main-is:             src/Catalog.hs
+
+  ghc-options:         -Wall
 
   build-depends:
       base >= 4.7 && < 5
