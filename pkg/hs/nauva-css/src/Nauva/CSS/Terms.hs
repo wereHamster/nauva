@@ -26,6 +26,7 @@ module Nauva.CSS.Terms
     , flexDirection
     , flexEnd
     , flexFlow
+    , flexShrink
     , flexWrap
     , fontFamily
     , fontSize
@@ -178,6 +179,10 @@ flexEnd = cssTerm "flex-end"
 flexFlow :: CSSTerm a => a
 flexFlow = cssTerm "flex-flow"
 {-# INLINE flexFlow #-}
+
+flexShrink :: CSSTerm a => a
+flexShrink = cssTerm "flex-shrink"
+{-# INLINE flexShrink #-}
 
 flexWrap :: CSSTerm a => a
 flexWrap = cssTerm "flex-wrap"

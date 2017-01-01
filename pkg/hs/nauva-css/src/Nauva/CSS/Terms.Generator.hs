@@ -52,6 +52,7 @@ properties =
     , "flex-direction"
     , "flex-end"
     , "flex-flow"
+    , "flex-shrink"
     , "flex-wrap"
     , "flex"
     , "font-family"

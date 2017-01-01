@@ -64,6 +64,7 @@ navbar = div_ [style_ rootStyle]
         color "rgb(228, 228, 238)"
         fontSize (rem 1.8)
         lineHeight (rem 3)
+        flexShrink "0"
 
     navbarItemStyle :: Style
     navbarItemStyle = mkStyle $ do
