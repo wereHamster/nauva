@@ -27,7 +27,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, F1(..), F2(..), FRA, FRD, mkFID, njsCon0, holeE, value0E)
+import           Nauva.NJS (Value, FID, F1(..), F2(..), FRA, FRD, mkFID, njsCon0, holeE, value0E)
 import           Nauva.CSS.Types
 
 
@@ -363,6 +363,12 @@ data Component p h s a = Component
     }
 
 
+lookupComponentEventListener :: FID -> Component p h s a -> s -> Maybe EventListener
+lookupComponentEventListener fid component state = find
+    (\(EventListener _ f) -> f1Id f == fid)
+    (componentEventListeners component state)
+
+
 
 --------------------------------------------------------------------------------
 newtype ComponentId = ComponentId { unComponentId :: Int }
@@ -466,6 +472,15 @@ instance FromJSON Attribute where
         (name, value) <- parseJSON v
         pure $ AVAL name value
 
+
+
+lookupEventListener :: FID -> [Attribute] -> Maybe EventListener
+lookupEventListener fid attrs = case attrs of
+    [] -> Nothing
+    (AEVL el@(EventListener _ fe):xs) -> if f1Id fe == fid
+        then Just el
+        else lookupEventListener fid xs
+    (_:xs) -> lookupEventListener fid xs
 
 
 -- $attributeValueConstructors

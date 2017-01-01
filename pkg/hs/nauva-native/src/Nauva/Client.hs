@@ -273,41 +273,54 @@ detachRefHandler h refsVar path = do
             pure $ Right ()
 
 
+mkCtxRefs :: TVar (Map (ComponentId, RefKey) JSVal) -> STM (Map RefKey JSVal)
+mkCtxRefs refsVar = do
+    x <- readTVar refsVar
+    pure $ M.fromList $ map (\((_,k),v) -> (k,v)) $ M.toList x
+
 dispatchNodeEventHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, RefKey) JSVal) -> Path -> FID -> JSVal -> IO (Either String ())
 dispatchNodeEventHandler h refsVar path fid ev = do
     res <- atomically $ runExceptT $ do
+        -- Find the correct context (ComponentInstance) to dispatch the event to. The actual target
+        -- must be a 'INode', from which we need the attributes (so we know which NJS experession
+        -- to evaluate).
         (mbSCI, inst) <- contextForPath h path
-        case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode tag attrs _) -> do
-                let eventListeners = catMaybes $ map (\x -> case x of (AEVL el) -> Just el; _ -> Nothing) attrs
-                ctxRefs <- do
-                    x <- lift $ readTVar refsVar
-                    pure $ M.fromList $ map (\((_,k),v) -> (k,v)) $ M.toList x
+        (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef), attrs) <- do
+            case (mbSCI, inst) of
+                (Just sci, INode _ attrs _) -> pure (sci, attrs)
+                _                           -> throwError $ "dispatchNodeEventHandler: " ++ show (unPath path)
 
-                mbRes <- forM eventListeners $ \(EventListener elName fe) -> do
-                    if f1Id fe /= fid
-                        then pure Nothing
-                        else do
-                            case eval (Context ctxRefs (M.singleton 1 ev)) (f1Fn fe (holeE 1)) of
-                                Left e -> Prelude.error $ show e
-                                Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
-                                    Nothing -> Prelude.error "dispatchNodeEventHandler: fromJSVal"
-                                    Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
-                                        Left e -> Prelude.error $ show e
-                                        Right action -> do
-                                            effect <- lift $ applyAction h action ci
-                                            pure $ Just (effect, ioAction)
+        -- Find the correct 'EventListener'.
+        --
+        -- FIXME: We do this by FID, which isn't strictly correct. We should be using
+        -- the event name (or better, both event name and FID).
+        (EventListener _ fe) <- case lookupEventListener fid attrs of
+            Nothing -> throwError $ "dispatchNodeEventHandler: no listener"
+            Just el -> pure el
 
-                pure $ catMaybes mbRes
+        ctxRefs <- lift $ mkCtxRefs refsVar
+        let ctx = (Context ctxRefs (M.singleton 1 ev))
 
-            _ -> throwError $ "dispatchNodeEventHandler: " ++ show (unPath path)
+        (jsVal, ioAction) <- withExceptT (const "dispatchNodeEventHandler: eval") $
+            ExceptT $ pure $ eval ctx (f1Fn fe (holeE 1))
+
+        rawValue <- case unsafePerformIO (fromJSVal jsVal) of
+            Nothing -> throwError "dispatchNodeEventHandler: fromJSVal"
+            Just x  -> pure x
+
+        action <- case A.parseEither parseValue (taggedWithAction component rawValue) of
+            Left e  -> throwError $ "dispatchNodeEventHandler: " ++ show e
+            Right x -> pure x
+
+        effect <- lift $ applyAction h action ci
+        pure (effect, ioAction)
 
     case res of
         Left e -> do
             pure $ Left e
-        Right effects -> do
-            sequence_ $ map snd effects
-            executeEffects h $ map fst effects
+        Right (effect, ioAction) -> do
+            ioAction
+            executeEffects h [effect]
             pure $ Right ()
 
 
@@ -316,35 +329,39 @@ dispatchComponentEventHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, 
 dispatchComponentEventHandler h refsVar path fid ev = do
     res <- atomically $ runExceptT $ do
         (mbSCI, _) <- contextForPath h path
-        case mbSCI of
+
+        (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)) <- case mbSCI of
             Nothing -> throwError $ "dispatchComponentEventHandler: " ++ show (unPath path)
-            Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)) -> do
-                ctxRefs <- do
-                    x <- lift $ readTVar refsVar
-                    pure $ M.fromList $ map (\((_,k),v) -> (k,v)) $ M.toList x
+            Just x  -> pure x
 
-                state <- lift $ readTMVar stateRef
-                mbRes <- forM (componentEventListeners component $ componentState state) $ \(EventListener elName fe) -> do
-                    if f1Id fe /= fid
-                        then pure Nothing
-                        else do
-                            case eval (Context ctxRefs (M.singleton 1 ev)) (f1Fn fe (holeE 1)) of
-                                Left e -> Prelude.error $ show e
-                                Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
-                                    Nothing -> Prelude.error "dispatchNodeEventHandler: fromJSVal"
-                                    Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
-                                        Left e -> Prelude.error $ show e
-                                        Right action -> do
-                                            effect <- lift $ applyAction h action ci
-                                            pure $ Just (effect, ioAction)
+        ctxRefs <- lift $ mkCtxRefs refsVar
+        let ctx = (Context ctxRefs (M.singleton 1 ev))
 
-                pure $ catMaybes mbRes
+        state <- lift $ readTMVar stateRef
+
+        (EventListener _ fe) <- case lookupComponentEventListener fid component (componentState state) of
+            Nothing -> throwError "dispatchComponentEventHandler: no listener"
+            Just x  -> pure x
+
+        (jsVal, ioAction) <- withExceptT (const "dispatchComponentEventHandler: eval") $
+            ExceptT $ pure $ eval ctx (f1Fn fe (holeE 1))
+
+        rawValue <- case unsafePerformIO (fromJSVal jsVal) of
+            Nothing -> throwError "dispatchComponentEventHandler: fromJSVal"
+            Just x  -> pure x
+
+        action <- case A.parseEither parseValue (taggedWithAction component rawValue) of
+            Left e  -> throwError $ "dispatchComponentEventHandler: " ++ show e
+            Right x -> pure x
+
+        effect <- lift $ applyAction h action ci
+        pure (effect, ioAction)
 
     case res of
         Left e -> pure $ Left e
-        Right effects -> do
-            sequence_ $ map snd effects
-            executeEffects h $ map fst effects
+        Right (effect, ioAction) -> do
+            ioAction
+            executeEffects h [effect]
             pure $ Right ()
 
 foreign import javascript unsafe "$r = $1"
