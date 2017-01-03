@@ -88,7 +88,7 @@ data Instance where
 data Spine where
     SText :: Text -> Spine
     SNode :: Tag ->  [Attribute] -> [(Key, Spine)] -> Spine
-    SComponent :: ComponentId -> [EventListener] -> Hooks h -> Spine -> Spine
+    SComponent :: ComponentId -> Text -> [EventListener] -> Hooks h -> Spine -> Spine
 
 
 instance A.ToJSON Spine where
@@ -102,9 +102,10 @@ instance A.ToJSON Spine where
             , "children" .= toJSON (map toJSON children)
             ]
 
-        (SComponent (ComponentId cId) eventListeners hooks spine) -> object
+        (SComponent (ComponentId cId) displayName eventListeners hooks spine) -> object
             [ "type" .= ("Component" :: String)
             , "id" .= toJSON cId
+            , "displayName" .= toJSON displayName
             , "eventListeners" .= toJSON (map toJSON eventListeners)
             , "hooks" .= toJSON hooks
             , "spine" .= toJSON spine
@@ -234,7 +235,7 @@ data Thunk p = Thunk
 -- 'Eq' typeclass, because '==' is used as the implementation of
 -- 'shouldThunkUpdate'.
 simpleThunk :: Eq p => String -> (p -> Element) -> Thunk p
-simpleThunk dispName = Thunk mkThunkId dispName (==)
+simpleThunk dispName = Thunk (mkThunkId ()) dispName (==)
 
 
 -- | This function creates a 'Element' which is backed by a 'Thunk' internally.
@@ -261,9 +262,10 @@ thunkIdCounter :: IORef Int
 thunkIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE thunkIdCounter #-}
 
-mkThunkId :: ThunkId
-mkThunkId = ThunkId $ unsafePerformIO $
+mkThunkId :: () -> ThunkId
+mkThunkId () = ThunkId $ unsafePerformIO $
     atomicModifyIORef' thunkIdCounter $ \i -> (i + 1, i)
+{-# NOINLINE mkThunkId #-}
 
 
 shouldThunkUpdate' :: (Typeable a, Typeable b) => Thunk a -> a -> Thunk b -> b -> Bool
@@ -308,8 +310,8 @@ emptyHooks = Hooks
 -- lifecycle hooks is invoked.
 constHooks :: Hooks ()
 constHooks = Hooks
-    { componentDidMount    = [ F1 mkFID (\_ -> value0E unitC) ]
-    , componentWillUnmount = [ F1 mkFID (\_ -> value0E unitC) ]
+    { componentDidMount    = [ F1 (mkFID ()) (\_ -> value0E unitC) ]
+    , componentWillUnmount = [ F1 (mkFID ()) (\_ -> value0E unitC) ]
     }
   where
     unitC = njsCon0 "()" ()
@@ -329,7 +331,7 @@ data Component p h s a = Component
     { componentId :: ComponentId
      -- ^ A unique ID which identifies this component.
 
-    , componentDisplayName :: String
+    , componentDisplayName :: Text
       -- ^ Same purpose as 'thunkDisplayName'.
 
     , initialComponentState :: p -> STM (s, [Signal s a])
@@ -379,8 +381,8 @@ componentIdCounter :: IORef Int
 componentIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE componentIdCounter #-}
 
-mkComponentId :: ComponentId
-mkComponentId = ComponentId $ unsafePerformIO $
+mkComponentId :: () -> ComponentId
+mkComponentId () = ComponentId $ unsafePerformIO $
     atomicModifyIORef' componentIdCounter $ \i -> (i + 1, i)
 
 

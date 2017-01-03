@@ -50,10 +50,11 @@ fIdCounter = unsafePerformIO $ newIORef 1
 
 
 -- | Smart constructor for 'FID'. Every time the Haskell runtime evaluates this
--- expression, a new 'FID' is created. Two such values are never equal. 
-mkFID :: FID
-mkFID = FID $ unsafePerformIO $
+-- expression, a new 'FID' is created. Two such values are never equal.
+mkFID :: () -> FID
+mkFID () = FID $ unsafePerformIO $
     atomicModifyIORef' fIdCounter $ \i -> (i + 1, i)
+{-# NOINLINE mkFID #-}
 
 unFID :: FID -> Int
 unFID (FID x) = x

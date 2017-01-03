@@ -105,7 +105,7 @@ function runClient() {
     });
 }
 let componentRegistry = new Map;
-function getComponent(componentId) {
+function getComponent(componentId, displayName) {
     let component = componentRegistry.get(componentId);
     if (component === undefined) {
         component = class extends React.Component {
@@ -148,6 +148,7 @@ function getComponent(componentId) {
                 return spineToReact(ws, path, this.ctx, spine.spine, key);
             }
         };
+        component.displayName = displayName;
         componentRegistry.set(componentId, component);
     }
     return component;
@@ -336,7 +337,7 @@ function spineToReact(ws, path, ctx, spine, key) {
         }
     }
     else if (spine.type === 'Component') {
-        return React.createElement(getComponent(spine.id), {
+        return React.createElement(getComponent(spine.id, spine.displayName), {
             ws, key, path, spine
         });
     }

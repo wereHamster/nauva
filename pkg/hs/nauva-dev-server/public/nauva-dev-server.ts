@@ -153,7 +153,7 @@ type ComponentId = number;
 
 let componentRegistry: Map<ComponentId, any> = new Map;
 
-function getComponent(componentId: ComponentId) {
+function getComponent(componentId: ComponentId, displayName: string) {
     let component = componentRegistry.get(componentId);
     if (component === undefined) {
         component = class extends React.Component {
@@ -166,6 +166,7 @@ function getComponent(componentId: ComponentId) {
             };
 
             ctx = new Context;
+            displayName: string;
 
             constructor(props) {
                 super(props);
@@ -212,6 +213,8 @@ function getComponent(componentId: ComponentId) {
                 return spineToReact(ws, path, this.ctx, spine.spine, key);
             }
         };
+
+        component.displayName = displayName;
 
         componentRegistry.set(componentId, component);
     }
@@ -444,7 +447,7 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
         }
 
     } else if (spine.type === 'Component') {
-        return React.createElement(getComponent(spine.id), {
+        return React.createElement(getComponent(spine.id, spine.displayName), {
             ws, key, path, spine
         });
 

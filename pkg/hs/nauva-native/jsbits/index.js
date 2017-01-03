@@ -47,7 +47,7 @@ var ClientH = (function () {
     };
     return ClientH;
 }());
-function getComponent(clientH, componentId) {
+function getComponent(clientH, componentId, displayName) {
     var component = clientH.componentRegistry.get(componentId);
     if (component === undefined) {
         component = (function (_super) {
@@ -94,6 +94,7 @@ function getComponent(clientH, componentId) {
             };
             return class_1;
         }(React.Component));
+        component.displayName = displayName;
         clientH.componentRegistry.set(componentId, component);
     }
     return component;
@@ -263,7 +264,7 @@ function spineToReact(clientH, path, ctx, spine, key) {
         }
     }
     else if (spine.type === 'Component') {
-        return React.createElement(getComponent(clientH, spine.id), {
+        return React.createElement(getComponent(clientH, spine.id, spine.displayName), {
             clientH: clientH, key: key, path: path, spine: spine
         });
     }

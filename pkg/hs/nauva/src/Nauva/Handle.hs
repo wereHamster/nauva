@@ -345,6 +345,7 @@ toSpine inst = case inst of
 
         pure $ SComponent
             (componentId component)
+            (componentDisplayName component)
             (componentEventListeners component $ componentState state)
             (componentHooks component)
             spine

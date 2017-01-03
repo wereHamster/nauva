@@ -50,7 +50,7 @@ data State = State
 
 catalogComponent :: Component CatalogProps () State ()
 catalogComponent = Component
-    { componentId = mkComponentId
+    { componentId = mkComponentId ()
     , componentDisplayName = "Catalog"
     , initialComponentState = \props -> do
         loc <- readTVar $ fst $ hLocation $ routerH (props :: CatalogProps)

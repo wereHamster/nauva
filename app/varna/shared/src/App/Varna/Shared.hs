@@ -25,7 +25,7 @@ root = component_ rootComponent ()
 
 rootComponent :: Component () () () ()
 rootComponent = Component
-    { componentId = mkComponentId
+    { componentId = mkComponentId ()
     , componentDisplayName = "Root"
     , initialComponentState = \_ -> pure ((), [])
     , componentEventListeners = \_ -> []

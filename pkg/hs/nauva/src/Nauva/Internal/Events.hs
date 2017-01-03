@@ -57,7 +57,7 @@ action a = do
     SL.modify $ \s -> s { ehsAction = justE a }
 
 eventHandler :: (Exp ev -> EventHandlerM a ()) -> FE ev a
-eventHandler f = F1 mkFID $ \ev ->
+eventHandler f = F1 (mkFID()) $ \ev ->
     let (EventHandlerS a b c d) = SL.execState (f ev) emptyEventHandlerS
     in eventHandlerE a b c d
   where

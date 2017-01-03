@@ -475,6 +475,7 @@ instanceToJSVal = go []
 
                 O.setProp "type" (jsval ("Component" :: JSString)) o
                 O.setProp "id" (js_intJSVal $ unComponentId $ componentId component) o
+                O.setProp "displayName" (jsval $ textToJSString $ componentDisplayName component) o
                 O.setProp "eventListeners" eventListeners' o
                 O.setProp "hooks" (jsval hooks) o
                 O.setProp "spine" spine o

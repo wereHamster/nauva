@@ -44,7 +44,7 @@ header = thunk_ headerThunk
 
 headerThunk :: Thunk HeaderProps
 headerThunk = Thunk
-    { thunkId = mkThunkId
+    { thunkId = mkThunkId ()
     , thunkDisplayName = "Header"
     , shouldThunkUpdate = (==)
     , forceThunk = \(HeaderProps {..}) -> div_ [style_ headerStyle]
