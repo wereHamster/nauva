@@ -61,7 +61,7 @@ elementToMarkup el = case el of
 
     (EComponent component p) -> do
         (s, _) <- initialComponentState component p
-        elementToMarkup $ renderComponent component s
+        elementToMarkup $ renderComponent component p s
 
 
 -- | Not implemented yet!

@@ -351,8 +351,9 @@ data Component p h s a = Component
       -- happens if the component is embedded inside inside another 'Element'
       -- in the tree.
 
-    , update :: a -> s -> (s, [IO (Maybe a)])
-    , renderComponent :: s -> Element
+    , update :: a -> p -> s -> (s, [IO (Maybe a)])
+
+    , renderComponent :: p -> s -> Element
 
     , componentSnapshot :: s -> A.Value
       -- ^ Extract the essential parts from the state and generate a 'Value'
