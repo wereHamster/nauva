@@ -27,7 +27,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, F1(..), F2(..), FRA, FRD, mkFID, njsCon0, holeE, value0E)
+import           Nauva.NJS (Value, FID, F1(..), F2(..), FRA, FRD, createF, njsCon0, holeE, value0E)
 import           Nauva.CSS.Types
 
 
@@ -230,12 +230,18 @@ data Thunk p = Thunk
     }
 
 
+createThunk :: (ThunkId -> Thunk p) -> Thunk p
+createThunk f = unsafePerformIO $ do
+    tId <- atomicModifyIORef' thunkIdCounter $ \i -> (i + 1, i)
+    pure $ f $ ThunkId tId
+
+
 -- | Create a simple 'Thunk' out of a function which takes an argument of some
 -- type @p@ and turns that into an 'Element'. The @p@ type must implement the
 -- 'Eq' typeclass, because '==' is used as the implementation of
 -- 'shouldThunkUpdate'.
 simpleThunk :: Eq p => String -> (p -> Element) -> Thunk p
-simpleThunk dispName = Thunk (mkThunkId ()) dispName (==)
+simpleThunk dispName f = createThunk $ \thunkId -> Thunk thunkId dispName (==) f
 
 
 -- | This function creates a 'Element' which is backed by a 'Thunk' internally.
@@ -261,11 +267,6 @@ newtype ThunkId = ThunkId { unThunkId :: Int }
 thunkIdCounter :: IORef Int
 thunkIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE thunkIdCounter #-}
-
-mkThunkId :: () -> ThunkId
-mkThunkId () = ThunkId $ unsafePerformIO $
-    atomicModifyIORef' thunkIdCounter $ \i -> (i + 1, i)
-{-# NOINLINE mkThunkId #-}
 
 
 shouldThunkUpdate' :: (Typeable a, Typeable b) => Thunk a -> a -> Thunk b -> b -> Bool
@@ -310,8 +311,8 @@ emptyHooks = Hooks
 -- lifecycle hooks is invoked.
 constHooks :: Hooks ()
 constHooks = Hooks
-    { componentDidMount    = [ F1 (mkFID ()) (\_ -> value0E unitC) ]
-    , componentWillUnmount = [ F1 (mkFID ()) (\_ -> value0E unitC) ]
+    { componentDidMount    = [ createF $ \fId -> F1 fId (\_ -> value0E unitC) ]
+    , componentWillUnmount = [ createF $ \fId -> F1 fId (\_ -> value0E unitC) ]
     }
   where
     unitC = njsCon0 "()" ()
@@ -366,6 +367,12 @@ data Component p h s a = Component
     }
 
 
+createComponent :: (ComponentId -> Component p h s a) -> Component p h s a
+createComponent f = unsafePerformIO $ do
+    cId <- atomicModifyIORef' componentIdCounter $ \i -> (i + 1, i)
+    pure $ f $ ComponentId cId
+
+
 lookupComponentEventListener :: FID -> Component p h s a -> s -> Maybe EventListener
 lookupComponentEventListener fid component state = find
     (\(EventListener _ f) -> f1Id f == fid)
@@ -381,9 +388,6 @@ componentIdCounter :: IORef Int
 componentIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE componentIdCounter #-}
 
-mkComponentId :: () -> ComponentId
-mkComponentId () = ComponentId $ unsafePerformIO $
-    atomicModifyIORef' componentIdCounter $ \i -> (i + 1, i)
 
 
 taggedWithAction :: Component p h s a -> A.Value -> Tagged a A.Value

@@ -4,8 +4,11 @@
 module Nauva.NJS
     ( module Language
 
-    , FID(..), mkFID, unFID
+    , FID(..), unFID
+
     , F1(..), F2(..), F3(..)
+    , createF
+
     , FE
     , FRA, FRD
 
@@ -48,14 +51,7 @@ fIdCounter :: IORef Int
 fIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE fIdCounter #-}
 
-
--- | Smart constructor for 'FID'. Every time the Haskell runtime evaluates this
--- expression, a new 'FID' is created. Two such values are never equal.
-mkFID :: () -> FID
-mkFID () = FID $ unsafePerformIO $
-    atomicModifyIORef' fIdCounter $ \i -> (i + 1, i)
-{-# NOINLINE mkFID #-}
-
+-- XXX: Why is this exported?
 unFID :: FID -> Int
 unFID (FID x) = x
 
@@ -75,6 +71,12 @@ instance Eq (F2 a b r) where
 data F3 a b c r = F3 { f3Id :: FID, f3Fn :: Exp a -> Exp b -> Exp c -> Exp r }
 instance Eq (F3 a b c r) where
     (==) = (==) `on` f3Id
+
+
+createF :: (FID -> a) -> a
+createF f = unsafePerformIO $ do
+    fId <- atomicModifyIORef' fIdCounter $ \i -> (i + 1, i)
+    pure $ f $ FID fId
 
 
 -- | Type synonym for a function which implements an event handler.

@@ -58,8 +58,8 @@ link = component_ linkComponent
 
 
 linkComponent :: Component LinkProps () () ()
-linkComponent = Component
-    { componentId = mkComponentId ()
+linkComponent = createComponent $ \componentId -> Component
+    { componentId = componentId
     , componentDisplayName = "Link"
     , initialComponentState = \_ -> pure ((), [])
     , componentEventListeners = \_ -> []

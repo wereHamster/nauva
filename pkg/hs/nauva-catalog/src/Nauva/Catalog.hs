@@ -15,7 +15,7 @@ import           Data.Maybe
 
 import           Control.Concurrent.STM
 
-import           Nauva.Internal.Types (Signal(..), Element, Component(..), mkComponentId, emptyHooks)
+import           Nauva.Internal.Types (Signal(..), Element, Component(..), createComponent, emptyHooks)
 import           Nauva.View
 import           Nauva.NJS
 
@@ -49,8 +49,8 @@ data State = State
     }
 
 catalogComponent :: Component CatalogProps () State ()
-catalogComponent = Component
-    { componentId = mkComponentId ()
+catalogComponent = createComponent $ \componentId -> Component
+    { componentId = componentId
     , componentDisplayName = "Catalog"
     , initialComponentState = \props -> do
         loc <- readTVar $ fst $ hLocation $ routerH (props :: CatalogProps)

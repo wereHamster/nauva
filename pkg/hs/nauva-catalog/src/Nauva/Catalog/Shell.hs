@@ -43,8 +43,8 @@ header :: HeaderProps -> Element
 header = thunk_ headerThunk
 
 headerThunk :: Thunk HeaderProps
-headerThunk = Thunk
-    { thunkId = mkThunkId ()
+headerThunk = createThunk $ \thunkId -> Thunk
+    { thunkId = thunkId
     , thunkDisplayName = "Header"
     , shouldThunkUpdate = (==)
     , forceThunk = \(HeaderProps {..}) -> div_ [style_ headerStyle]
