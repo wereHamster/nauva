@@ -170,7 +170,7 @@ hookHandler accessor h path = do
                                 state <- takeTMVar stateRef
                                 let (newState, actions) = processLifecycleEvent component value (componentState state)
                                 newInst <- instantiate $ renderComponent component newState
-                                putTMVar stateRef (State newState (componentSignals state) newInst)
+                                putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                                 -- traceShowM path
                                 writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
                                 pure actions

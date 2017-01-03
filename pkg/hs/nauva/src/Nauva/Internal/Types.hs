@@ -71,7 +71,7 @@ data Instance where
     -- In the instance for 'EThunk', we remember the forced and instantiated
     -- result of the thunk.
 
-    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Component p h s a -> TMVar (State s a) -> Instance
+    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Component p h s a -> TMVar (State p s a) -> Instance
 
 
 -------------------------------------------------------------------------------
@@ -396,8 +396,9 @@ taggedWithHook _ = Tagged
 -- instantiated. This object is stored in a 'IORef', so it can be mutated as
 -- needed (when the component receives input from outside).
 
-data State s a = State
-    { componentState :: !s
+data State p s a = State
+    { componentProps :: !p
+    , componentState :: !s
     , componentSignals :: ![Signal s a]
     , componentInstance :: !Instance
     }
@@ -436,7 +437,7 @@ data Effect where
 data ComponentInstance p h s a = ComponentInstance
     { ciPath :: Path
     , ciComponent :: Component p h s a
-    , ciState :: TMVar (State s a)
+    , ciState :: TMVar (State p s a)
     }
 
 data SomeComponentInstance where
