@@ -3,11 +3,13 @@
 {-# LANGUAGE OverloadedStrings     #-}
 
 module App.Varna.Shared
-    ( rootElement
+    ( root
 
     , batteryCard
     ) where
 
+
+import qualified Data.Aeson as A
 
 import           Nauva.Internal.Types
 import           Nauva.View
@@ -18,35 +20,53 @@ import           Prelude hiding (rem)
 
 
 
-rootElement :: Element
-rootElement = div_ [style_ rootStyle] $
-    [ navbar
-    , batteries
-        [ batteryCard
-            [ batteryCardBodyParagraph True [str_ "This looks like a fresh battery. Congratulations on your purchase."]
-            , batteryCardBodyPrimaryButton "charge battery"
-            , batteryCardBodySecondaryButton "discharge battery"
-            ]
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        , batteryCard []
-        ]
-    ]
+root :: Element
+root = component_ rootComponent ()
 
+rootComponent :: Component () () () ()
+rootComponent = Component
+    { componentId = mkComponentId
+    , componentDisplayName = "Root"
+    , initialComponentState = \_ -> pure ((), [])
+    , componentEventListeners = \_ -> []
+    , componentHooks = emptyHooks
+    , processLifecycleEvent = \_ s -> (s, [])
+    , receiveProps = \props s -> pure (s, [], [])
+    , update = \_ _ -> ((), [])
+    , renderComponent = renderComponent
+    , componentSnapshot = \_ -> A.Null
+    , restoreComponent = \_ s -> Right (s, [])
+    }
   where
-    rootStyle :: Style
-    rootStyle = mkStyle $ do
-        height (vh 100)
-        display flex
-        flexDirection column
-        fontFamily "museo-slab, serif"
+    renderComponent _ = div_ [style_ rootStyle] $
+        [ navbar
+        , batteries
+            [ batteryCard
+                [ batteryCardBodyParagraph True [str_ "This looks like a fresh battery. Congratulations on your purchase."]
+                , batteryCardBodyPrimaryButton "charge battery"
+                , batteryCardBodySecondaryButton "discharge battery"
+                ]
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            , batteryCard []
+            ]
+        ]
+      where
+        rootStyle :: Style
+        rootStyle = mkStyle $ do
+            height (vh 100)
+            display flex
+            flexDirection column
+            fontFamily "museo-slab, serif"
+
+
 
 
 navbar :: Element

@@ -10,5 +10,5 @@ main :: IO ()
 main = do
     putStrLn "Native App"
     runClient $ Config
-        { cElement = \_ -> rootElement
+        { cElement = \_ -> root
         }
