@@ -31,14 +31,14 @@ rootComponent = Component
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \_ s -> (s, [])
-    , receiveProps = \props s -> pure (s, [], [])
-    , update = \_ _ -> ((), [])
+    , receiveProps = \_ s -> pure (s, [], [])
+    , update = \_ _ _ -> ((), [])
     , renderComponent = renderComponent
     , componentSnapshot = \_ -> A.Null
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
-    renderComponent _ = div_ [style_ rootStyle] $
+    renderComponent _ _ = div_ [style_ rootStyle] $
         [ navbar
         , batteries
             [ batteryCard

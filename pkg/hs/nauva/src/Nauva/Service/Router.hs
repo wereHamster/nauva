@@ -57,17 +57,17 @@ link = component_ linkComponent
 
 
 
-linkComponent :: Component LinkProps () LinkProps ()
+linkComponent :: Component LinkProps () () ()
 linkComponent = Component
     { componentId = mkComponentId
     , componentDisplayName = "Link"
-    , initialComponentState = \props -> pure (props, [])
+    , initialComponentState = \_ -> pure ((), [])
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() s -> (s, [])
-    , receiveProps = \props _ -> pure (props, [], [])
-    , update = \() s -> (s, [clickEffect s])
-    , renderComponent = \(LinkProps {..}) -> with element [onClick_ onClickHandler]
+    , receiveProps = \_ _ -> pure ((), [], [])
+    , update = \() p s -> (s, [clickEffect p])
+    , renderComponent = \(LinkProps {..}) _ -> with element [onClick_ onClickHandler]
     , componentSnapshot = \_ -> A.object []
     , restoreComponent = \_ s -> Right (s, [])
     }

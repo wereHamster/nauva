@@ -69,9 +69,9 @@ catalogComponent = Component
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
-    update () s = (s, [])
+    update () _ s = (s, [])
 
-    render (State {..}) = div_ [style_ rootStyle]
+    render _ (State {..}) = div_ [style_ rootStyle]
         [ div_ [style_ mainStyle]
             [ header (HeaderProps { section, title })
             , div_ [style_ pageStyle] [page]

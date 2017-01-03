@@ -243,8 +243,8 @@ dispatchHook h path rawValue = do
                     actions <- lift $ do
                         state <- takeTMVar stateRef
                         let (newState, actions) = processLifecycleEvent component value (componentState state)
-                        newInst <- instantiate $ renderComponent component newState
-                        putTMVar stateRef (State newState (componentSignals state) newInst)
+                        newInst <- instantiate $ renderComponent component (componentProps state) newState
+                        putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                         writeTChan (changeSignal h) (ChangeComponent path inst)
                         pure actions
 
@@ -352,12 +352,12 @@ toSpine inst = case inst of
 
 
 
-sendProps :: Component p h s a -> TMVar (State s a) -> p -> STM [IO (Maybe a)]
+sendProps :: Component p h s a -> TMVar (State p s a) -> p -> STM [IO (Maybe a)]
 sendProps component stateRef newProps = do
     state <- takeTMVar stateRef
     (newState, signals, actions) <- receiveProps component newProps (componentState state)
-    inst <- instantiate $ renderComponent component newState
-    putTMVar stateRef $ State newState signals inst
+    inst <- instantiate $ renderComponent component (componentProps state) newState
+    putTMVar stateRef $ State newProps newState signals inst
     pure actions
 
 
@@ -365,9 +365,9 @@ sendProps component stateRef newProps = do
 applyAction :: (Typeable p, A.FromJSON a, Value h, Value a) => Handle -> a -> ComponentInstance p h s a -> STM Effect
 applyAction h action (ComponentInstance path component stateRef) = do
     state <- takeTMVar stateRef
-    let (newState, actions) = update component action (componentState state)
-    newInst <- instantiate $ renderComponent component newState
-    putTMVar stateRef (State newState (componentSignals state) newInst)
+    let (newState, actions) = update component action (componentProps state) (componentState state)
+    newInst <- instantiate $ renderComponent component (componentProps state) newState
+    putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
     writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
     pure $ Effect (ComponentInstance path component stateRef) actions
 
@@ -390,8 +390,8 @@ instantiate el = case el of
 
     (EComponent component p) -> do
         (s, signals) <- initialComponentState component p
-        inst <- instantiate $ renderComponent component s
-        IComponent component <$> newTMVar (State s signals inst)
+        inst <- instantiate $ renderComponent component p s
+        IComponent component <$> newTMVar (State p s signals inst)
 
 
 executeEffects :: Handle -> [Effect] -> IO ()
@@ -445,7 +445,7 @@ createSnapshot h = Snapshot <$> execWriterT (do
             go path childI
 
         (IComponent component stateRef) -> do
-            State s _ _ <- lift $ readTMVar stateRef
+            State _ s _ _ <- lift $ readTMVar stateRef
             tell $ M.singleton path $ componentSnapshot component s
 
 
@@ -484,8 +484,8 @@ restoreSnapshot h snapshot = do
                         Left _ -> pure state
                         Right (newState, effects) -> do
                             tell [Effect (ComponentInstance (Path path) component stateRef) effects]
-                            newInst <- lift $ instantiate $ renderComponent component newState
-                            pure $ State newState (componentSignals state) newInst
+                            newInst <- lift $ instantiate $ renderComponent component (componentProps state) newState
+                            pure $ State (componentProps state) newState (componentSignals state) newInst
 
             lift $ putTMVar stateRef newState
             go path (componentInstance newState)
@@ -511,8 +511,8 @@ processSignals h = do
                 Just a  -> do
                     state <- takeTMVar stateRef
                     let (newState, actions) = f a (componentState state)
-                    newInst <- instantiate $ renderComponent component newState
-                    putTMVar stateRef (State newState (componentSignals state) newInst)
+                    newInst <- instantiate $ renderComponent component (componentProps state) newState
+                    putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                     writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
                     pure $ [Effect ci actions]
 
@@ -531,6 +531,6 @@ processSignals h = do
         (IThunk _ _ childI)             -> go path childI
 
         (IComponent component stateRef) -> do
-            (State _ signals childI) <- lift $ readTMVar stateRef
+            (State _ _ signals childI) <- lift $ readTMVar stateRef
             tell $ map (SomeSignal (ComponentInstance (Path path) component stateRef)) signals
             go path childI

@@ -111,8 +111,8 @@ component = Component
 
     receiveProps' p (_, t) = pure ((p, t), [], [pure $ Just DoThat])
 
-    view :: (Int, Text) -> Element
-    view (i, t) = span_
+    view :: Int (Int, Text) -> Element
+    view _ (i, t) = span_
         [ str_ $ "Component " <> (T.pack $ show i)
         , button_ [style_ buttonStyle, onClick_ onClickHandler, value_ ("TheButtonValue" :: Text)] [str_ "Click Me!"]
         , input_ [onChange_ onChangeHandler, value_ t]
@@ -248,8 +248,8 @@ canvas = Component
 
     detach = F1 mkFID $ \_ -> refHandlerE nothingE
 
-    view :: CanvasS -> Element
-    view (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
+    view :: () CanvasS -> Element
+    view _ (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
         case s of
             Nothing -> []
             Just (w,h) -> [svg ((x,y), (w, h))]
