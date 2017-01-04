@@ -79,9 +79,9 @@ headerThunk = createThunk $ \thunkId -> Thunk
 -- sidebar
 
 data SidebarProps = SidebarProps
-    { routerH :: RouterH
-    , logoUrl :: Text
-    , pages :: [Page]
+    { p_routerH :: RouterH
+    , p_logoUrl :: Text
+    , p_pages :: [Page]
     }
 
 sidebar :: SidebarProps -> Element
@@ -89,15 +89,15 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
     [ div_ [style_ sidebarInnerStyle]
         [ div_ [style_ sidebarInnerTopStyle]
             [ link $ LinkProps
-                { routerH, href = logoUrl, element =
-                    a_ [style_ sidebarLogoContainerStyle, href_ logoUrl]
+                { p_routerH, p_href = p_logoUrl, p_element =
+                    a_ [style_ sidebarLogoContainerStyle, href_ p_logoUrl]
                         [ h1_ [style_ sidebarLogoStyle]
                             [ img_ [style_ sidebarLogoImageStyle, src_ ("https://interactivethings.github.io/catalog/docs/assets/catalog_logo.svg" :: Text)]
                             ]
                         ]
                 }
 
-            , ul_ [style_ ulStyle] $ map toMenuItem pages
+            , ul_ [style_ ulStyle] $ map toMenuItem p_pages
             ]
         , div_ [style_ sidebarInnerBottomStyle]
             [ str_ "Powered by "
@@ -107,18 +107,18 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
     ]
   where
     toMenuItem :: Page -> Element
-    toMenuItem (PLeaf (Leaf {..})) = li_ [ link (LinkProps { routerH = routerH, href = leafHref, element = a_ [style_ menuItemStyle, href_ leafHref] [ str_ leafTitle ] }) ]
+    toMenuItem (PLeaf (Leaf {..})) = li_ [ link (LinkProps { p_routerH = p_routerH, p_href = leafHref, p_element = a_ [style_ menuItemStyle, href_ leafHref] [ str_ leafTitle ] }) ]
     toMenuItem (PDirectory (Directory {..})) = div_
-        [ link $ LinkProps { routerH = routerH, href = href, element = a_ [style_ menuItemStyle, href_ href] [ str_ directoryTitle ] }
+        [ link $ LinkProps { p_routerH = p_routerH, p_href = p_href, p_element = a_ [style_ menuItemStyle, href_ p_href] [ str_ directoryTitle ] }
         , ul_ [style_ ulStyle1] $ map toMenuItem1 directoryChildren
         ]
       where
-        href = case directoryChildren of
+        p_href = case directoryChildren of
             (Leaf {..}:_) -> leafHref
             _             -> ""
 
     toMenuItem1 :: Leaf -> Element
-    toMenuItem1 (Leaf {..}) = li_ [ link (LinkProps { routerH = routerH, href = leafHref, element = a_ [style_ menuItemStyle1, href_ leafHref] [ str_ leafTitle ] }) ]
+    toMenuItem1 (Leaf {..}) = li_ [ link (LinkProps { p_routerH = p_routerH, p_href = leafHref, p_element = a_ [style_ menuItemStyle1, href_ leafHref] [ str_ leafTitle ] }) ]
 
     sidebarOuterStyle = mkStyle $ do
         background "rgb(255, 255, 255)"

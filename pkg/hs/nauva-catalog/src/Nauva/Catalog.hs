@@ -31,8 +31,8 @@ import           Nauva.Catalog.Types
 -- on the current location.
 
 data CatalogProps = CatalogProps
-    { routerH :: !RouterH
-    , pages :: ![Page]
+    { p_routerH :: !RouterH
+    , p_pages :: ![Page]
     }
 
 catalog :: CatalogProps -> Element
@@ -51,16 +51,16 @@ catalogComponent = createComponent $ \componentId -> Component
     { componentId = componentId
     , componentDisplayName = "Catalog"
     , initialComponentState = \props -> do
-        loc <- readTVar $ fst $ hLocation $ routerH (props :: CatalogProps)
+        loc <- readTVar $ fst $ hLocation $ p_routerH (props :: CatalogProps)
         pure
             ( State (locPathname loc)
-            , [ Signal (snd $ hLocation $ routerH (props :: CatalogProps)) (\(Location p) s -> (s { path = p }, [])) ]
+            , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) s -> (s { path = p }, [])) ]
             )
 
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() s -> (s, [])
-    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ routerH (props :: CatalogProps)) (\(Location p) s' -> (s' { path = p }, []))], [])
+    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) s' -> (s' { path = p }, []))], [])
     , update = update
     , renderComponent = render
     , componentSnapshot = \_ -> A.object []
@@ -76,26 +76,26 @@ catalogComponent = createComponent $ \componentId -> Component
             ]
 
         , sidebar $ SidebarProps
-            { routerH = routerH (props :: CatalogProps)
-            , logoUrl
-            , pages   = pages (props :: CatalogProps)
+            { p_routerH = p_routerH (props :: CatalogProps)
+            , p_logoUrl
+            , p_pages   = p_pages (props :: CatalogProps)
             }
         ]
       where
-        logoUrl = "/"
+        p_logoUrl = "/"
 
         flattenPage :: Page -> [(Text, Leaf)]
         flattenPage (PLeaf leaf@(Leaf {..})) = [(leafHref, leaf)]
         flattenPage (PDirectory (Directory {..})) = map (\x -> (leafHref x, x)) directoryChildren
 
-        flattenedPages = concat $ map flattenPage $ pages (props :: CatalogProps)
+        flattenedPages = concat $ map flattenPage $ p_pages (props :: CatalogProps)
 
         page = case lookup path flattenedPages of
             Nothing   -> div_ [style_ pageInnerStyle] [str_ "page not found"]
             Just leaf -> leafElement leaf
 
         section :: Text
-        section = findSection Nothing $ pages (props :: CatalogProps)
+        section = findSection Nothing $ p_pages (props :: CatalogProps)
           where
             findSection mbTitle []                               = fromMaybe "Catalog" mbTitle
             findSection _       (PDirectory (Directory {..}):xs) = findSection (Just directoryTitle) xs

@@ -43,12 +43,12 @@ data Location = Location
 -- link
 
 data LinkProps = LinkProps
-    { routerH :: !RouterH
+    { p_routerH :: !RouterH
       -- ^ The router handle provides the callbacks.
-    , href :: !Text
+    , p_href :: !Text
       -- ^ The path which shall be pushed to the router history when the element
       -- is clicked.
-    , element :: !Element
+    , p_element :: !Element
       -- ^ The element to which a 'onClick' handler is attached.
     }
 
@@ -67,7 +67,7 @@ linkComponent = createComponent $ \componentId -> Component
     , processLifecycleEvent = \() s -> (s, [])
     , receiveProps = \_ _ -> pure ((), [], [])
     , update = \() p s -> (s, [clickEffect p])
-    , renderComponent = \(LinkProps {..}) _ -> with element [onClick_ onClickHandler]
+    , renderComponent = \(LinkProps {..}) _ -> with p_element [onClick_ onClickHandler]
     , componentSnapshot = \_ -> A.object []
     , restoreComponent = \_ s -> Right (s, [])
     }
@@ -79,5 +79,5 @@ linkComponent = createComponent $ \componentId -> Component
 
     clickEffect :: LinkProps -> IO (Maybe ())
     clickEffect (LinkProps {..}) = do
-        hPush routerH href
+        hPush p_routerH p_href
         pure Nothing
