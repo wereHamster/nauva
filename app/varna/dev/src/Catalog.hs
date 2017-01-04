@@ -11,12 +11,6 @@ import qualified Text.Blaze.Html5.Attributes as A
 import           Nauva.Server
 
 import           Nauva.Catalog
-import           Nauva.Catalog.Types
-import           Nauva.Catalog.TH
-import           Nauva.Catalog.Shell
-import           Nauva.Catalog.Elements
-
-import           App.Varna.Shared
 
 import           App.Varna.Catalog (catalogPages)
 

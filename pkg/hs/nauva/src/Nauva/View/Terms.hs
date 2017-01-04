@@ -57,7 +57,6 @@ module Nauva.View.Terms
     ) where
 
 
-import Data.Text
 import Nauva.Internal.Types
 import Nauva.View.Types
 

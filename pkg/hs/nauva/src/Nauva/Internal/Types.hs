@@ -9,8 +9,6 @@ import           Data.List
 import           Data.IORef
 import           Data.Aeson (ToJSON(..), FromJSON(..), (.=), object)
 import qualified Data.Aeson as A
-import           Data.Map (Map)
-import qualified Data.Map as M
 import           Data.Function
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -241,7 +239,7 @@ createThunk f = unsafePerformIO $ do
 -- 'Eq' typeclass, because '==' is used as the implementation of
 -- 'shouldThunkUpdate'.
 simpleThunk :: Eq p => String -> (p -> Element) -> Thunk p
-simpleThunk dispName f = createThunk $ \thunkId -> Thunk thunkId dispName (==) f
+simpleThunk dispName f = createThunk $ \tId -> Thunk tId dispName (==) f
 
 
 -- | This function creates a 'Element' which is backed by a 'Thunk' internally.

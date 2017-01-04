@@ -7,7 +7,7 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
 
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Wno-type-defaults
 
   exposed-modules:
      App.Varna.Shared

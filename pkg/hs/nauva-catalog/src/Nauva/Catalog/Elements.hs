@@ -22,9 +22,7 @@ module Nauva.Catalog.Elements
 import           Data.Text          (Text)
 import           Data.Monoid
 
-import           Nauva.DOM
 import           Nauva.Internal.Types
-import           Nauva.Internal.Events
 import           Nauva.View
 
 

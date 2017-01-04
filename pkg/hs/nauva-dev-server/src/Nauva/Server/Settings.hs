@@ -12,15 +12,14 @@ import qualified Data.ByteString.Char8 as BS8
 import           Data.Monoid
 import           Data.FileEmbed   (embedDir)
 
-import           System.Directory
 import           System.Environment
 import           System.FilePath
 
-import           Language.Haskell.TH (Q, Loc(loc_filename), location, runIO, reportWarning)
+import           Language.Haskell.TH (Loc(loc_filename), location)
 
 import           Prelude
 
-import           Snap.Core (Snap, MonadSnap (..), route, addHeader, modifyResponse, writeBS)
+import           Snap.Core (Snap, MonadSnap (..), route, writeBS)
 import           Snap.Util.FileServe (serveDirectory)
 
 

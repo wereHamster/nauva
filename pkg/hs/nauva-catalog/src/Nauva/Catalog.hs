@@ -17,7 +17,6 @@ import           Control.Concurrent.STM
 
 import           Nauva.Internal.Types (Signal(..), Element, Component(..), createComponent, emptyHooks)
 import           Nauva.View
-import           Nauva.NJS
 
 import           Nauva.Service.Router
 
@@ -44,8 +43,7 @@ catalog = component_ catalogComponent
 -------------------------------------------------------------------------------
 
 data State = State
-    { props :: !CatalogProps
-    , path :: !Text
+    { path :: !Text
     }
 
 catalogComponent :: Component CatalogProps () State ()
@@ -55,14 +53,14 @@ catalogComponent = createComponent $ \componentId -> Component
     , initialComponentState = \props -> do
         loc <- readTVar $ fst $ hLocation $ routerH (props :: CatalogProps)
         pure
-            ( State props (locPathname loc)
+            ( State (locPathname loc)
             , [ Signal (snd $ hLocation $ routerH (props :: CatalogProps)) (\(Location p) s -> (s { path = p }, [])) ]
             )
 
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() s -> (s, [])
-    , receiveProps = \props s -> pure ((s { props = props }) :: State, [Signal (snd $ hLocation $ routerH (props :: CatalogProps)) (\(Location p) s -> (s { path = p }, []))], [])
+    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ routerH (props :: CatalogProps)) (\(Location p) s' -> (s' { path = p }, []))], [])
     , update = update
     , renderComponent = render
     , componentSnapshot = \_ -> A.object []
@@ -71,7 +69,7 @@ catalogComponent = createComponent $ \componentId -> Component
   where
     update () _ s = (s, [])
 
-    render _ (State {..}) = div_ [style_ rootStyle]
+    render props (State {..}) = div_ [style_ rootStyle]
         [ div_ [style_ mainStyle]
             [ header (HeaderProps { section, title })
             , div_ [style_ pageStyle] [page]
@@ -100,7 +98,7 @@ catalogComponent = createComponent $ \componentId -> Component
         section = findSection Nothing $ pages (props :: CatalogProps)
           where
             findSection mbTitle []                               = fromMaybe "Catalog" mbTitle
-            findSection mbTitle (PDirectory (Directory {..}):xs) = findSection (Just directoryTitle) xs
+            findSection _       (PDirectory (Directory {..}):xs) = findSection (Just directoryTitle) xs
             findSection mbTitle (PLeaf (Leaf {..}):xs)           = if leafHref == path
                 then fromMaybe "Catalog" mbTitle
                 else findSection mbTitle xs

@@ -24,8 +24,8 @@ root :: Element
 root = component_ rootComponent ()
 
 rootComponent :: Component () () () ()
-rootComponent = createComponent $ \componentId -> Component
-    { componentId = componentId
+rootComponent = createComponent $ \cId -> Component
+    { componentId = cId
     , componentDisplayName = "Root"
     , initialComponentState = \_ -> pure ((), [])
     , componentEventListeners = \_ -> []
@@ -33,12 +33,12 @@ rootComponent = createComponent $ \componentId -> Component
     , processLifecycleEvent = \_ s -> (s, [])
     , receiveProps = \_ s -> pure (s, [], [])
     , update = \_ _ _ -> ((), [])
-    , renderComponent = renderComponent
+    , renderComponent = render
     , componentSnapshot = \_ -> A.Null
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
-    renderComponent _ _ = div_ [style_ rootStyle] $
+    render _ _ = div_ [style_ rootStyle] $
         [ navbar
         , batteries
             [ batteryCard

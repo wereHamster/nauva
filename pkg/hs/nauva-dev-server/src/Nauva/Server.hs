@@ -7,27 +7,21 @@ module Nauva.Server
     ) where
 
 
-import           Data.Default
 import           Data.Text             (Text)
 import qualified Data.Text             as T
-import qualified Data.Text.Encoding    as T
 import qualified Data.Aeson            as A
-import           Data.ByteString       (ByteString)
 import qualified Data.ByteString.Char8 as BS8
-import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Lazy  as LBS
 import           Data.Monoid
 import           Data.String
 
 import qualified Text.Blaze.Html5               as H
 import qualified Text.Blaze.Html5.Attributes    as A
-import qualified Text.Blaze.Html.Renderer.Utf8  as H
 
 import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
-import           Control.Monad.IO.Class
 
 import           System.Directory
 
@@ -37,7 +31,8 @@ import           Nauva.Internal.Types
 import qualified Network.WebSockets as WS
 import           Network.WebSockets.Snap
 
-import           Snap.Core           (path, pass)
+import           Snap.Core           (pass)
+import qualified Snap.Core           as Snap
 import           Snap.Http.Server    (ConfigLog(..), httpServe, setPort, setAccessLog, setErrorLog)
 import           Snap.Util.FileServe (serveDirectory)
 import           Snap.Blaze          (blaze)
@@ -113,7 +108,7 @@ runServer c = do
 
     let config = setPort (cPort c) . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
-        [ path "ws" (runWebSocketsSnap (websocketApplication nauvaH routerH))
+        [ Snap.path "ws" (runWebSocketsSnap (websocketApplication nauvaH routerH))
         , staticApp
 
         , case cPublicDir c of
@@ -132,9 +127,7 @@ websocketApplication nauvaH routerH pendingConnection = do
     locationSignalCopy <- atomically $ dupTChan (snd $ hLocation routerH)
     void $ forkIO $ forever $ do
         path <- atomically $ do
-            Location path <- readTChan locationSignalCopy
-            pure path
-
+            locPathname <$> readTChan locationSignalCopy
 
         WS.sendTextData conn $ A.encode [A.toJSON ("location" :: Text), A.toJSON path]
 

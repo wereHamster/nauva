@@ -73,7 +73,7 @@ linkComponent = createComponent $ \componentId -> Component
     }
   where
     onClickHandler :: F1 MouseEvent (EventHandler ())
-    onClickHandler = eventHandler $ \ev -> do
+    onClickHandler = eventHandler $ \_ -> do
         preventDefault
         action $ value0E $ njsCon0 "()" ()
 

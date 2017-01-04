@@ -33,9 +33,9 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
 
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Wno-type-defaults
   if flag(release)
-    ghc-options:       -Wall -Werror
+    ghc-options:       -Wall -Wno-type-defaults -Werror
 
   exposed-modules:
      Nauva.Handle

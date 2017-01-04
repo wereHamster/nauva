@@ -12,17 +12,9 @@ module Nauva.Catalog.Shell
     ) where
 
 
-import           Data.ByteString    (ByteString)
-import qualified Data.ByteString    as BS
 import           Data.Text          (Text)
-import qualified Data.Text.Encoding as T
-import qualified Data.Aeson         as A
 
-
-import           Nauva.DOM
 import           Nauva.Internal.Types
-import           Nauva.Internal.Events
-import           Nauva.NJS
 import           Nauva.View
 
 import           Nauva.Service.Router

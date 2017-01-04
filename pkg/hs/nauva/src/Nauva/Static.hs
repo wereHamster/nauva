@@ -17,6 +17,7 @@ module Nauva.Static
 
 
 import           Data.Monoid
+import           Data.Maybe
 import qualified Data.Text as T
 import           Data.String
 
@@ -47,8 +48,11 @@ elementToMarkup el = case el of
     (ENode tag attributes children) ->
         let tagString = T.unpack $ unTag tag
             parent = B.Parent (fromString tagString) (fromString $ "<" <> tagString) (fromString $ "</" <> tagString <> ">")
-            attrs = map toAttribute attributes
-            toAttribute (AVAL n v) = B.attribute (B.textTag n) (B.textTag $ " " <> n <> "=\"") $ case v of
+            attrs = catMaybes $ map toAttribute attributes
+            toAttribute (AEVL _) = Nothing
+            toAttribute (ASTY _) = Nothing
+            toAttribute (AREF _) = Nothing
+            toAttribute (AVAL n v) = Just $ B.attribute (B.textTag n) (B.textTag $ " " <> n <> "=\"") $ case v of
                 AVBool b -> B.textValue $ if b then "true" else "false"
                 AVString t -> B.textValue t
                 AVInt i -> B.stringValue $ show i

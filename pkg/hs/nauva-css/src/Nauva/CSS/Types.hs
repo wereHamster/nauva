@@ -7,7 +7,7 @@
 module Nauva.CSS.Types where
 
 
-import           Data.Aeson (ToJSON(..), FromJSON(..), (.=), object)
+import           Data.Aeson (ToJSON(..), FromJSON(..))
 import qualified Data.Aeson as A
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -18,7 +18,8 @@ import           Data.ByteString.Lazy (toStrict)
 
 import           Control.Monad.Writer.Lazy
 
-import           Crypto.MAC.SipHash
+import           Crypto.MAC.SipHash (SipHash(..), SipKey(..))
+import qualified Crypto.MAC.SipHash as SH
 
 import           Prelude
 
@@ -30,7 +31,7 @@ import           Prelude
 --
 -- There is a 'IsString' instance to make it easier to create custom values for
 -- which we don't have a combinator or helper function yet.
--- 
+--
 -- > let widthValue = "calc(100% - 20px)" :: CSSValue
 
 newtype CSSValue = CSSValue { unCSSValue :: Text }
@@ -105,7 +106,7 @@ instance A.ToJSON CSSRule where
 -- of this library don't deal with this though. There are combinators and helper
 -- functions to create values of this type.
 
-data Statement  
+data Statement
     = SEmit !Declaration
       -- ^ Emit a single CSS declaration into the current context.
     | SCondition !Condition !(Writer [Statement] ())
@@ -173,7 +174,7 @@ mkStyle = Style . execWriter . writeRules . M.toList . flatten . execWriter
         let hash = cssStyleDeclarationHash styleDeclaration
         tell [CSSStyleRule hash conditions suffixes styleDeclaration]
 
-        writeRules xs 
+        writeRules xs
 
 noStyle :: Style
 noStyle = Style []
@@ -193,10 +194,10 @@ instance Show Hash where
 
 instance A.ToJSON Hash where
     toJSON = A.toJSON . unHash
- 
+
 
 cssStyleDeclarationHash :: CSSStyleDeclaration -> Hash
-cssStyleDeclarationHash = Hash . T.pack . show . unSipHash . hash sipKey . toStrict . A.encode . toJSON 
+cssStyleDeclarationHash = Hash . T.pack . show . unSipHash . SH.hash sipKey . toStrict . A.encode . toJSON
   where
     sipKey = SipKey 0 1
     unSipHash (SipHash x) = x
@@ -240,7 +241,7 @@ instance A.ToJSON Suffix where
 
 instance IsString Suffix where
     fromString = Suffix . T.pack
- 
+
 
 
 -------------------------------------------------------------------------------
