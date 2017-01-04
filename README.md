@@ -21,18 +21,17 @@ Pick how you want to run the playground app:
 ### Compile once and run in the dev-server shell
 
     $ stack build
-    $ stack exec nauva-example-playground-server
+    $ stack exec app-varna-dev
 
 ### Using ghcid for instant-reload experience
 
     $ stack install ghcid
-    $ stack exec ghcid -- --command="stack ghci" --test=:main
+    $ stack exec ghcid -- --command="stack ghci --main-is app-varna-dev:exe:app-varna-dev" --test=:main
 
 And then open [http://localhost:8000](http://localhost:8000) in a web browser.
 
 If you've chosen the *instant-realod* experience, the webpage will automatically
-reload -- usually within a fraction of a second -- after you edit the App module
-(examples/playground/App/src/Navua/Playground/App.hs).
+reload -- usually within a fraction of a second -- after you edit any code.
 
 
 ## Focus and Goals
@@ -54,24 +53,32 @@ are all related to Nauva.
  - **pkg/** - All main packages
    - **hs/** - Main packages which are written in Haskell
      - **nauva/** - The core Nauva package
-     - **navua-native/** - JavaScript bindings to run an application in the browser.
+     - **nauva-css/** - CSS DSL
+     - **nauva-catalog/** - Catalog (interactive development and documentation environment)
      - **nauva-dev-server/** - A shell to run an application in develompent mode
        (server-side rendering, instant reload etc.).
- - **examples/** - Examples
-   - **playground/** - Used to experiment and play around with new features.
+     - **navua-native/** - JavaScript bindings to run an application in the browser.
+ - **app/** - Applications
+   - **varna/** - Port of one of my personal applications which is used to prototype new features.
 
 
-### Examples
+### Applications
 
-All examples are structured in the same way. Each directory contains three
+All applications are structured in the same way. Each directory contains three
 sub-directories. The reason is because we have two modes how we compile and run
-the application (native / dev-server) and want to share code between the two.
+the application (native / dev) and want to share code between the two.
 
- - **app/** - The application itself. It is important that this code is independent
-   of where the application will run. Must be free of GHCJS-specific code, and not use
-   libraries which can not be compiled with GHCJS.
+ - **shared/** - Any code which is independent of the platform where the application will run.
+   Must be free of GHCJS-specific code, and not use libraries which can not be compiled with
+   GHCJS. Nor must it use libraries which can not run in a JavaScript environment.
  - **native/** - Project which compiles the app into a native JavaScript file.
- - **server/** - Project which runs the app using **nauva-dev-server**.
+ - **dev/** - Project which runs the app using **nauva-dev-server**.
+
+Both **native** and **dev** projects contain two executables each: One is the
+actual application, and one is the corresponding catalog. This allows us to
+keep the entry points separate and avoid any any need for CPP or other contitional
+logic when building the executable. The catalog executable is suffixed with
+`-catalog`.
 
 
 [react]: https://facebook.github.io/react
