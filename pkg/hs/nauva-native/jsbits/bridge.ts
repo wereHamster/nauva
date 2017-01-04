@@ -331,16 +331,14 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
 }
 
 
-if (this != null && typeof this.window !== 'undefined') {
-    window['newBridge'] = function(appE, callbacks) {
-        return new ClientH
-            ( appE
-            , callbacks.componentEvent
-            , callbacks.nodeEvent
-            , callbacks.attachRef
-            , callbacks.detachRef
-            , callbacks.componentDidMount
-            , callbacks.componentWillUnmount
-            );
-    }
+function newBridge(appE, callbacks) {
+    return new ClientH
+        ( appE
+        , callbacks.componentEvent
+        , callbacks.nodeEvent
+        , callbacks.attachRef
+        , callbacks.detachRef
+        , callbacks.componentDidMount
+        , callbacks.componentWillUnmount
+        );
 }
