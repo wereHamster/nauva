@@ -18,10 +18,6 @@ import           System.Random
 
 import           GHC.Generics (Generic)
 
-import           Nauva.DOM
-import           Nauva.Internal.Types
-import           Nauva.Internal.Events
-import           Nauva.NJS
 import           Nauva.View
 
 

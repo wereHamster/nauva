@@ -11,7 +11,6 @@ module App.Varna.Shared
 
 import qualified Data.Aeson as A
 
-import           Nauva.Internal.Types
 import           Nauva.View
 
 import           App.Varna.Element.Card

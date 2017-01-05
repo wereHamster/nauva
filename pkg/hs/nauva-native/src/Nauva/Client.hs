@@ -31,15 +31,11 @@ import           Control.Monad.Writer.Lazy
 import           System.IO.Unsafe
 
 import           Nauva.Handle
-import           Nauva.Internal.Events
 import           Nauva.Internal.Types
-import           Nauva.DOM
-import           Nauva.NJS
-import           Nauva.NJS.Language
+import           Nauva.View
 import           Nauva.NJS.Eval
-import           Nauva.Native.Bridge
-import           Nauva.CSS.Types
 import           Nauva.Service.Router
+import           Nauva.Native.Bridge
 
 import           GHCJS.Types
 import           GHCJS.Marshal

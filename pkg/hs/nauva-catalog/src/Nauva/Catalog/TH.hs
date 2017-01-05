@@ -27,7 +27,7 @@ import           Language.Haskell.TH.Quote
 import           Language.Haskell.Meta.Parse (parseExp)
 import           Instances.TH.Lift ()
 
-import           Nauva.View
+import           Nauva.View hiding (Exp)
 
 
 

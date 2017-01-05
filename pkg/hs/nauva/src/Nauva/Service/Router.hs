@@ -15,10 +15,7 @@ import qualified Data.Aeson as A
 
 import           Control.Concurrent.STM
 
-import           Nauva.Internal.Types
-import           Nauva.Internal.Events
 import           Nauva.View
-import           Nauva.NJS
 
 
 
