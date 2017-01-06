@@ -7,7 +7,6 @@
 module Nauva.Internal.Events where
 
 
-import           Data.Function
 import qualified Data.Aeson as A
 import           Data.Text (Text)
 
@@ -76,7 +75,7 @@ data EventListener where
     EventListener :: (A.ToJSON a, Value a) => Text -> FE ev a -> EventListener
 
 instance Eq EventListener where
-    (==) = (==) `on` (\(EventListener _ f1) -> f1Id f1)
+    (EventListener nA fA) == (EventListener nB fB) = nA == nB && f1Id fA == f1Id fB
 
 instance A.ToJSON EventListener where
     toJSON (EventListener ev f) = A.toJSON
