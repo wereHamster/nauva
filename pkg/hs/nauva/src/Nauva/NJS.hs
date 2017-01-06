@@ -60,15 +60,15 @@ unFID (FID x) = x
 --------------------------------------------------------------------------------
 -- Function expressions with fixed arity.
 
-data F1 a r = F1 { f1Id :: FID, f1Fn :: Exp a -> Exp r }
+data F1 a r = F1 { f1Id :: !FID, f1Fn :: !(Exp a -> Exp r) }
 instance Eq (F1 a r) where
     (==) = (==) `on` f1Id
 
-data F2 a b r = F2 { f2Id :: FID, f2Fn :: Exp a -> Exp b -> Exp r }
+data F2 a b r = F2 { f2Id :: !FID, f2Fn :: !(Exp a -> Exp b -> Exp r) }
 instance Eq (F2 a b r) where
     (==) = (==) `on` f2Id
 
-data F3 a b c r = F3 { f3Id :: FID, f3Fn :: Exp a -> Exp b -> Exp c -> Exp r }
+data F3 a b c r = F3 { f3Id :: !FID, f3Fn :: !(Exp a -> Exp b -> Exp c -> Exp r) }
 instance Eq (F3 a b c r) where
     (==) = (==) `on` f3Id
 
