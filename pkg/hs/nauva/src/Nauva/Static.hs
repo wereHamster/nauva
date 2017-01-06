@@ -42,6 +42,9 @@ import           Prelude
 -- 'blaze-html' uses content attributes.
 elementToMarkup :: Element -> STM B.Html
 elementToMarkup el = case el of
+    (ENull) ->
+        pure mempty
+
     (EText text) ->
         pure $ B.toMarkup text
 

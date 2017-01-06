@@ -35,6 +35,10 @@ import           Nauva.CSS.Types
 -- by Nauva to implement efficient updates of sub-trees.
 
 data Element where
+    ENull :: Element
+    -- An element which is not shown. Acts as a placeholder for when you want
+    -- to toggle an element (show/hide depending on a condition).
+
     EText :: Text -> Element
     -- A text element.
 
@@ -61,6 +65,8 @@ data Element where
 -- and picese of state.
 
 data Instance where
+    INull :: Instance
+
     IText :: Text -> Instance
 
     INode :: Tag -> [Attribute] -> [(Key, Instance)] -> Instance
@@ -84,6 +90,7 @@ data Instance where
 -- 'Spine' is a sufficiently abstract data type that can be encoded into JSON.
 
 data Spine where
+    SNull :: Spine
     SText :: Text -> Spine
     SNode :: Tag ->  [Attribute] -> [(Key, Spine)] -> Spine
     SComponent :: ComponentId -> Text -> [EventListener] -> Hooks h -> Spine -> Spine
@@ -91,6 +98,8 @@ data Spine where
 
 instance A.ToJSON Spine where
     toJSON s = case s of
+        (SNull) -> A.Null
+
         (SText text) -> toJSON text
 
         (SNode tag attrs children) -> object

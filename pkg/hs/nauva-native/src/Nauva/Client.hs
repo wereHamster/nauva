@@ -369,6 +369,8 @@ foreign import javascript unsafe "true"
     js_true :: JSVal
 foreign import javascript unsafe "false"
     js_false :: JSVal
+foreign import javascript unsafe "$r = null"
+    js_null :: JSVal
 
 jsCondition :: Condition -> JSVal
 jsCondition (CMedia    x) = jsval $ fromList [js_intJSVal 1, jsval $ textToJSString x]
@@ -406,6 +408,8 @@ instanceToJSVal = go []
   where
     go :: [Key] -> Instance -> STM JSVal
     go path inst = case inst of
+        (INull) -> pure js_null
+
         (IText text) -> pure $ jsval $ textToJSString text
 
         (INode tag attrs children) -> do

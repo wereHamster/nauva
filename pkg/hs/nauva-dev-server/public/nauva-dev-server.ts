@@ -372,7 +372,10 @@ const cssRuleExText = (() => {
 })();
 
 function spineToReact(ws, path, ctx: Context, spine, key) {
-    if (typeof spine === 'string') {
+    if (spine === null) {
+        return null;
+
+    } else if (typeof spine === 'string') {
         return spine;
 
     } else if (spine.type === 'Node') {

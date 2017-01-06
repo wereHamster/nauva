@@ -157,8 +157,9 @@ contextForPath h path = do
   where
     go :: Maybe SomeComponentInstance -> Path -> Instance -> ExceptT String STM (Maybe SomeComponentInstance, Instance)
     go mbSCI (Path []) inst = case inst of
+        (INull)                         -> pure (mbSCI, inst)
         (IText _)                       -> pure (mbSCI, inst)
-        (INode _ _ _)             -> pure (mbSCI, inst)
+        (INode _ _ _)                   -> pure (mbSCI, inst)
         (IThunk _ _ childI)             -> go mbSCI (Path []) childI
         (IComponent component stateRef) -> do
             state <- lift $ readTMVar stateRef
@@ -166,6 +167,9 @@ contextForPath h path = do
             go (Just sci) (Path []) $ componentInstance state
 
     go mbSCI (Path (key:rest)) inst = case inst of
+        (INull) -> do
+            throwError $ "contextForPath: INull doesn't have any children"
+
         (IText _) -> do
             throwError $ "contextForPath: IText doesn't have any children"
 
@@ -227,6 +231,9 @@ dispatchHook h path rawValue = do
   where
     go :: Path -> Instance -> ExceptT String STM Effect
     go (Path []) inst = case inst of
+        (INull) ->
+            throwError $ "Can not dispatch hook to INull (at path " ++ show path ++ ")"
+
         (IText _) ->
             throwError $ "Can not dispatch hook to IText (at path " ++ show path ++ ")"
 
@@ -252,6 +259,9 @@ dispatchHook h path rawValue = do
 
 
     go (Path (key:rest)) inst = case inst of
+        (INull) -> do
+            throwError $ "INull doesn't have any children"
+
         (IText _) -> do
             throwError $ "IText doesn't have any children"
 
@@ -285,11 +295,16 @@ dispatchRef h path rawValue = do
   where
     go :: ([Key], Instance) -> Path -> Instance -> ExceptT String STM Effect
     go (appPath, appAncestor) (Path []) inst = case inst of
-        (IText _) -> throwError $ "Can not dispatch ref to a Text node (at path " ++ show path ++ ")"
+        (INull) ->
+            throwError $ "Can not dispatch ref to a INull node (at path " ++ show path ++ ")"
+
+        (IText _) ->
+            throwError $ "Can not dispatch ref to a IText node (at path " ++ show path ++ ")"
 
         (INode _ _ _) -> case appAncestor of
             -- We've reached the native element which emitted the event.
             -- Dispatch it to the closest 'IComponent' ancestor (if there is one).
+            (INull) -> throwError $ "No App is ancestor of " ++ show path
             (IText _) -> throwError $ "No App is ancestor of " ++ show path
             (INode _ _ _) -> throwError $ "No App is ancestor of " ++ show path
             (IThunk _ _ _) -> throwError $ "No App is ancestor of " ++ show path
@@ -305,6 +320,9 @@ dispatchRef h path rawValue = do
             go (appPath, inst) (Path []) (componentInstance state)
 
     go (appPath, appAncestor) (Path (key:rest)) inst = case inst of
+        (INull) -> do
+            throwError $ "INull doesn't have any children"
+
         (IText _) -> do
             throwError $ "IText doesn't have any children"
 
@@ -327,6 +345,7 @@ dispatchRef h path rawValue = do
 -- extract the instance from it.
 toSpine :: Instance -> STM Spine
 toSpine inst = case inst of
+    (INull) -> pure SNull
     (IText text) -> pure $ SText text
 
     (INode tag attrs children) -> do
@@ -379,6 +398,8 @@ applyAction h action (ComponentInstance path component stateRef) = do
 -- state ('State') for newly allocated 'IComponent' instances.
 instantiate :: Element -> STM Instance
 instantiate el = case el of
+    (ENull) -> pure INull
+
     (EText t) -> pure $ IText t
 
     (ENode tag attributes children) ->
@@ -436,6 +457,8 @@ createSnapshot h = Snapshot <$> execWriterT (do
   where
     go :: [Key] -> Instance -> WriterT (Map [Key] A.Value) STM ()
     go path inst = case inst of
+        (INull) -> pure ()
+
         (IText _) -> pure ()
 
         (INode _ _ children) -> do
@@ -467,6 +490,8 @@ restoreSnapshot h snapshot = do
   where
     go :: [Key] -> Instance -> WriterT [Effect] STM ()
     go path inst = case inst of
+        (INull) -> pure ()
+
         (IText _) -> pure ()
 
         (INode _ _ children) -> do
@@ -524,6 +549,8 @@ processSignals h = do
   where
     go :: [Key] -> Instance -> WriterT [SomeSignal] STM ()
     go path inst = case inst of
+        (INull)                         -> pure ()
+
         (IText _)                       -> pure ()
 
         (INode _ _ children)            -> do

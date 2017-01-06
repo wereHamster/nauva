@@ -72,6 +72,8 @@ navbar :: Element
 navbar = div_ [style_ rootStyle]
     [ div_ [style_ navbarItemStyle] [ str_ "Home" ]
     , div_ [style_ navbarItemStyle] [ str_ "Create Battery" ]
+    , null_
+    , div_ [style_ navbarItemStyle] [ str_ "Account" ]
     ]
   where
     rootStyle :: Style

@@ -11,6 +11,7 @@ module Nauva.View.HTML
     , onClick_
     , onChange_
 
+    , null_
     , str_
     , thunk_
     , component_
@@ -38,6 +39,9 @@ onClick_ = AEVL . EventListener "click"
 onChange_ :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> Attribute
 onChange_ = AEVL . EventListener "change"
 
+
+null_ :: Element
+null_ = ENull
 
 str_ :: Text -> Element
 str_ = EText
