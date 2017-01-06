@@ -51,7 +51,7 @@ fIdCounter :: IORef Int
 fIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE fIdCounter #-}
 
--- XXX: Why is this exported?
+-- Q: Why is this exported? A: So we can implement the ToJSVal instance.
 unFID :: FID -> Int
 unFID (FID x) = x
 
