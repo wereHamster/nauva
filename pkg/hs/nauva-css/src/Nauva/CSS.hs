@@ -1,9 +1,7 @@
 module Nauva.CSS
-    ( module Nauva.CSS.Helpers
-    , module Nauva.CSS.Terms
-    , module Nauva.CSS.Types
+    ( module X
     ) where
 
-import Nauva.CSS.Helpers
-import Nauva.CSS.Terms
-import Nauva.CSS.Types
+import Nauva.CSS.Helpers as X
+import Nauva.CSS.Terms   as X
+import Nauva.CSS.Types   as X

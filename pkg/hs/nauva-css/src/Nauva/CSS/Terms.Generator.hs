@@ -5,7 +5,7 @@ import Data.Char (toUpper)
 
 
 sanitize :: String -> String
-sanitize str = removeDash str
+sanitize = removeDash
   where
     removeDash ('-' : x : xs) = toUpper x : removeDash xs
     removeDash (x : xs)       = x : removeDash xs
@@ -118,17 +118,16 @@ terms :: [String]
 terms = nub $ sort $ properties ++ values
 
 main :: IO ()
-main = do
-    putStr $ removeTrailingNewlines $ unlines
-        [ "{-# LANGUAGE OverloadedStrings #-}"
-        , ""
-        , exportList (map sanitize terms)
-        , ""
-        , "import Nauva.CSS.Types"
-        , ""
-        , ""
-        , unlines $ map makeTerm terms
-        ]
+main = putStr $ removeTrailingNewlines $ unlines
+    [ "{-# LANGUAGE OverloadedStrings #-}"
+    , ""
+    , exportList (map sanitize terms)
+    , ""
+    , "import Nauva.CSS.Types"
+    , ""
+    , ""
+    , unlines $ map makeTerm terms
+    ]
 
   where
     removeTrailingNewlines = reverse . drop 2 . reverse
