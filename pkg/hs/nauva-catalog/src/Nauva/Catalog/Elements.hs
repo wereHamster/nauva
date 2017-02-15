@@ -16,6 +16,12 @@ module Nauva.Catalog.Elements
     , pageElementContainer
     , pageHint
     , pageCode
+
+    , pageElement
+
+    , codeSpecimen
+
+    , codeBlock
     ) where
 
 
@@ -114,26 +120,27 @@ pageBlockquote = blockquote_ [style_ style]
         flexBasis "100%"
         -- margin "16px 0 0 0"
 
-
-pageCodeBlock :: Text -> Element
-pageCodeBlock s = div_ [style_ pageCodeBlockStyle]
-    [ section_ [style_ sectionStyle]
-        [ pre_ [style_ preStyle]
-            [ code_ [style_ codeStyle]
-                [ str_ s
-                ]
-            ]
-        ]
+codeBlock :: Text -> Text -> Element
+codeBlock lang s = div_ [style_ rootStyle]
+    [ div_ [style_ langStyle] [str_ lang]
+    , pre_ [style_ preStyle] [code_ [style_ codeStyle] [str_ s]]
     ]
   where
-    pageCodeBlockStyle = mkStyle $ do
-        display "flex"
-        flexBasis "100%"
-        maxWidth "100%"
-        flexWrap "wrap"
-        margin "24px 0px 0px"
-        padding "0px"
+    rootStyle = mkStyle $ do
         position "relative"
+
+    langStyle = mkStyle $ do
+        position "absolute"
+        fontSize "13px"
+        color "#666"
+        top "0px"
+        left "0px"
+        width "100%"
+        background "rgba(180,180,180,.1)"
+        padding "0px 8px"
+        height "30px"
+        lineHeight "30px"
+        cssTerm "border-top" "1px solid rgb(238, 238, 238)"
 
     codeStyle = mkStyle $ do
         fontFamily "'Source Code Pro', monospace"
@@ -152,9 +159,25 @@ pageCodeBlock s = div_ [style_ pageCodeBlockStyle]
         height "auto"
         margin "0px"
         overflow "auto"
-        padding "20px"
+        padding "50px 20px 20px"
         whiteSpace "pre"
         width "100%"
+
+pageCodeBlock :: Text -> Element
+pageCodeBlock s = div_ [style_ pageCodeBlockStyle]
+    [ section_ [style_ sectionStyle]
+        [ codeBlock "Haskell" s
+        ]
+    ]
+  where
+    pageCodeBlockStyle = mkStyle $ do
+        display "flex"
+        flexBasis "100%"
+        maxWidth "100%"
+        flexWrap "wrap"
+        margin "24px 0px 0px"
+        padding "0"
+        position "relative"
 
     sectionStyle = mkStyle $ do
         fontStyle "normal"
@@ -256,3 +279,32 @@ pageOL = ol_ [style_ style]
         listStyle "disc"
         marginTop "16px"
         marginBottom "0"
+
+
+pageElement :: [Element] -> Element
+pageElement = div_ [style_ style]
+  where
+    style = mkStyle $ do
+        flexBasis "100%"
+        maxWidth "100%"
+        margin "24px 0px 0px"
+        position "relative"
+
+
+codeSpecimen :: Element -> Text -> Text -> Element
+codeSpecimen c lang s = div_ [style_ rootStyle]
+    [ pageElementContainer [c]
+    , codeBlock lang s
+    ]
+  where
+    rootStyle = mkStyle $ do
+        fontStyle "normal"
+        fontWeight "400"
+        color "rgb(51, 51, 51)"
+        fontFamily "'Source Code Pro', monospace"
+        fontSize "14.6059px"
+        lineHeight "1.44"
+        display "block"
+        width "100%"
+        background "rgb(255, 255, 255)"
+        border "1px solid rgb(238, 238, 238)"
