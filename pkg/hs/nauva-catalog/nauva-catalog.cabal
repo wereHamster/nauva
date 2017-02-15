@@ -57,3 +57,4 @@ library
    , markdown
    , conduit
    , th-lift-instances
+   , yaml

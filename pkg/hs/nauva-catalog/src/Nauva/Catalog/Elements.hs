@@ -1,5 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveLift         #-}
 
 module Nauva.Catalog.Elements
     ( pageRoot
@@ -30,6 +32,11 @@ module Nauva.Catalog.Elements
 import           Data.Text          (Text)
 import qualified Data.Text          as T
 import           Data.Monoid
+import           Data.Aeson
+import           Data.Typeable
+import           Data.Data
+
+import          Language.Haskell.TH.Syntax
 
 import           Nauva.Internal.Types
 import           Nauva.View
@@ -62,6 +69,7 @@ pageH2 = h2_ [style_ style]
         lineHeight "1.2"
         flexBasis "100%"
         margin "48px 0 0 0"
+        paddingLeft "16px"
 
 
 pageH3 :: [Element] -> Element
@@ -76,6 +84,7 @@ pageH3 = h3_ [style_ style]
         lineHeight "1.2"
         flexBasis "100%"
         margin "48px 0 0 0"
+        paddingLeft "16px"
 
 
 pageH4 :: [Element] -> Element
@@ -90,6 +99,7 @@ pageH4 = h4_ [style_ style]
         lineHeight "1.2"
         flexBasis "100%"
         margin "16px 0 0 0"
+        paddingLeft "16px"
 
 
 pageParagraph :: [Element] -> Element
@@ -289,19 +299,31 @@ pageOL = ol_ [style_ style]
 
 
 data PageElementProps = PageElementProps
-    { pepSpan :: Int
-    }
+    { pepTitle :: Maybe String
+    , pepSpan :: Int
+    } deriving (Typeable, Data, Lift)
+
+instance FromJSON PageElementProps where
+    parseJSON (Object o) = PageElementProps
+        <$> o .:? "title"
+        <*> o .:? "span" .!= 6
+
+    parseJSON _ = fail "PageElementProps"
 
 pageElement :: PageElementProps -> [Element] -> Element
-pageElement (PageElementProps {..}) = div_ [style_ style]
+pageElement (PageElementProps {..}) c = case pepTitle of
+    Nothing -> div_ [style_ style] c
+    Just title -> div_ [style_ style] ([div_ [style_ titleStyle] [pageH4 [str_ (T.pack title)]]] <> c)
   where
     style = mkStyle $ do
         maxWidth "100%"
         margin "24px 0 0 0"
         position "relative"
         paddingLeft "16px"
-
         flexBasis $ cssTerm $ T.pack $ "calc((100% / 6 * " <> show pepSpan <> "))"
+
+    titleStyle = mkStyle $ do
+        margin "0 0 8px -16px"
 
 
 codeSpecimen :: Element -> Text -> Text -> Element
