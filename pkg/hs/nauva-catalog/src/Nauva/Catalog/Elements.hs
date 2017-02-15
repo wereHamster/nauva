@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Nauva.Catalog.Elements
     ( pageRoot
@@ -17,6 +18,7 @@ module Nauva.Catalog.Elements
     , pageHint
     , pageCode
 
+    , PageElementProps(..)
     , pageElement
 
     , codeSpecimen
@@ -26,6 +28,7 @@ module Nauva.Catalog.Elements
 
 
 import           Data.Text          (Text)
+import qualified Data.Text          as T
 import           Data.Monoid
 
 import           Nauva.Internal.Types
@@ -33,10 +36,13 @@ import           Nauva.View
 
 
 pageRoot :: [Element] -> Element
-pageRoot = div_ [style_ style]
+pageRoot c = div_ [style_ outerStyle] [div_ [style_ innerStyle] c]
   where
-    style = mkStyle $ do
+    outerStyle = mkStyle $ do
         margin "0 30px 0 40px"
+
+    innerStyle = mkStyle $ do
+        marginLeft "-16px"
         maxWidth "64em"
         display flex
         flexFlow row wrap
@@ -98,6 +104,7 @@ pageParagraph = p_ [style_ style]
         lineHeight "1.44"
         flexBasis "100%"
         margin "16px 0 0 0"
+        paddingLeft "16px"
 
 
 
@@ -281,14 +288,20 @@ pageOL = ol_ [style_ style]
         marginBottom "0"
 
 
-pageElement :: [Element] -> Element
-pageElement = div_ [style_ style]
+data PageElementProps = PageElementProps
+    { pepSpan :: Int
+    }
+
+pageElement :: PageElementProps -> [Element] -> Element
+pageElement (PageElementProps {..}) = div_ [style_ style]
   where
     style = mkStyle $ do
-        flexBasis "100%"
         maxWidth "100%"
-        margin "24px 0px 0px"
+        margin "24px 0 0 0"
         position "relative"
+        paddingLeft "16px"
+
+        flexBasis $ cssTerm $ T.pack $ "calc((100% / 6 * " <> show pepSpan <> "))"
 
 
 codeSpecimen :: Element -> Text -> Text -> Element

@@ -28,6 +28,7 @@ import           Language.Haskell.Meta.Parse (parseExp)
 import           Instances.TH.Lift ()
 
 import           Nauva.View hiding (Exp)
+import           Nauva.Catalog.Elements
 
 
 
@@ -63,7 +64,7 @@ renderBlock b = case b of
             expr <- case parseExp (T.unpack str) of
                 Left err  -> [| div_ [str_ (T.pack err)] |]
                 Right expr -> pure expr
-            appE [| \c -> [pageElement [codeSpecimen c "Haskell" str]] |] (pure expr)
+            appE [| \c -> [pageElement (PageElementProps {pepSpan = 6}) [codeSpecimen c "Haskell" str]] |] (pure expr)
         Just "hint" -> do
             let blocks = markdownBlocksT str
             children <- ListE <$> mapM renderBlock blocks
