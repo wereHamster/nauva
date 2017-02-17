@@ -63,24 +63,25 @@ renderBlock b = case b of
         Nothing -> [| [pageCodeBlock str] |]
         Just "nauva" -> do
             let pepDef = PageElementProps {pepTitle = Nothing, pepSpan = 6}
-            (pep, expr, str2) <- case T.splitOn "---\n" str of
+            let cspDef = CodeSpecimenProps {cspPEP = pepDef, cspNoSource = False }
+            (csp, expr, str2) <- case T.splitOn "---\n" str of
                 [str1] -> case parseExp (T.unpack str1) of
                     Left err -> do
                         err1 <- [| div_ [str_ (T.pack err)] |]
-                        pure (pepDef, err1, str)
-                    Right expr -> pure (pepDef, expr, str1)
+                        pure (cspDef, err1, str)
+                    Right expr -> pure (cspDef, expr, str1)
 
                 [rawYAML, str1] -> case decodeEither (T.encodeUtf8 rawYAML) of
                         Left yamlErr -> do
                             err1 <- [| div_ [str_ $ T.pack $ show yamlErr] |]
-                            pure (pepDef, err1, str1)
-                        Right pep -> case parseExp (T.unpack str1) of
+                            pure (cspDef, err1, str1)
+                        Right csp -> case parseExp (T.unpack str1) of
                             Left err -> do
                                 err1 <- [| div_ [str_ (T.pack err)] |]
-                                pure (pep, err1, str)
-                            Right expr -> pure (pep, expr, str1)
+                                pure (csp, err1, str)
+                            Right expr -> pure (csp, expr, str1)
 
-            appE [| \c -> [pageElement pep [codeSpecimen c "Haskell" str2]] |] (pure expr)
+            appE [| \c -> [pageElement (cspPEP csp) [codeSpecimen csp c "Haskell" str2]] |] (pure expr)
         Just "hint" -> do
             let blocks = markdownBlocksT str
             children <- ListE <$> mapM renderBlock blocks

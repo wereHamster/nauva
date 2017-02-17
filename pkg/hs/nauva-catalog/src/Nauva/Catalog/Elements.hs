@@ -23,6 +23,7 @@ module Nauva.Catalog.Elements
     , PageElementProps(..)
     , pageElement
 
+    , CodeSpecimenProps(..)
     , codeSpecimen
 
     , codeBlock
@@ -326,11 +327,24 @@ pageElement (PageElementProps {..}) c = case pepTitle of
         margin "0 0 8px -16px"
 
 
-codeSpecimen :: Element -> Text -> Text -> Element
-codeSpecimen c lang s = div_ [style_ rootStyle]
-    [ pageElementContainer [c]
-    , codeBlock lang s
-    ]
+
+data CodeSpecimenProps = CodeSpecimenProps
+    { cspPEP :: PageElementProps
+    , cspNoSource :: Bool
+    } deriving (Typeable, Data, Lift)
+
+instance FromJSON CodeSpecimenProps where
+    parseJSON v@(Object o) = CodeSpecimenProps
+        <$> parseJSON v
+        <*> o .:? "noSource" .!= False
+
+    parseJSON _ = fail "CodeSpecimenProps"
+
+
+codeSpecimen :: CodeSpecimenProps -> Element -> Text -> Text -> Element
+codeSpecimen (CodeSpecimenProps {..}) c lang s = if cspNoSource
+    then div_ [style_ rootStyle] [pageElementContainer [c]]
+    else div_ [style_ rootStyle] [pageElementContainer [c], codeBlock lang s]
   where
     rootStyle = mkStyle $ do
         fontStyle "normal"
