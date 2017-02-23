@@ -30,6 +30,13 @@ fontFamily_ :: Writer [CSSDeclaration] () -> Writer [Statement] ()
 fontFamily_ v = tell [SEmit $ DFontFamily $ execWriter v]
 
 
+before :: Writer [Statement] () -> Writer [Statement] ()
+before style = tell [SSuffix "::before" style]
+
+after :: Writer [Statement] () -> Writer [Statement] ()
+after style = tell [SSuffix "::after" style]
+
+
 onHover :: Writer [Statement] () -> Writer [Statement] ()
 onHover style = tell [SSuffix ":hover" style]
 
