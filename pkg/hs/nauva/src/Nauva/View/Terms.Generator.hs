@@ -80,6 +80,7 @@ normalElements =
     , "circle"
     , "code"
     , "div"
+    , "em"
     , "h1"
     , "h2"
     , "h3"
@@ -89,6 +90,7 @@ normalElements =
     , "i"
     , "li"
     , "p"
+    , "path"
     , "pre"
     , "rect"
     , "section"
@@ -115,6 +117,10 @@ attributes =
     , "fill"
     , "ref"
     , "src"
+    , "d"
+    , "viewBox"
+    , "stroke"
+    , "strokeWidth"
     ]
 
 terms :: [String]

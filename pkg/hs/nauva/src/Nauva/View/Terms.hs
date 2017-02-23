@@ -14,7 +14,9 @@ module Nauva.View.Terms
     , col_
     , cx_
     , cy_
+    , d_
     , div_
+    , em_
     , embed_
     , fill_
     , h1_
@@ -36,6 +38,7 @@ module Nauva.View.Terms
     , ol_
     , p_
     , param_
+    , path_
     , pre_
     , r_
     , rect_
@@ -44,12 +47,15 @@ module Nauva.View.Terms
     , source_
     , span_
     , src_
+    , stroke_
+    , strokeWidth_
     , strong_
     , style_
     , svg_
     , track_
     , ul_
     , value_
+    , viewBox_
     , wbr_
     , width_
     , x_
@@ -147,6 +153,10 @@ div_ :: Term arg res => arg -> res
 div_ = term "div"
 {-# INLINE div_ #-}
 
+em_ :: Term arg res => arg -> res
+em_ = term "em"
+{-# INLINE em_ #-}
+
 h1_ :: Term arg res => arg -> res
 h1_ = term "h1"
 {-# INLINE h1_ #-}
@@ -186,6 +196,10 @@ ol_ = term "ol"
 p_ :: Term arg res => arg -> res
 p_ = term "p"
 {-# INLINE p_ #-}
+
+path_ :: Term arg res => arg -> res
+path_ = term "path"
+{-# INLINE path_ #-}
 
 pre_ :: Term arg res => arg -> res
 pre_ = term "pre"
@@ -237,6 +251,10 @@ cy_ :: Term arg res => arg -> res
 cy_ = term "cy"
 {-# INLINE cy_ #-}
 
+d_ :: Term arg res => arg -> res
+d_ = term "d"
+{-# INLINE d_ #-}
+
 fill_ :: Term arg res => arg -> res
 fill_ = term "fill"
 {-# INLINE fill_ #-}
@@ -260,6 +278,18 @@ ref_ = term "ref"
 src_ :: Term arg res => arg -> res
 src_ = term "src"
 {-# INLINE src_ #-}
+
+stroke_ :: Term arg res => arg -> res
+stroke_ = term "stroke"
+{-# INLINE stroke_ #-}
+
+strokeWidth_ :: Term arg res => arg -> res
+strokeWidth_ = term "strokeWidth"
+{-# INLINE strokeWidth_ #-}
+
+viewBox_ :: Term arg res => arg -> res
+viewBox_ = term "viewBox"
+{-# INLINE viewBox_ #-}
 
 width_ :: Term arg res => arg -> res
 width_ = term "width"
