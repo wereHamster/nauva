@@ -100,6 +100,11 @@ instance A.ToJSON CSSRule where
         ]
 
 
+cssRuleHash :: CSSRule -> Hash
+cssRuleHash (CSSStyleRule hash _ _ _) = hash
+cssRuleHash (CSSFontFaceRule hash _)  = hash
+
+
 
 -------------------------------------------------------------------------------
 -- | Statements are the lowest-level building blocks of a CSS style. Users
