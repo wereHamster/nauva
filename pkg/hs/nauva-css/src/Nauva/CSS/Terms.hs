@@ -18,6 +18,7 @@ module Nauva.CSS.Terms
     , center
     , color
     , column
+    , content
     , cursor
     , display
     , fixed
@@ -31,8 +32,10 @@ module Nauva.CSS.Terms
     , fontFamily
     , fontSize
     , fontStyle
+    , fontVariant
     , fontWeight
     , height
+    , hyphens
     , inlineBlock
     , justifyContent
     , left
@@ -66,11 +69,14 @@ module Nauva.CSS.Terms
     , src
     , textAlign
     , textDecoration
+    , textIndent
+    , textRendering
     , textTransform
     , top
     , transform
     , transition
     , uppercase
+    , userSelect
     , whiteSpace
     , width
     , wrap
@@ -148,6 +154,10 @@ column :: CSSTerm a => a
 column = cssTerm "column"
 {-# INLINE column #-}
 
+content :: CSSTerm a => a
+content = cssTerm "content"
+{-# INLINE content #-}
+
 cursor :: CSSTerm a => a
 cursor = cssTerm "cursor"
 {-# INLINE cursor #-}
@@ -200,6 +210,10 @@ fontStyle :: CSSTerm a => a
 fontStyle = cssTerm "font-style"
 {-# INLINE fontStyle #-}
 
+fontVariant :: CSSTerm a => a
+fontVariant = cssTerm "font-variant"
+{-# INLINE fontVariant #-}
+
 fontWeight :: CSSTerm a => a
 fontWeight = cssTerm "font-weight"
 {-# INLINE fontWeight #-}
@@ -207,6 +221,10 @@ fontWeight = cssTerm "font-weight"
 height :: CSSTerm a => a
 height = cssTerm "height"
 {-# INLINE height #-}
+
+hyphens :: CSSTerm a => a
+hyphens = cssTerm "hyphens"
+{-# INLINE hyphens #-}
 
 inlineBlock :: CSSTerm a => a
 inlineBlock = cssTerm "inline-block"
@@ -340,6 +358,14 @@ textDecoration :: CSSTerm a => a
 textDecoration = cssTerm "text-decoration"
 {-# INLINE textDecoration #-}
 
+textIndent :: CSSTerm a => a
+textIndent = cssTerm "text-indent"
+{-# INLINE textIndent #-}
+
+textRendering :: CSSTerm a => a
+textRendering = cssTerm "text-rendering"
+{-# INLINE textRendering #-}
+
 textTransform :: CSSTerm a => a
 textTransform = cssTerm "text-transform"
 {-# INLINE textTransform #-}
@@ -359,6 +385,10 @@ transition = cssTerm "transition"
 uppercase :: CSSTerm a => a
 uppercase = cssTerm "uppercase"
 {-# INLINE uppercase #-}
+
+userSelect :: CSSTerm a => a
+userSelect = cssTerm "user-select"
+{-# INLINE userSelect #-}
 
 whiteSpace :: CSSTerm a => a
 whiteSpace = cssTerm "white-space"
