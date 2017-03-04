@@ -158,7 +158,7 @@ codeBlock lang s = div_ [style_ rootStyle]
         padding "0px 8px"
         height "30px"
         lineHeight "30px"
-        cssTerm "border-top" "1px solid rgb(238, 238, 238)"
+        borderTop "1px solid rgb(238, 238, 238)"
 
     codeStyle = mkStyle $ do
         fontFamily "'Source Code Pro', monospace"
@@ -255,7 +255,7 @@ pageCode = code_ [style_ style]
         fontFamily "'Source Code Pro', monospace"
         lineHeight "1"
         padding "0.12em 0.2em"
-        cssTerm "text-indent" "0"
+        textIndent "0"
 
 
 pageUL :: [Element] -> Element

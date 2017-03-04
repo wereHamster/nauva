@@ -153,7 +153,7 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
         fontSize "13.3333px"
         lineHeight "1.44"
         padding "20px"
-        cssTerm "text-rendering" "optimizeLegibility"
+        textRendering "optimizeLegibility"
         cssTerm "-webkit-font-smoothing" "antialiased"
 
 
