@@ -322,6 +322,7 @@ pageElement (PageElementProps {..}) c = case pepTitle of
         position "relative"
         paddingLeft "16px"
         flexBasis $ cssTerm $ T.pack $ "calc((100% / 6 * " <> show pepSpan <> "))"
+        overflow "hidden"
 
     titleStyle = mkStyle $ do
         margin "0 0 8px -16px"

@@ -44,7 +44,7 @@ markdownBlocksT = map (fmap $ toInline mempty) . parseMarkdown
 
 renderBlock :: Block [Inline] -> Q Exp -- [Q Element]
 renderBlock b = case b of
-    (BlockPara is) -> do
+    (BlockPara is) ->
         appE [| \x -> [pageParagraph $ mconcat x] |] (ListE <$> mapM renderInline is)
 
     (BlockHeading level is) -> case level of
@@ -87,22 +87,29 @@ renderBlock b = case b of
             children <- ListE <$> mapM renderBlock blocks
             appE [| \x -> [pageHint $ mconcat x] |] (pure children)
 
-        _ -> [| [pageCodeBlock x] |]
+        Just "element" -> do
+            el <- case parseExp (T.unpack str) of
+                Left err -> [| div_ [str_ (T.pack err)] |]
+                Right expr -> pure expr
+
+            appE [| (: []) |] (pure el)
+
+        _ -> [| [pageCodeBlock str] |]
 
     (BlockList Ordered inlineOrBlocks) ->
         appE [| \x -> [pageOL $ mconcat x] |] $ case inlineOrBlocks of
-            Left is -> (ListE <$> mapM renderInline is)
-            Right bs -> (ListE <$> mapM renderBlock bs)
+            Left is -> ListE <$> mapM renderInline is
+            Right bs -> ListE <$> mapM renderBlock bs
 
     (BlockList Unordered inlineOrBlocks) ->
         appE [| \x -> [pageUL $ mconcat x] |] $ case inlineOrBlocks of
-            Left is -> (ListE <$> mapM renderInline is)
-            Right bs -> (ListE <$> mapM renderBlock bs)
+            Left is -> ListE <$> mapM renderInline is
+            Right bs -> ListE <$> mapM renderBlock bs
 
     (BlockHtml _) ->
         [| [div_ [str_ "TODO: BlockHtml"]] |]
 
-    (BlockRule) ->
+    BlockRule ->
         [| [hr_ []] |]
 
     (BlockReference _ _) ->
