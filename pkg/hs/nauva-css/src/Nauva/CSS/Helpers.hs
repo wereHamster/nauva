@@ -15,13 +15,13 @@ import           Nauva.CSS.Types
 vh :: Int -> CSSValue
 vh n = CSSValue $ T.pack $ show n ++ "vh"
 
-px :: (Num a, Show a) => a -> CSSValue
+px :: (Show a) => a -> CSSValue
 px n = CSSValue $ T.pack $ show n ++ "px"
 
-rem :: (Num a, Show a) => a -> CSSValue
+rem :: (Show a) => a -> CSSValue
 rem n = CSSValue $ T.pack $ show n ++ "rem"
 
-pct :: (Num a, Show a) => a -> CSSValue
+pct :: (Show a) => a -> CSSValue
 pct n = CSSValue $ T.pack $ show n ++ "%"
 
 
