@@ -45,6 +45,7 @@ library
    , Nauva.Internal.Types
    , Nauva.DOM
    , Nauva.Internal.Events
+   , Nauva.Internal.Fragment
    , Nauva.View
    , Nauva.View.HTML
    , Nauva.View.Types
