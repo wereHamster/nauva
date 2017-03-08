@@ -73,8 +73,8 @@ elementToMarkup el = case el of
                 AVDouble d -> B.stringValue $ show d
             parentWithAttributes = foldl (B.!) parent attrs
 
-        (children, childrenStyles) :: (B.Html, [Style]) <- mconcat <$> mapM elementToMarkup children
-        let html = parentWithAttributes children B.! B.attribute (B.textTag "class") (B.textTag " class=\"") (B.textValue (mconcat (intersperse " " classes)))
+        (children', childrenStyles) :: (B.Html, [Style]) <- mconcat <$> mapM elementToMarkup children
+        let html = parentWithAttributes children' B.! B.attribute (B.textTag "class") (B.textTag " class=\"") (B.textValue (mconcat (intersperse " " classes)))
         pure (html, styles <> childrenStyles)
 
     (EThunk thunk p) ->

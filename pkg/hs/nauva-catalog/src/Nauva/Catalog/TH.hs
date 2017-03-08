@@ -80,6 +80,9 @@ renderBlock b = case b of
                                 err1 <- [| div_ [str_ (T.pack err)] |]
                                 pure (csp, err1, str)
                             Right expr -> pure (csp, expr, str1)
+                _ -> do
+                    expr <- [| div_ [str_ "Unrecognized expression"] |]
+                    pure (cspDef, expr, str)
 
             appE [| \c -> [pageElement (cspPEP csp) [codeSpecimen csp c "Haskell" str2]] |] (pure expr)
         Just "hint" -> do
@@ -127,8 +130,8 @@ renderInline i = case i of
     (InlineBold is) ->
         appE [| \x -> [strong_ $ mconcat x] |] (ListE <$> mapM renderInline is)
 
-    (InlineLink url _title content) ->
-        appE [| \x -> [a_ [href_ url] (mconcat x)] |] (ListE <$> mapM renderInline content)
+    (InlineLink url _title is) ->
+        appE [| \x -> [a_ [href_ url] (mconcat x)] |] (ListE <$> mapM renderInline is)
 
     (InlineCode str) ->
         [| [pageCode [str_ str]] |]
