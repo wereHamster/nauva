@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-|
 This module contains function to convert 'Element's or 'Instance's into static
@@ -20,6 +21,7 @@ import           Data.Monoid
 import           Data.Maybe
 import qualified Data.Text as T
 import           Data.String
+import           Data.List (intersperse)
 
 import qualified Text.Blaze.Html     as B
 import qualified Text.Blaze.Internal as B
@@ -27,31 +29,40 @@ import qualified Text.Blaze.Internal as B
 import           Control.Concurrent.STM
 
 import           Nauva.Internal.Types
+import           Nauva.CSS
 import           Nauva.DOM
 
 import           Prelude
 
 
--- | Convert an 'Element' into blaze-html markup ('B.Html'). If the 'Element'
--- tree contains 'Component's, they will be rendered in their initial state.
+-- | Convert an 'Element' into blaze-html markup ('B.Html') and a list of all
+-- 'Style' objects which are used by the tree. If the 'Element' tree contains
+-- 'Component's, they will be rendered in their initial state.
 --
 -- Note that the function was cobbled together without a thorough understanding
 -- of the 'blaze-markup' and 'blaze-html' types. Furthermore, I know for a fact
 -- that the way how Nauva 'Attribute's are converted into blaze-markup
 -- Attributes is not accurate: 'Nauva' models them after IDL attributes, while
 -- 'blaze-html' uses content attributes.
-elementToMarkup :: Element -> STM B.Html
+
+elementToMarkup :: Element -> STM (B.Html, [Style])
 elementToMarkup el = case el of
-    (ENull) ->
-        pure mempty
+    ENull ->
+        pure (mempty, mempty)
 
     (EText text) ->
-        pure $ B.toMarkup text
+        pure (B.toMarkup text, mempty)
 
-    (ENode tag attributes children) ->
+    (ENode tag attributes children) -> do
         let tagString = T.unpack $ unTag tag
             parent = B.Parent (fromString tagString) (fromString $ "<" <> tagString) (fromString $ "</" <> tagString <> ">")
-            attrs = catMaybes $ map toAttribute attributes
+            styles = mapMaybe toStyle attributes
+              where
+                toStyle (ASTY x) = Just x
+                toStyle _ = Nothing
+
+            classes = map (("s"<>) . unHash . cssRuleHash) $ mconcat $ map unStyle styles
+            attrs = mapMaybe toAttribute attributes
             toAttribute (AEVL _) = Nothing
             toAttribute (ASTY _) = Nothing
             toAttribute (AREF _) = Nothing
@@ -60,8 +71,11 @@ elementToMarkup el = case el of
                 AVString t -> B.textValue t
                 AVInt i -> B.stringValue $ show i
                 AVDouble d -> B.stringValue $ show d
-            parentWithAttributes = foldl (\a b -> a B.! b) parent attrs
-        in parentWithAttributes <$> (mconcat <$> mapM elementToMarkup children)
+            parentWithAttributes = foldl (B.!) parent attrs
+
+        (children, childrenStyles) :: (B.Html, [Style]) <- mconcat <$> mapM elementToMarkup children
+        let html = parentWithAttributes children B.! B.attribute (B.textTag "class") (B.textTag " class=\"") (B.textValue (mconcat (intersperse " " classes)))
+        pure (html, styles <> childrenStyles)
 
     (EThunk thunk p) ->
         elementToMarkup $ forceThunk thunk p
@@ -69,6 +83,7 @@ elementToMarkup el = case el of
     (EComponent component p) -> do
         (s, _) <- initialComponentState component p
         elementToMarkup $ renderComponent component p s
+
 
 
 -- | Not implemented yet!
