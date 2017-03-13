@@ -54,6 +54,7 @@ module Nauva.CSS.Terms
     , opacity
     , outline
     , overflow
+    , overflowX
     , overflowY
     , padding
     , paddingBottom
@@ -298,8 +299,12 @@ overflow :: CSSTerm a => a
 overflow = cssTerm "overflow"
 {-# INLINE overflow #-}
 
+overflowX :: CSSTerm a => a
+overflowX = cssTerm "overflow-x"
+{-# INLINE overflowX #-}
+
 overflowY :: CSSTerm a => a
-overflowY = cssTerm "overflowY"
+overflowY = cssTerm "overflow-y"
 {-# INLINE overflowY #-}
 
 padding :: CSSTerm a => a
