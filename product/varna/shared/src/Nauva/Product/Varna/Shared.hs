@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 
-module App.Varna.Shared
+module Nauva.Product.Varna.Shared
     ( root
 
     , batteryCard
@@ -13,7 +13,7 @@ import qualified Data.Aeson as A
 
 import           Nauva.View
 
-import           App.Varna.Element.Card
+import           Nauva.Product.Varna.Element.Card
 
 import           Prelude hiding (rem)
 

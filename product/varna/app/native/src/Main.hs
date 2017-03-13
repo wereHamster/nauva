@@ -2,7 +2,7 @@ module Main (main) where
 
 
 import  Nauva.Client
-import  App.Varna.Shared
+import  Nauva.Product.Varna.Shared
 
 
 

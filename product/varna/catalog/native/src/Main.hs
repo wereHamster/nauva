@@ -13,7 +13,7 @@ import           Nauva.Catalog.TH
 import           Nauva.Catalog.Shell
 import           Nauva.Catalog.Elements
 
-import           App.Varna.Catalog (catalogPages)
+import           Nauva.Product.Varna.Catalog (catalogPages)
 
 
 

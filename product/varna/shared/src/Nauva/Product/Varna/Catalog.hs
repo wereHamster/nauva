@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuasiQuotes           #-}
 
-module App.Varna.Catalog (catalogPages) where
+module Nauva.Product.Varna.Catalog (catalogPages) where
 
 
 import           Nauva.Internal.Types
@@ -11,7 +11,7 @@ import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
 import           Nauva.Catalog.Elements
 
-import           App.Varna.Element.Card as Card
+import           Nauva.Product.Varna.Element.Card as Card
 
 
 

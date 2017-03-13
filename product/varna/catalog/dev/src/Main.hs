@@ -12,7 +12,7 @@ import           Nauva.Server
 
 import           Nauva.Catalog
 
-import           App.Varna.Catalog (catalogPages)
+import           Nauva.Product.Varna.Catalog (catalogPages)
 
 
 

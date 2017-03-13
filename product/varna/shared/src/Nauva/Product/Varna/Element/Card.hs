@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 
-module App.Varna.Element.Card
+module Nauva.Product.Varna.Element.Card
     ( batteryCard
 
     , batteryCardBodyParagraph

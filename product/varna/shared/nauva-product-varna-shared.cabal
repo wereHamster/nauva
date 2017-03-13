@@ -1,4 +1,4 @@
-name:                app-varna-shared
+name:                nauva-product-varna-shared
 version:             0.0.0
 build-type:          Simple
 cabal-version:       >=1.10
@@ -10,9 +10,9 @@ library
   ghc-options:         -Wall -Wno-type-defaults
 
   exposed-modules:
-     App.Varna.Shared
-   , App.Varna.Catalog
-   , App.Varna.Element.Card
+     Nauva.Product.Varna.Shared
+   , Nauva.Product.Varna.Catalog
+   , Nauva.Product.Varna.Element.Card
 
   build-depends:
      base >= 4.7 && < 5

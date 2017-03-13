@@ -1,0 +1,6 @@
+resolver: nightly-2016-11-03
+packages:
+- .
+- ../../../pkg/hs/nauva
+- ../../../pkg/hs/nauva-css
+- ../../../pkg/hs/nauva-catalog
