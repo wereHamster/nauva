@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 
-module Nauva.Playground.App
+module Nauva.Product.Playground.Shared
     ( rootElement
     ) where
 
@@ -54,7 +54,7 @@ rootElement i = div_ [style_ rootStyle :: Attribute] $
 
 
 thunk :: Thunk Int
-thunk = Thunk mkThunkId "thunk" (==) $ \i ->
+thunk = createThunk $ \thunkId -> Thunk thunkId "thunk" (==) $ \i ->
     str_ $ "Thunk " <> (T.pack $ show i)
 
 
@@ -83,8 +83,8 @@ instance A.FromJSON Action
 instance A.ToJSON Action
 
 component :: Component Int () (Int, Text) Action
-component = Component
-    { componentId = mkComponentId
+component = createComponent $ \componentId -> Component
+    { componentId = componentId
     , componentDisplayName = "app-display-name"
     , initialComponentState = \i -> pure ((i, ""), [])
     , componentEventListeners = \_ -> []
@@ -100,14 +100,14 @@ component = Component
     }
 
   where
-    update' DoThat s = (s, [pure $ Just DoThis])
-    update' DoThis s = (s, [])
-    update' (DoClick t) (i, _) = ((i, t), [pure $ Just DoThis])
-    update' (DoChange t) (i, _) = ((i, t), [pure $ Just DoThis])
+    update' DoThat _ s = (s, [pure $ Just DoThis])
+    update' DoThis _ s = (s, [])
+    update' (DoClick t) _ (i, _) = ((i, t), [pure $ Just DoThis])
+    update' (DoChange t) _ (i, _) = ((i, t), [pure $ Just DoThis])
 
     receiveProps' p (_, t) = pure ((p, t), [], [pure $ Just DoThat])
 
-    view :: Int (Int, Text) -> Element
+    view :: Int -> (Int, Text) -> Element
     view _ (i, t) = span_
         [ str_ $ "Component " <> (T.pack $ show i)
         , button_ [style_ buttonStyle, onClick_ onClickHandler, value_ ("TheButtonValue" :: Text)] [str_ "Click Me!"]
@@ -196,8 +196,8 @@ instance A.ToJSON CanvasS where
     toJSON (CanvasS mouse rk _ size) = A.toJSON (mouse, rk, size)
 
 canvas :: Component () () CanvasS CanvasA
-canvas = Component
-    { componentId = mkComponentId
+canvas = createComponent $ \componentId -> Component
+    { componentId = componentId
     , componentDisplayName = "Canvas"
     , initialComponentState = \_ ->
         let refKey = mkRefKey
@@ -217,9 +217,9 @@ canvas = Component
     }
 
   where
-    update' :: CanvasA -> CanvasS -> (CanvasS, [IO (Maybe CanvasA)])
-    update' (Mouse x y)   (CanvasS _ refKey onResizeH s) = (CanvasS (x, y - 100) refKey onResizeH s, [])
-    update' (SetSize w h) (CanvasS m refKey onResizeH _) = (CanvasS m refKey onResizeH (Just (floor w, floor h)), [])
+    update' :: CanvasA -> () -> CanvasS -> (CanvasS, [IO (Maybe CanvasA)])
+    update' (Mouse x y)   _ (CanvasS _ refKey onResizeH s) = (CanvasS (x, y - 100) refKey onResizeH s, [])
+    update' (SetSize w h) _ (CanvasS m refKey onResizeH _) = (CanvasS m refKey onResizeH (Just (floor w, floor h)), [])
 
     receiveProps' () s = pure (s, [], [])
 
@@ -239,12 +239,12 @@ canvas = Component
     --     storeRef componentH (litE "svg") element
     --     action $ ....
 
-    attach = F2 mkFID $ \_ element ->
+    attach = createF $ \fId -> F2 fId $ \_ element ->
         refHandlerE (justE $ value2E conSetSize (elementWidth element) (elementHeight element))
 
-    detach = F1 mkFID $ \_ -> refHandlerE nothingE
+    detach = createF $ \fId -> F1 fId $ \_ -> refHandlerE nothingE
 
-    view :: () CanvasS -> Element
+    view :: () -> CanvasS -> Element
     view _ (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
         case s of
             Nothing -> []

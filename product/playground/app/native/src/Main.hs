@@ -3,17 +3,18 @@
 module Main (main) where
 
 
-import qualified Text.Blaze.Html5            as H
-import qualified Text.Blaze.Html5.Attributes as A
+import qualified Text.Blaze.Html            as H
+import qualified Text.Blaze.Html.Attributes as A
 
-import           Nauva.Server
-import           Nauva.Playground.App
+import           Nauva.Client
+import           Nauva.Product.Playground.Shared
 
 
 
 main :: IO ()
 main = do
-    runServer $ Config 8000 (\_ -> rootElement 1) Nothing $ do
+    putStrLn "Native App"
+    runClient (Config (rootElement 1)) Nothing $ do
         H.style $ mconcat
             [ "*, *:before, *:after { box-sizing: inherit; }"
             , "html { box-sizing: border-box; }"
