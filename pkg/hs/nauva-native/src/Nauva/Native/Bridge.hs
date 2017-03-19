@@ -6,6 +6,9 @@ module Nauva.Native.Bridge
     ( Impl(..)
     , Callbacks(..)
 
+    , DOMElement
+    , getElementById
+
     , Bridge(..)
     , newBridge
     , renderSpine
@@ -25,7 +28,6 @@ import           GHCJS.Types
 import           GHCJS.Foreign
 import           GHCJS.Marshal
 import           GHCJS.Foreign.Callback
-import qualified GHCJS.DOM.Types            as GHCJSDOMT
 
 import qualified JavaScript.Object          as O
 import qualified JavaScript.Object.Internal as O
@@ -34,6 +36,16 @@ import           Nauva.Internal.Types
 import           Nauva.NJS
 
 import           Unsafe.Coerce
+
+
+-- A wrapper around a pointer to a native DOM element.
+newtype DOMElement = DOMElement { unDOMElement :: JSVal }
+
+foreign import javascript unsafe "document.getElementById($1)" js_getElementById
+    :: JSString -> IO DOMElement
+
+getElementById :: JSString -> IO DOMElement
+getElementById = js_getElementById
 
 
 
@@ -64,7 +76,7 @@ data Callbacks = Callbacks
 instance ToJSVal Callbacks where
     toJSVal cb = do
         o <- O.create
-        
+
         O.setProp "componentEvent" (unsafeCoerce $ componentEventCallback cb) o
         O.setProp "nodeEvent" (unsafeCoerce $ nodeEventCallback cb) o
         O.setProp "attachRef" (unsafeCoerce $ attachRefCallback cb) o
@@ -83,7 +95,7 @@ newtype Bridge = Bridge { unBridge :: JSVal }
 
 
 foreign import javascript unsafe "newBridge($1, $2)" js_newBridge
-    :: GHCJSDOMT.Element -> JSVal -> IO Bridge
+    :: DOMElement -> JSVal -> IO Bridge
 
 foreign import javascript unsafe "$1.renderSpine($2)" js_renderSpine
     :: Bridge -> JSVal -> IO ()
@@ -104,7 +116,7 @@ instance FromJSVal Path where
                 _           -> Prelude.error "..."
 
             pure $ Just $ Path keys
- 
+
 
 
 --------------------------------------------------------------------------------
@@ -114,7 +126,7 @@ instance FromJSVal Path where
 --
 -- See 'renderSpine' and 'renderSpineAtPath'.
 
-newBridge :: GHCJSDOMT.Element -> Impl -> IO Bridge
+newBridge :: DOMElement -> Impl -> IO Bridge
 newBridge el impl = do
     componentEventCallback <- syncCallback3 ContinueAsync $ \vPath vFID vEvent -> do
         path <- fromJSValUnchecked vPath

@@ -44,10 +44,6 @@ import           GHCJS.Foreign.Callback
 import           Data.JSString.Text
 import qualified Data.JSString              as JSS
 
-import           GHCJS.DOM
-import           GHCJS.DOM.Document
-import qualified GHCJS.DOM.Types            as GHCJSDOMT
-
 import qualified JavaScript.Object          as O
 import qualified JavaScript.Object.Internal as O
 import           JavaScript.Array.Internal  (fromList)
@@ -71,8 +67,7 @@ data Handle = Handle
 
 runClient :: Config -> IO ()
 runClient c = do
-    Just document <- currentDocument
-    appEl <- getElementByIdUnsafe document ("app" :: JSString)
+    appEl <- getElementById ("app" :: JSString)
 
     nauvaH <- newHandle
     refsVar <- newTVarIO (M.empty :: Map (ComponentId, RefKey) JSVal)
