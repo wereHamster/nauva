@@ -9,7 +9,6 @@ import           Nauva.Internal.Types
 
 import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
-import           Nauva.Catalog.Elements
 
 import           Nauva.Product.Varna.Element.Card as Card
 

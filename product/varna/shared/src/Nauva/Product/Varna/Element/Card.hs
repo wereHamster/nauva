@@ -21,7 +21,6 @@ import           Control.Monad
 import           Nauva.Internal.Types
 import           Nauva.View
 
-import           Nauva.Catalog.Elements
 import           Nauva.Catalog.TH (nauvaCatalogPage)
 
 import           Prelude hiding (rem)
