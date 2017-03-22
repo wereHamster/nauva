@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+TOP="$PWD" # Assumes that user is in the root of the repository!
+LOCAL_BIN_PATH="$TOP/bin"
+
+stack --resolver=lts-7.19 --local-bin-path="$LOCAL_BIN_PATH" --silent \
+    install ghcid
+
+function die () {
+    echo $1
+    exit 1
+}
+
+DIR="$TOP/product/$1/dev"
+if ! test -d "$DIR"; then
+    die "$DIR does not exist!"
+fi
+
+cd $DIR
+echo $LOCAL_BIN_PATH
+exec "$LOCAL_BIN_PATH/ghcid" --command="stack ghci" --test=:main --warnings
