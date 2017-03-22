@@ -1,13 +1,13 @@
-resolver: nightly-2016-10-05
-compiler: ghcjs-0.2.1.820161005_ghc-8.0.1
+resolver: lts-7.19
+compiler: ghcjs-0.2.1.9007019_ghc-8.0.1
 compiler-check: match-exact
+
 setup-info:
   ghcjs:
     source:
-      ghcjs-0.2.1.820161005_ghc-8.0.1:
-         url: "http://ghcjs.tolysz.org/ghc-8.0-2016-10-05-nightly-2016-10-05-820161005.tar.gz"
-         sha1: d5eaa1fd34080c3102bbad5343d01fd066d387b6
-allow-newer: true
+      ghcjs-0.2.1.9007019_ghc-8.0.1:
+           url: http://ghcjs.tolysz.org/ghc-8.0-2017-02-05-lts-7.19-9007019.tar.gz
+           sha1: d2cfc25f9cda32a25a87d9af68891b2186ee52f9
 
 packages:
 - .
@@ -16,8 +16,3 @@ packages:
 - ../../../../pkg/hs/nauva-css
 - ../../../../pkg/hs/nauva-catalog
 - ../../../../pkg/hs/nauva-native
-
-extra-deps:
-- ghcjs-dom-0.5.0.2
-- ghcjs-dom-jsffi-0.5.0.2
-- snap-blaze-0.2.1.4

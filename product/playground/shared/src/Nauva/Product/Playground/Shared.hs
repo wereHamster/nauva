@@ -11,7 +11,6 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Aeson as A
 import           Data.Monoid
-import qualified Data.Map as M
 import           Data.Tagged
 
 import           System.Random

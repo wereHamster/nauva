@@ -11,6 +11,5 @@ executable nauva-product-playground-app-native
       base >= 4.7 && < 5
     , nauva
     , ghcjs-base
-    , blaze-html
     , nauva-native
     , nauva-product-playground-shared
