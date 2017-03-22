@@ -1,4 +1,4 @@
-resolver: nightly-2016-11-03
+resolver: nightly-2017-03-20
 packages:
 - .
 - ../../shared
@@ -6,6 +6,3 @@ packages:
 - ../../../../pkg/hs/nauva-css
 - ../../../../pkg/hs/nauva-catalog
 - ../../../../pkg/hs/nauva-dev-server
-
-extra-deps:
-- snap-blaze-0.2.1.4
