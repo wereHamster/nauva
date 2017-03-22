@@ -5,14 +5,8 @@
 module Main (main) where
 
 
-import           Nauva.Internal.Types
 import           Nauva.Client
 import           Nauva.Catalog
-import           Nauva.Catalog.Types
-import           Nauva.Catalog.TH
-import           Nauva.Catalog.Shell
-import           Nauva.Catalog.Elements
-
 import           Nauva.Product.Varna.Catalog (catalogPages)
 
 

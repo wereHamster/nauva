@@ -9,8 +9,6 @@ setup-info:
            url: http://ghcjs.tolysz.org/ghc-8.0-2017-02-05-lts-7.19-9007019.tar.gz
            sha1: d2cfc25f9cda32a25a87d9af68891b2186ee52f9
 
-allow-newer: true
-
 packages:
 - .
 - ../../shared
@@ -18,15 +16,3 @@ packages:
 - ../../../../pkg/hs/nauva-css
 - ../../../../pkg/hs/nauva-catalog
 - ../../../../pkg/hs/nauva-native
-
-extra-deps:
-- blaze-html-0.8.1.2
-- blaze-markup-0.7.1.0
-- blaze-builder-0.4.0.2
-- random-1.1
-- data-default-0.7.1.1
-- data-default-class-0.1.2.0
-- data-default-instances-containers-0.0.1
-- data-default-instances-dlist-0.0.1
-- data-default-instances-old-locale-0.0.1
-- safe-0.3.9
