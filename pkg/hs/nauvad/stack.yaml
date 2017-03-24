@@ -1,0 +1,7 @@
+resolver: nightly-2017-03-20
+packages:
+- .
+- ../nauva
+- ../nauva-css
+- ../nauva-catalog
+- ../../../product/nauva/shared

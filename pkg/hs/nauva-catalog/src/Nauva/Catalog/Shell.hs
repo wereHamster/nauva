@@ -47,7 +47,7 @@ headerThunk = createThunk $ \thunkId -> Thunk
   where
     headerStyle = mkStyle $ do
         height (px 200)
-        backgroundColor "rgb(0, 59, 92)"
+        backgroundColor "#373f52"
         padding (px 20) (px 40)
 
         display flex
@@ -57,7 +57,7 @@ headerThunk = createThunk $ \thunkId -> Thunk
     headerSectionStyle = mkStyle $ do
         fontFamily "Roboto, sans-serif"
         fontStyle normal
-        fontWeight "400"
+        fontWeight "300"
         color "white"
         fontSize (px 19.2)
         lineHeight "1.2"
@@ -67,7 +67,7 @@ headerThunk = createThunk $ \thunkId -> Thunk
     headerTitleStyle = mkStyle $ do
         fontFamily "Roboto, sans-serif"
         fontStyle normal
-        fontWeight "400"
+        fontWeight "300"
         color "white"
         fontSize (px 33.1776)
         lineHeight "1.2"
@@ -92,7 +92,7 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
                 { p_routerH, p_href = p_logoUrl, p_element =
                     a_ [style_ sidebarLogoContainerStyle, href_ p_logoUrl]
                         [ h1_ [style_ sidebarLogoStyle]
-                            [ img_ [style_ sidebarLogoImageStyle, src_ ("https://interactivethings.github.io/catalog/docs/assets/catalog_logo.svg" :: Text)]
+                            [ -- img_ [style_ sidebarLogoImageStyle, src_ ("https://interactivethings.github.io/catalog/docs/assets/catalog_logo.svg" :: Text)]
                             ]
                         ]
                 }
@@ -121,23 +121,22 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
     toMenuItem1 (Leaf {..}) = li_ [ link (LinkProps { p_routerH = p_routerH, p_href = leafHref, p_element = a_ [style_ menuItemStyle1, href_ leafHref] [ str_ leafTitle ] }) ]
 
     sidebarOuterStyle = mkStyle $ do
-        background "rgb(255, 255, 255)"
-        color "rgb(255, 255, 255)"
+        background "#373f52"
+        color "#d5dae6"
         overflowY auto
         position fixed
         height "100vh"
         width "250px"
         top "0px"
-        borderRight "1px solid rgb(235, 235, 235)"
-        transform "translateX(-251px)"
-        transition "transform 0.25s ease-in-out"
+        -- transform "translateX(-251px)"
+        -- transition "transform 0.25s ease-in-out"
 
-        media "(min-width: 1000px)" $ do
-            transform "translateX(0px)"
-            transition none
+        -- media "(min-width: 1000px)" $ do
+        transform "translateX(0px)"
+        transition none
 
     sidebarInnerStyle = mkStyle $ do
-        background "rgb(255, 255, 255)"
+        background "#373f52"
         minHeight "100vh"
         display flex
         flexDirection column
@@ -148,7 +147,7 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
     sidebarInnerBottomStyle = mkStyle $ do
         fontStyle "normal"
         fontWeight "400"
-        color "rgb(214, 214, 214)"
+        color "#d5dae6"
         fontFamily "Roboto, sans-serif"
         fontSize "13.3333px"
         lineHeight "1.44"
@@ -158,7 +157,7 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
 
 
     sidebarInnerBottomLinkStyle = mkStyle $ do
-        color "rgb(214, 214, 214)"
+        color "#d5dae6"
 
     sidebarLogoContainerStyle = mkStyle $ do
         display block
@@ -171,57 +170,57 @@ sidebar (SidebarProps {..}) = div_ [style_ sidebarOuterStyle]
         fontFamily "Roboto, sans-serif"
         fontSize "19.2px"
         lineHeight "1.2"
-        margin "0px"
+        margin "0"
         padding "21px 38px"
         height "200px"
         display flex
         alignItems flexEnd
 
-    sidebarLogoImageStyle = mkStyle $ do
-        maxWidth "100%"
-        maxHeight "calc(100% - 39.8131px)"
-        marginBottom "39.8131px"
+    -- sidebarLogoImageStyle = mkStyle $ do
+    --     maxWidth "100%"
+    --     maxHeight "calc(100% - 39.8131px)"
+    --     marginBottom "39.8131px"
 
     ulStyle = mkStyle $ do
-        borderBottom "1px solid rgb(235, 235, 235)"
         listStyle none
-        margin "0px"
-        padding "0px"
+        margin "0"
+        padding "30px 0 0 30px"
 
     ulStyle1 = mkStyle $ do
         listStyle none
-        margin "0px"
-        padding "0px"
+        margin "0"
+        padding "0"
 
     menuItemStyle = mkStyle $ do
         fontStyle "normal"
-        fontWeight "400"
-        color "rgb(0, 59, 92)"
+        fontWeight "300"
+        color "#d5dae6"
         fontFamily "Roboto, sans-serif"
         fontSize "16px"
-        lineHeight "1.44"
-        borderTop "1px solid rgb(235, 235, 235)"
+        lineHeight "27px"
         cursor "pointer"
         display "block"
-        margin "0px"
-        padding "16px 40px"
+        margin "0"
+        padding "16px" "0" "0"
         textDecoration "none"
+        transition "color .16s"
 
         onHover $ do
-            color "rgb(255, 85, 85)"
+            color "white"
 
     menuItemStyle1 = mkStyle $ do
         fontStyle "normal"
-        fontWeight "400"
-        color "rgb(0, 59, 92)"
+        fontWeight "300"
+        color "#d5dae6"
         fontFamily "Roboto, sans-serif"
         fontSize "16px"
-        lineHeight "1.44"
+        lineHeight "27px"
         cursor "pointer"
         display "block"
-        margin "0px"
-        padding "0px 24px 16px 60px"
+        margin "0"
+        padding "0 24px 0 20px"
         textDecoration "none"
+        transition "color .16s"
 
         onHover $ do
-            color "rgb(255, 85, 85)"
+            color "white"

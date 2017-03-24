@@ -1,0 +1,8 @@
+resolver: nightly-2017-03-20
+packages:
+- .
+- ../../shared
+- ../../../../pkg/hs/nauva
+- ../../../../pkg/hs/nauva-css
+- ../../../../pkg/hs/nauva-catalog
+- ../../../../pkg/hs/nauva-dev-server

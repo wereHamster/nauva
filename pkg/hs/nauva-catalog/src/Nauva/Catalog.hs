@@ -50,6 +50,7 @@ catalogComponent :: Component CatalogProps () State ()
 catalogComponent = createComponent $ \componentId -> Component
     { componentId = componentId
     , componentDisplayName = "Catalog"
+
     , initialComponentState = \props -> do
         loc <- readTVar $ fst $ hLocation $ p_routerH (props :: CatalogProps)
         pure
@@ -122,8 +123,8 @@ catalogComponent = createComponent $ \componentId -> Component
             minHeight (vh 100)
             position relative
 
-            media "(min-width: 1000px)" $ do
-                marginLeft (px 251)
+            -- media "(min-width: 1000px)" $ do
+            marginLeft (px 251)
 
         pageStyle = mkStyle $ do
             flex "1 1 0%"
