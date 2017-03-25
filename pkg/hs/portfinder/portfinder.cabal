@@ -1,0 +1,45 @@
+name:                portfinder
+version:             0.0
+
+synopsis:            Find the next available TCP/IP port
+description:         …
+
+homepage:            https://github.com/wereHamster/nauva
+
+license:             MIT
+license-file:        LICENSE
+
+author:              Tomas Carnecky
+maintainer:          tomas.carnecky@gmail.com
+copyright:           2017 Tomas Carnecky
+
+category:            Network
+build-type:          Simple
+
+cabal-version:       >=1.10
+
+
+flag release
+  description: Enable additional checks and compiler options for release builds
+  default: False
+
+
+source-repository head
+  type:     git
+  location: https://github.com/wereHamster/nauva
+
+
+library
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+  ghc-options:         -Wall
+  if flag(release)
+    ghc-options:       -Wall -Werror
+
+  exposed-modules:
+     Network.PortFinder
+
+  build-depends:
+     base >= 4.7 && < 5
+   , network
