@@ -17,10 +17,10 @@ import Network.Socket
 findPort :: IO PortNumber
 findPort = do
     let hints = defaultHints { addrFlags = [AI_NUMERICHOST, AI_NUMERICSERV], addrSocketType = Stream }
-    addr:_ <- getAddrInfo (Just hints) (Just "0.0.0.0") (Just "8000")
+    addr:_ <- getAddrInfo (Just hints) (Just "0.0.0.0") (Just "9000")
     sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
 
-    go 10 sock (addrAddress addr)
+    go 99 sock (addrAddress addr)
 
   where
     go :: Int -> Socket -> SockAddr -> IO PortNumber

@@ -86,7 +86,7 @@ function runClient() {
                 ws.send(JSON.stringify(['location', window.location.pathname]));
                 setTimeout(() => {
                     ws.send(JSON.stringify(['location', window.location.pathname]));
-                }, 1000);
+                }, 200);
                 break;
             case 3:
                 break;
