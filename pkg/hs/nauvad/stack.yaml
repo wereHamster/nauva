@@ -4,4 +4,5 @@ packages:
 - ../nauva
 - ../nauva-css
 - ../nauva-catalog
+- ../portfinder
 - ../../../product/nauva/shared

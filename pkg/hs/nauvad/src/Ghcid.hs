@@ -38,6 +38,7 @@ import           Data.Text             (Text)
 import qualified Data.Text             as T
 
 import qualified Data.ByteString.Char8 as BS8
+import           Data.Typeable
 
 import qualified Text.Blaze.Html5               as H
 import qualified Text.Blaze.Html5.Attributes    as A
@@ -49,6 +50,7 @@ import           Control.Concurrent.STM
 import           System.Environment
 import           System.Process
 
+import           Network.PortFinder (findPort)
 import qualified Network.WebSockets as WS
 import           Network.WebSockets.Snap
 
@@ -235,14 +237,14 @@ websocketApplication chan connTMVar pendingConnection = do
     -- Forever read messages from the WebSocket and process.
     forever $ do
         d <- WS.receiveData conn
-        print $ "recv: " <> d
+        -- print $ "recv: " <> d
         mbOutConn <- atomically $ tryReadTMVar connTMVar
         case mbOutConn of
             Nothing -> do
-                print "no out connection"
+                -- print "no out connection"
                 pure ()
             Just outConn -> do
-                print $ "out: " <> d
+                -- print $ "out: " <> d
                 WS.sendTextData outConn (d :: Text) `catch` \(e :: WS.ConnectionException) -> pure ()
 
 
@@ -365,54 +367,73 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
 
-            forkIO $ do
-                threadDelay $ 1000000
-                mbConn <- atomically $ tryTakeTMVar connTMVar
-                case mbConn of
-                    Nothing -> pure ()
-                    Just conn -> do
-                        WS.sendClose conn ("Bye!" :: Text)
-                        pure ()
+            appPort <- fromIntegral <$> findPort
 
-                let runClient = WS.runClient "localhost" 8080 "/ws" $ \conn -> do
-                        _ <- forkIO $ forever $ do
-                            datum <- WS.receiveData conn `catch` \(e :: WS.ConnectionException) -> do
-                                print "receiveData exception"
-                                threadDelay 1000000
+            wsClientThreadIdTMVar <- newEmptyTMVarIO
+            let runClient :: IO ()
+                runClient = do
+                    -- print "runClient"
+                    mbConn <- atomically $ tryTakeTMVar connTMVar
+                    case mbConn of
+                        Nothing -> pure ()
+                        Just conn -> do
+                            WS.sendClose conn ("Bye!" :: Text) `catch` \(e :: SomeException) -> do
+                                pure ()
+
+                            let drain = WS.receiveDataMessage conn >> drain
+                            drain `catch`  \(e :: SomeException) -> do
+                                pure ()
+
+                    void $ forkIO $ do
+                        mbOldThreadId <- atomically $ tryTakeTMVar wsClientThreadIdTMVar
+                        case mbOldThreadId of
+                            Nothing -> pure ()
+                            Just tId -> killThread tId
+
+                        threadId <- myThreadId
+                        atomically $ putTMVar wsClientThreadIdTMVar threadId
+
+                        -- print $ "run WS Client -> " ++ show appPort
+
+                        let go = WS.runClient "localhost" appPort "/ws" $ \conn -> do
+                                -- print "Registering out conn"
+                                atomically $ putTMVar connTMVar conn
+                                forever $ do
+                                    datum <- WS.receiveData conn
+                                    case A.eitherDecode datum of
+                                        Left e -> do
+                                            putStrLn "Failed to decode message"
+                                            print datum
+                                            print e
+
+                                        Right ("spine" :: Text, v :: A.Value) -> do
+                                            atomically $ writeTChan chan $ NVDMSpineRaw v
+                                            pure ()
+
+                                        Right ("location", v) -> do
+                                            atomically $ writeTChan chan $ NVDMLocationRaw v
+                                            pure ()
+
+                                        _ -> do
+                                            putStrLn "Failed to decode message"
+                                            print datum
+                                    pure ()
+
+                        go `catches`
+                            [ Handler $ \(e :: IOException) -> do
+                                -- print e
                                 runClient
 
-                            case A.eitherDecode datum of
-                                Left e -> do
-                                    putStrLn "Failed to decode message"
-                                    print datum
-                                    print e
+                            , Handler $ \(SomeException e) -> do
+                                -- print "catch in go"
+                                let rep = typeOf e
+                                    tyCon = typeRepTyCon rep
+                                putStrLn $ "## Exception: Type " ++ show rep ++ " from module " ++ tyConModule tyCon ++ " from package " ++ tyConPackage tyCon
+                            ]
 
-                                Right ("spine" :: Text, v :: A.Value) -> do
-                                    atomically $ writeTChan chan $ NVDMSpineRaw v
-                                    pure ()
+                        pure ()
 
-                                Right ("location", v) -> do
-                                    atomically $ writeTChan chan $ NVDMLocationRaw v
-                                    pure ()
-
-                                _ -> do
-                                    putStrLn "Failed to decode message"
-                                    print datum
-
-                        print "Registering out conn"
-                        _ <- atomically $ putTMVar connTMVar conn
-                        mbOutConn <- atomically $ tryReadTMVar connTMVar
-                        print $ isJust mbOutConn
-                        forever $ threadDelay 10
-
-                let go = runClient `catch` \(e :: WS.ConnectionException) -> do
-                        print "runClient"
-                        threadDelay 1000000
-                        go
-
-                go
-
-                pure ()
+            runClient
 
             forM_ outputfile $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
@@ -421,7 +442,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 exitFailure
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
-                sessionExecAsync session t $ \stderr -> do
+                sessionExecAsync session (t ++ " " ++ (show appPort)) $ \stderr -> do
                     whenLoud $ outStrLn "%TESTING: Completed"
                     hFlush stdout -- may not have been a terminating newline from test output
                     if "*** Exception: " `isPrefixOf` stderr then do
@@ -431,6 +452,9 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                         updateTitle "(test done)"
 
             reason <- nextWait $ restart ++ reload ++ loaded
+
+            -- One or more files have been modified. Reload the session or restart GHCi.
+
             unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             atomically $ do writeTChan chan NVDMLoading
             restartTimes2 <- mapM getModTime restart

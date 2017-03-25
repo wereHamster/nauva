@@ -82,7 +82,8 @@ executable nauvad
         nauva,
         nauva-catalog,
         nauva-product-nauva-shared,
-        process
+        process,
+        portfinder
     if os(windows)
         build-depends: Win32
     else

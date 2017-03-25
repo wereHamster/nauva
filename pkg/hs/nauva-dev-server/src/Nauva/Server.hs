@@ -24,6 +24,7 @@ import           Control.Concurrent.STM
 import           Control.Monad
 
 import           System.Directory
+import           System.Environment
 
 import           Nauva.Handle
 import           Nauva.Internal.Types
@@ -106,7 +107,9 @@ runServer c = do
 
     staticApp <- mkStaticSettings
 
-    let config = setPort (cPort c) . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
+    port <- (read . head) <$> getArgs
+
+    let config = setPort port . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
         [ Snap.path "ws" (runWebSocketsSnap (websocketApplication nauvaH routerH))
         , staticApp
