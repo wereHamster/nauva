@@ -192,11 +192,12 @@ main = mainWithTerminal termSize termOutput
         termSize = maybe (80, 8) (Term.width &&& Term.height) <$> Term.size
 
         termOutput xs = do
-            outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
-                when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
-                putStr $ concatMap ((:) '\n' . snd) x
-                when (s == Bold) $ setSGR []
-            hFlush stdout -- must flush, since we don't finish with a newline
+            pure ()
+            -- outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
+            --     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
+            --     putStr $ concatMap ((:) '\n' . snd) x
+            --     when (s == Bold) $ setSGR []
+            -- hFlush stdout -- must flush, since we don't finish with a newline
 
 
 data Style = Plain | Bold deriving Eq
@@ -277,7 +278,6 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
     echoTVar <- newTVarIO []
 
     let echo _ s = do
-            putStrLn "echo"
             strs <- atomically $ do
                 modifyTVar' echoTVar (\x -> x <> [T.pack s])
                 readTVar echoTVar
