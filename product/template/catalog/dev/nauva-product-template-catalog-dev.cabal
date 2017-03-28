@@ -1,0 +1,18 @@
+name:                nauva-product-template-catalog-dev
+version:             0.0.0
+build-type:          Simple
+cabal-version:       >=1.10
+
+
+executable nauva-product-template-catalog-dev
+  default-language:    Haskell2010
+  main-is:             Main.hs
+
+  ghc-options:         -Wall -Wno-type-defaults
+
+  build-depends:
+     base >= 4.7 && < 5
+   , nauva-catalog
+   , nauva-dev-server
+   , nauva-product-template-shared
+   , blaze-html
