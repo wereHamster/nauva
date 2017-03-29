@@ -111,7 +111,7 @@ runServer c = do
 
     let config = setPort port . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
-        [ Snap.path "ws" (runWebSocketsSnap (websocketApplication nauvaH routerH))
+        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication nauvaH routerH))
         , staticApp
 
         , case cPublicDir c of

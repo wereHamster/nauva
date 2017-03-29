@@ -217,7 +217,7 @@ server port chan connTMVar = do
                  mempty
 
     httpServe config $ foldl1 (<|>)
-        [ Snap.path "ws" (runWebSocketsSnap (websocketApplication chan connTMVar))
+        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication chan connTMVar))
         , staticApp
         , serveDirectory "public"
         , blaze $ index mempty
@@ -395,7 +395,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
                         -- print $ "run WS Client -> " ++ show appPort
 
-                        let go = WS.runClient "localhost" appPort "/ws" $ \conn -> do
+                        let go = WS.runClient "localhost" appPort "/_nauva" $ \conn -> do
                                 -- print "Registering out conn"
                                 atomically $ putTMVar connTMVar conn
                                 forever $ do
