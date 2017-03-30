@@ -33,6 +33,12 @@ Now edit the playground app source file (product/playground/app/dev/src/Main.hs)
 save and observe how the UI instantly reloads to reflect your changes.
 
 
+## Documentation
+
+Haddock documentation of the core packages is available [here](https://storage.googleapis.com/nvdocs/latest/index.html).
+It is automatically built from the current source (`master` branch).
+
+
 ## Focus and Goals
 
  - Implement as much as possible in Haskell, only use JavaScript where
