@@ -220,7 +220,7 @@ server port chan connTMVar = do
     httpServe config $ foldl1 (<|>)
         [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication chan connTMVar))
         , staticApp
-        , serveDirectory "public"
+        , serveDirectory "../../public"
         , blaze $ index port
         ]
 
