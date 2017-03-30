@@ -1,0 +1,9 @@
+# Increase timeout because compiling all the Haskell packages
+# takes a *long* time.
+timeout: 120m
+
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/haskell:nightly-2017-03-20', 'docs/haddock']
+
+images: ['gcr.io/$PROJECT_ID/haskell:nightly-2017-03-20']

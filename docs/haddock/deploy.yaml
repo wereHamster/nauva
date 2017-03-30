@@ -1,0 +1,11 @@
+steps:
+
+- name: 'gcr.io/$PROJECT_ID/haskell:nightly-2017-03-20'
+  args: [ '--stack-yaml=docs/haddock/stack.yaml', 'build', '--haddock' ]
+
+- name: 'gcr.io/$PROJECT_ID/haskell:nightly-2017-03-20'
+  entrypoint: 'bash'
+  args: [ '-c', 'ln -s $(stack --stack-yaml=docs/haddock/stack.yaml path --local-doc-root) doc' ]
+
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['-m', 'rsync', '-r', 'doc/', 'gs://nvdocs/latest/']
