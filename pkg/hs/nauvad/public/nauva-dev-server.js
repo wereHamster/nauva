@@ -66,7 +66,7 @@ function loadingScreen() {
     ReactDOM.render(loadingScreenElement, appE);
 }
 function runClient() {
-    const ws = new WebSocket('ws://localhost:8000/_nauva');
+    const ws = new WebSocket('ws://localhost:' + NAUVA_PORT + '/_nauva');
     function onPopState(ev) {
         ws.send(JSON.stringify(['location', window.location.pathname]));
     }

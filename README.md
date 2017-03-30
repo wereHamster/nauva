@@ -26,7 +26,8 @@ First install [stack], then:
     ./bin/dev playground/app
 
 A browser should automatically open. If not then open [http://localhost:8000](http://localhost:8000)
-manually.
+manually. Note: if port 8000 is already occupied the server will pick the next
+free port. See in the output which port the server has picked.
 
 Now edit the playground app source file (product/playground/app/dev/src/Main.hs),
 save and observe how the UI instantly reloads to reflect your changes.

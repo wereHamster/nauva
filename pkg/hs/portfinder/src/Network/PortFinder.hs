@@ -14,10 +14,10 @@ import Network.Socket
 --
 -- Throws an error if it can't find a free port.
 
-findPort :: IO PortNumber
-findPort = do
+findPort :: PortNumber -> IO PortNumber
+findPort basePort = do
     let hints = defaultHints { addrFlags = [AI_NUMERICHOST, AI_NUMERICSERV], addrSocketType = Stream }
-    addr:_ <- getAddrInfo (Just hints) (Just "0.0.0.0") (Just "9000")
+    addr:_ <- getAddrInfo (Just hints) (Just "0.0.0.0") (Just $ show basePort)
     sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
 
     go 99 sock (addrAddress addr)

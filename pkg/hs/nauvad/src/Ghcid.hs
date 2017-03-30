@@ -36,6 +36,7 @@ import           Data.Monoid
 import qualified Data.Aeson            as A
 import           Data.Text             (Text)
 import qualified Data.Text             as T
+import           Data.String
 
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Typeable
@@ -220,7 +221,7 @@ server port chan connTMVar = do
         [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication chan connTMVar))
         , staticApp
         , serveDirectory "public"
-        , blaze $ index mempty
+        , blaze $ index port
         ]
 
 websocketApplication :: TChan NVDMessage -> TMVar WS.Connection -> WS.PendingConnection -> IO ()
@@ -249,8 +250,8 @@ websocketApplication chan connTMVar pendingConnection = do
                 WS.sendTextData outConn (d :: Text) `catch` \(e :: WS.ConnectionException) -> pure ()
 
 
-index :: H.Html -> H.Html
-index headExtras = H.docTypeHtml $ do
+index :: Int -> H.Html
+index port = H.docTypeHtml $ do
     H.head $ do
         H.title "NauvaD"
 
@@ -259,17 +260,22 @@ index headExtras = H.docTypeHtml $ do
 
         H.link H.! A.rel "stylesheet" H.! A.type_ "text/css" H.! A.href "/nauva-dev-server.css"
 
-        headExtras
-
     H.body $ do
         H.div H.! A.id "root" $ ""
+
+        H.script $ fromString $ "NAUVA_PORT = " <> show port
         H.script H.! A.src "/nauva-dev-server.js" $ ""
 
 
 runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO ()
 runGhcid session waiter termSize termOutput opts@Options{..} = do
-    -- Use portfinder to find an open port instead of hardcoding it here.
-    let port = 8000
+    port <- fromIntegral <$> findPort 8000
+
+    putStrLn ""
+    putStrLn ""
+    putStrLn (">>> Server running on http://localhost:" <> show port)
+    putStrLn ""
+    putStrLn ""
 
     chan <- newTChanIO
     connTMVar <- newEmptyTMVarIO
@@ -367,7 +373,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
 
-            appPort <- fromIntegral <$> findPort
+            appPort <- fromIntegral <$> findPort 9000
 
             wsClientThreadIdTMVar <- newEmptyTMVarIO
             let runClient :: IO ()
