@@ -2,9 +2,9 @@
 set -e
 
 TOP="$PWD" # Assumes that user is in the root of the repository!
-LOCAL_BIN_PATH="$TOP/bin"
 
-(cd pkg/hs/nauvad; stack --local-bin-path="$LOCAL_BIN_PATH" --silent install)
+echo "Building nauvad... this may take a while"
+stack --stack-yaml $TOP/pkg/hs/nauvad/stack.yaml --install-ghc build
 
 function die () {
     echo $1
@@ -20,4 +20,4 @@ NAUVAD_PUBLIC_PATH=$TOP/pkg/hs/nauvad/public
 export NAUVAD_PUBLIC_PATH
 
 cd $DIR
-exec "$LOCAL_BIN_PATH/nauvad" --command="stack ghci" --test=:main --warnings
+exec stack exec --stack-yaml $TOP/pkg/hs/nauvad/stack.yaml nauvad -- --command="stack ghci" --test=:main --warnings
