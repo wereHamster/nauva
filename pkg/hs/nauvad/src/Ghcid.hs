@@ -64,6 +64,8 @@ import           Nauva.Handle
 import           Nauva.View hiding (Style, width, height)
 
 import           Nauva.Product.Nauva.Element.Message (messageEl, MessageProps(..), MessageSeverity(..))
+
+import           Settings
 ---
 
 -- | Command line options
@@ -209,18 +211,24 @@ server port chan connTMVar = do
             callProcess "open" ["http://localhost:" <> show port <> "/"]
             pure ()
 
-    nauvadPublicPath <- lookupEnv "NAUVAD_PUBLIC_PATH"
-    let staticApp = serveDirectory (fromMaybe "public" nauvadPublicPath)
     let config = setStartupHook startupHook .
                  setPort port .
                  setAccessLog (ConfigIoLog BS8.putStrLn) .
                  setErrorLog (ConfigIoLog BS8.putStrLn) $
                  mempty
 
+    staticApp <- mkStaticSettings
+
     httpServe config $ foldl1 (<|>)
         [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication chan connTMVar))
+
+          -- Static files required by nauvad itself.
         , staticApp
+
+          -- public dir of the product
         , serveDirectory "../../public"
+
+          -- index.html
         , blaze $ index port
         ]
 

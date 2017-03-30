@@ -13,7 +13,6 @@ import qualified Data.Aeson            as A
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy  as LBS
 import           Data.Monoid
--- import           Data.String
 
 import qualified Text.Blaze.Html5               as H
 -- import qualified Text.Blaze.Html5.Attributes    as A
@@ -32,13 +31,10 @@ import           Nauva.Internal.Types
 import qualified Network.WebSockets as WS
 import           Network.WebSockets.Snap
 
--- import           Snap.Core           (pass)
 import qualified Snap.Core           as Snap
 import           Snap.Http.Server    (ConfigLog(..), httpServe, setPort, setAccessLog, setErrorLog)
--- import           Snap.Util.FileServe (serveDirectory)
 import           Snap.Blaze          (blaze)
 
--- import           Nauva.Server.Settings (mkStaticSettings)
 import           Nauva.Service.Router
 
 import           Prelude

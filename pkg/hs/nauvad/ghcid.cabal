@@ -83,7 +83,9 @@ executable nauvad
         nauva-catalog,
         nauva-product-nauva-shared,
         process,
-        portfinder
+        portfinder,
+        file-embed,
+        template-haskell
     if os(windows)
         build-depends: Win32
     else
@@ -95,4 +97,5 @@ executable nauvad
         Language.Haskell.Ghcid.Util
         Language.Haskell.Ghcid
         Session
+        Settings
         Wait

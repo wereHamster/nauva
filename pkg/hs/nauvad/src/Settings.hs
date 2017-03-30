@@ -1,8 +1,7 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Nauva.Server.Settings
+module Settings
     ( mkStaticSettings
     ) where
 
@@ -27,18 +26,18 @@ import           Snap.Util.FileServe (serveDirectory)
 embeddedPublicDir :: [(FilePath, ByteString)]
 embeddedPublicDir = $(do
     loc <- location
-    embedDir $ (takeDirectory $ loc_filename loc) <> "/../../../public")
+    embedDir $ (takeDirectory $ loc_filename loc) <> "/../public")
 
 
 mkStaticSettings :: IO (Snap ())
 mkStaticSettings = do
-    mbPublicPath <- lookupEnv "NAUVA_PUBLIC_PATH"
+    mbPublicPath <- lookupEnv "NAUVAD_PUBLIC_PATH"
     case mbPublicPath of
         Nothing -> do
-            putStrLn $ "Nauva.Server: serving embedded files"
+            putStrLn $ "NauvaD: serving embedded files"
             pure $ route $ map toRoute embeddedPublicDir
         Just publicPath -> do
-            putStrLn $ "Nauva.Server: serving files from " <> publicPath
+            putStrLn $ "NauvaD: serving files from " <> publicPath
             pure $ serveDirectory publicPath
 
 toRoute :: MonadSnap m => (FilePath, ByteString) -> (ByteString, m ())
