@@ -13,10 +13,10 @@ import qualified Data.Aeson            as A
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy  as LBS
 import           Data.Monoid
-import           Data.String
+-- import           Data.String
 
 import qualified Text.Blaze.Html5               as H
-import qualified Text.Blaze.Html5.Attributes    as A
+-- import qualified Text.Blaze.Html5.Attributes    as A
 
 import           Control.Applicative
 import           Control.Concurrent
@@ -32,13 +32,13 @@ import           Nauva.Internal.Types
 import qualified Network.WebSockets as WS
 import           Network.WebSockets.Snap
 
-import           Snap.Core           (pass)
+-- import           Snap.Core           (pass)
 import qualified Snap.Core           as Snap
 import           Snap.Http.Server    (ConfigLog(..), httpServe, setPort, setAccessLog, setErrorLog)
-import           Snap.Util.FileServe (serveDirectory)
+-- import           Snap.Util.FileServe (serveDirectory)
 import           Snap.Blaze          (blaze)
 
-import           Nauva.Server.Settings (mkStaticSettings)
+-- import           Nauva.Server.Settings (mkStaticSettings)
 import           Nauva.Service.Router
 
 import           Prelude
@@ -46,18 +46,9 @@ import           Prelude
 
 
 data Config = Config
-    { cPort :: Int
-      -- ^ The HTTP port on which the server will listen and accept WebSocket
-      -- connections.
-
-    , cElement :: RouterH -> Element
+    { cElement :: RouterH -> Element
       -- ^ The root elment of the application. This will be rendered into the
       -- Handle once.
-
-    , cPublicDir :: Maybe String
-      -- ^ If present, files from this directory will be made available to the
-      -- client. These files are served /after/ the stuff that is needed by
-      -- nauva.
 
     , cHead :: H.Html
       -- ^ Extra stuff to inject into the HTML <head>. It is added /after/
@@ -104,21 +95,12 @@ runServer c = do
             createSnapshot nauvaH
         LBS.writeFile "snapshot.json" (A.encode m)
 
-
-    staticApp <- mkStaticSettings
-
     port <- (read . head) <$> getArgs
 
     let config = setPort port . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
         [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication nauvaH routerH))
-        , staticApp
-
-        , case cPublicDir c of
-            Nothing -> pass
-            Just publicDir -> serveDirectory publicDir
-
-        , blaze $ index $ cHead c
+        , blaze index
         ]
 
 
@@ -207,18 +189,10 @@ instance A.FromJSON Message where
             _ -> fail "Message"
 
 
-index :: H.Html -> H.Html
-index headExtras = H.docTypeHtml $ do
+index :: H.Html
+index = H.docTypeHtml $ do
     H.head $ do
         H.title "Nauva Dev Server"
 
-        H.script H.! A.src "/react.min.js" $ ""
-        H.script H.! A.src "/react-dom.min.js" $ ""
-
-        H.link H.! A.rel "stylesheet" H.! A.type_ "text/css" H.! A.href "/nauva-dev-server.css"
-
-        headExtras
-
     H.body $ do
-        H.div H.! A.id "root" $ ""
-        H.script H.! A.src "/nauva-dev-server.js" $ ""
+        H.div $ ""

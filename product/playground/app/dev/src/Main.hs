@@ -12,7 +12,7 @@ import           Nauva.Product.Playground.Shared
 
 main :: IO ()
 main = do
-    runServer $ Config 8000 (\_ -> rootElement 1) Nothing $ do
+    runServer $ Config (\_ -> rootElement 1) $ do
         H.style $ mconcat
             [ "*, *:before, *:after { box-sizing: inherit; }"
             , "html { box-sizing: border-box; }"
