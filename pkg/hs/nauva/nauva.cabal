@@ -50,6 +50,7 @@ library
    , Nauva.View.HTML
    , Nauva.View.Types
    , Nauva.View.Terms
+   , Nauva.Service.Head
    , Nauva.Service.Router
 
   build-depends:
