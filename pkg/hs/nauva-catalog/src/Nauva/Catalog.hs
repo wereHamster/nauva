@@ -60,7 +60,7 @@ catalogComponent = createComponent $ \componentId -> Component
 
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
-    , processLifecycleEvent = \() s -> (s, [])
+    , processLifecycleEvent = \() _ s -> (s, [])
     , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) s' -> (s' { path = p }, []))], [])
     , update = update
     , renderComponent = render

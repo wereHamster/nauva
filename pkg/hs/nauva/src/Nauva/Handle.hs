@@ -249,7 +249,7 @@ dispatchHook h path rawValue = do
                 Right value -> do
                     actions <- lift $ do
                         state <- takeTMVar stateRef
-                        let (newState, actions) = processLifecycleEvent component value (componentState state)
+                        let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
                         newInst <- instantiate $ renderComponent component (componentProps state) newState
                         putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                         writeTChan (changeSignal h) (ChangeComponent path inst)

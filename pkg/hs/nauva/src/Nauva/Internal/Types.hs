@@ -353,7 +353,7 @@ data Component p h s a = Component
       -- ^ This describes how lifecycle events (on the client) are translated
       -- into values of type 'h'.
 
-    , processLifecycleEvent :: h -> s -> (s, [IO (Maybe a)])
+    , processLifecycleEvent :: h -> p -> s -> (s, [IO (Maybe a)])
       -- ^ Allows the App to act on lifecycle events.
 
     , receiveProps :: p -> s -> STM (s, [Signal s a], [IO (Maybe a)])

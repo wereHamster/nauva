@@ -91,7 +91,7 @@ component = createComponent $ \componentId -> Component
     , receiveProps = receiveProps'
     , renderComponent = view
     , update = update'
-    , processLifecycleEvent = \_ s -> (s, [])
+    , processLifecycleEvent = \_ _ s -> (s, [])
     , componentSnapshot = A.toJSON
     , restoreComponent = \v _ -> case A.fromJSON v of
         A.Error e -> Left e
@@ -210,7 +210,7 @@ canvas = createComponent $ \componentId -> Component
     , receiveProps = receiveProps'
     , renderComponent = view
     , update = update'
-    , processLifecycleEvent = \_ s -> (s, [])
+    , processLifecycleEvent = \_ _ s -> (s, [])
     , componentSnapshot = A.toJSON
     , restoreComponent = \_ s -> Right (s, [])
     }
