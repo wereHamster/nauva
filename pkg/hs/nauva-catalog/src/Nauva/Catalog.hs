@@ -56,6 +56,7 @@ catalogComponent = createComponent $ \componentId -> Component
         pure
             ( State (locPathname loc)
             , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) s -> (s { path = p }, [])) ]
+            , []
             )
 
     , componentEventListeners = \_ -> []

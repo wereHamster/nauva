@@ -26,7 +26,7 @@ rootComponent :: Component () () () ()
 rootComponent = createComponent $ \cId -> Component
     { componentId = cId
     , componentDisplayName = "Root"
-    , initialComponentState = \_ -> pure ((), [])
+    , initialComponentState = \_ -> pure ((), [], [])
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \_ _ s -> (s, [])

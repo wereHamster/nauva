@@ -85,7 +85,7 @@ component :: Component Int () (Int, Text) Action
 component = createComponent $ \componentId -> Component
     { componentId = componentId
     , componentDisplayName = "app-display-name"
-    , initialComponentState = \i -> pure ((i, ""), [])
+    , initialComponentState = \i -> pure ((i, ""), [], [])
     , componentEventListeners = \_ -> []
     , componentHooks = constHooks
     , receiveProps = receiveProps'
@@ -200,7 +200,7 @@ canvas = createComponent $ \componentId -> Component
     , componentDisplayName = "Canvas"
     , initialComponentState = \_ ->
         let refKey = mkRefKey
-        in pure (CanvasS (0,0) refKey (onResizeHandler refKey) Nothing, [])
+        in pure (CanvasS (0,0) refKey (onResizeHandler refKey) Nothing, [], [])
     , componentEventListeners = \(CanvasS _ _ onResizeH _) ->
         [onResize onResizeH]
     , componentHooks = Hooks

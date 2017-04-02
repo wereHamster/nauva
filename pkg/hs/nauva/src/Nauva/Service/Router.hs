@@ -58,7 +58,7 @@ linkComponent :: Component LinkProps () () ()
 linkComponent = createComponent $ \componentId -> Component
     { componentId = componentId
     , componentDisplayName = "Link"
-    , initialComponentState = \_ -> pure ((), [])
+    , initialComponentState = \_ -> pure ((), [], [])
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() _ s -> (s, [])

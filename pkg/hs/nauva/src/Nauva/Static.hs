@@ -81,7 +81,7 @@ elementToMarkup el = case el of
         elementToMarkup $ forceThunk thunk p
 
     (EComponent component p) -> do
-        (s, _) <- initialComponentState component p
+        (s, _, _) <- initialComponentState component p
         elementToMarkup $ renderComponent component p s
 
 

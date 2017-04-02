@@ -417,10 +417,10 @@ instantiate path el = case el of
         pure (IThunk path thunk p inst, effects)
 
     (EComponent component p) -> do
-        (s, signals) <- initialComponentState component p
+        (s, signals, actions) <- initialComponentState component p
         (inst, effects) <- instantiate path $ renderComponent component p s
         stateVar <- newTMVar (State p s signals inst)
-        pure (IComponent path component stateVar, effects)
+        pure (IComponent path component stateVar, [Effect (ComponentInstance path component stateVar) actions] <> effects)
 
 
 executeEffects :: Handle -> [Effect] -> IO ()
@@ -514,10 +514,10 @@ restoreSnapshot h snapshot = do
                 Just value -> do
                     case restoreComponent component value (componentState state) of
                         Left _ -> pure state
-                        Right (newState, effects) -> do
-                            tell [Effect (ComponentInstance (Path path) component stateRef) effects]
-                            (newInst, effects') <- lift $ instantiate (Path path) $ renderComponent component (componentProps state) newState
-                            tell effects'
+                        Right (newState, actions) -> do
+                            tell [Effect (ComponentInstance (Path path) component stateRef) actions]
+                            (newInst, effects) <- lift $ instantiate (Path path) $ renderComponent component (componentProps state) newState
+                            tell effects
                             pure $ State (componentProps state) newState (componentSignals state) newInst
 
             lift $ putTMVar stateRef newState

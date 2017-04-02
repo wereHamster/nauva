@@ -342,7 +342,7 @@ data Component p h s a = Component
     , componentDisplayName :: Text
       -- ^ Same purpose as 'thunkDisplayName'.
 
-    , initialComponentState :: p -> STM (s, [Signal s a])
+    , initialComponentState :: p -> STM (s, [Signal s a], [IO (Maybe a)])
       -- ^ The initial state of the application may only depend on the props.
 
     , componentEventListeners :: s -> [EventListener]
