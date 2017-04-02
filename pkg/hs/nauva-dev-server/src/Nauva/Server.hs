@@ -4,6 +4,8 @@
 module Nauva.Server
     ( Config(..)
     , runServer
+
+    , Message(..)
     ) where
 
 
@@ -161,6 +163,12 @@ data Message
     | ActionM !Path !Text !A.Value
     | RefM !Path !A.Value
     | LocationM !Text
+
+instance A.ToJSON Message where
+    toJSON (HookM path value)        = A.toJSON [A.String "hook", A.toJSON path, value]
+    toJSON (ActionM path text value) = A.toJSON [A.String "action", A.toJSON path, A.toJSON text, value]
+    toJSON (RefM path value)         = A.toJSON [A.String "ref", A.toJSON path, value]
+    toJSON (LocationM text)          = A.toJSON [A.String "location", A.toJSON text]
 
 instance A.FromJSON Message where
     parseJSON v = do
