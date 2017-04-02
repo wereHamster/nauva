@@ -55,14 +55,14 @@ catalogComponent = createComponent $ \componentId -> Component
         loc <- readTVar $ fst $ hLocation $ p_routerH (props :: CatalogProps)
         pure
             ( State (locPathname loc)
-            , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) s -> (s { path = p }, [])) ]
+            , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) _ s -> (s { path = p }, [])) ]
             , []
             )
 
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() _ s -> (s, [])
-    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) s' -> (s' { path = p }, []))], [])
+    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) _ s' -> (s' { path = p }, []))], [])
     , update = update
     , renderComponent = render
     , componentSnapshot = \_ -> A.object []

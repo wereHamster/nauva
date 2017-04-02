@@ -543,7 +543,7 @@ processSignals h = do
                 Nothing -> pure []
                 Just a  -> do
                     state <- takeTMVar stateRef
-                    let (newState, actions) = f a (componentState state)
+                    let (newState, actions) = f a (componentProps state) (componentState state)
                     (newInst, effects) <- instantiate path $ renderComponent component (componentProps state) newState
                     putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                     writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)

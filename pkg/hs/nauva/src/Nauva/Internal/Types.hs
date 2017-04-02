@@ -342,7 +342,7 @@ data Component p h s a = Component
     , componentDisplayName :: Text
       -- ^ Same purpose as 'thunkDisplayName'.
 
-    , initialComponentState :: p -> STM (s, [Signal s a], [IO (Maybe a)])
+    , initialComponentState :: p -> STM (s, [Signal p s a], [IO (Maybe a)])
       -- ^ The initial state of the application may only depend on the props.
 
     , componentEventListeners :: s -> [EventListener]
@@ -356,7 +356,7 @@ data Component p h s a = Component
     , processLifecycleEvent :: h -> p -> s -> (s, [IO (Maybe a)])
       -- ^ Allows the App to act on lifecycle events.
 
-    , receiveProps :: p -> s -> STM (s, [Signal s a], [IO (Maybe a)])
+    , receiveProps :: p -> s -> STM (s, [Signal p s a], [IO (Maybe a)])
       -- ^ When the component receives new props from its parent. This only
       -- happens if the component is embedded inside inside another 'Element'
       -- in the tree.
@@ -413,7 +413,7 @@ taggedWithHook _ = Tagged
 data State p s a = State
     { componentProps :: !p
     , componentState :: !s
-    , componentSignals :: ![Signal s a]
+    , componentSignals :: ![Signal p s a]
     , componentInstance :: !Instance
     }
 
@@ -423,11 +423,11 @@ data State p s a = State
 -- | A 'Signal' is a pair of 'TChan' and a corresponding state update function.
 -- Signals act as an additional source of inputs into a 'Component'.
 
-data Signal s a where
-    Signal :: TChan i -> (i -> s -> (s, [IO (Maybe a)])) -> Signal s a
+data Signal p s a where
+    Signal :: TChan i -> (i -> p -> s -> (s, [IO (Maybe a)])) -> Signal p s a
 
 data SomeSignal where
-    SomeSignal :: (Typeable p, A.FromJSON a, Value h, Value a) => ComponentInstance p h s a -> Signal s a -> SomeSignal
+    SomeSignal :: (Typeable p, A.FromJSON a, Value h, Value a) => ComponentInstance p h s a -> Signal p s a -> SomeSignal
 
 
 
