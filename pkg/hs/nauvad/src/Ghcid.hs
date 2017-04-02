@@ -290,7 +290,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             let els = (flip map) strs $ \str -> div_ [style_ $ mkStyle (whiteSpace "nowrap" >> overflow "hidden" >> cssTerm "text-overflow" "ellipsis")] [str_ str]
 
             spine <- atomically $ do
-                inst <- instantiate (div_ [style_ $ mkStyle (fontSize "12px" >> lineHeight "16px" >> fontFamily "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" >> backgroundColor "black" >> color "white" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] els)
+                inst <- instantiate (Path []) (div_ [style_ $ mkStyle (fontSize "12px" >> lineHeight "16px" >> fontFamily "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" >> backgroundColor "black" >> color "white" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] els)
                 toSpine inst
             atomically $ writeTChan chan $ NVDMSpine spine
 
@@ -354,7 +354,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                                 }
 
                     spine <- atomically $ do
-                        inst <- instantiate (div_ [style_ $ mkStyle (backgroundColor "black" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] children)
+                        inst <- instantiate (Path []) (div_ [style_ $ mkStyle (backgroundColor "black" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] children)
                         toSpine inst
                     atomically $ writeTChan chan $ NVDMSpine spine
                     pure ()

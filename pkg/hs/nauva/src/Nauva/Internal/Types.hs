@@ -65,17 +65,17 @@ data Element where
 -- and picese of state.
 
 data Instance where
-    INull :: Instance
+    INull :: Path -> Instance
 
-    IText :: Text -> Instance
+    IText :: Path -> Text -> Instance
 
-    INode :: Tag -> [Attribute] -> [(Key, Instance)] -> Instance
+    INode :: Path -> Tag -> [Attribute] -> [(Key, Instance)] -> Instance
 
-    IThunk :: (Typeable p) => Thunk p -> p -> Instance -> Instance
+    IThunk :: (Typeable p) => Path -> Thunk p -> p -> Instance -> Instance
     -- In the instance for 'EThunk', we remember the forced and instantiated
     -- result of the thunk.
 
-    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Component p h s a -> TMVar (State p s a) -> Instance
+    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Path -> Component p h s a -> TMVar (State p s a) -> Instance
 
 
 -------------------------------------------------------------------------------

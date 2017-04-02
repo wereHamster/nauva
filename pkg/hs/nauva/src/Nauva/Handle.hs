@@ -73,7 +73,7 @@ data Change
 newHandle :: IO Handle
 newHandle = Handle
     <$> newBroadcastTChanIO
-    <*> newTMVarIO (IText "")
+    <*> newTMVarIO (IText (Path []) "")
 
 
 
@@ -101,16 +101,16 @@ render h rootElement = do
 
   where
     go :: [Key] -> Element -> Instance -> WriterT [Effect] STM Instance
-    go _ el@(EText eText) inst@(IText iText) = lift $ if eText == iText
+    go path el@(EText eText) inst@(IText _ iText) = lift $ if eText == iText
         then pure inst
-        else instantiate el
+        else instantiate (Path path) el
 
-    go path (ENode eTag eAttrs eChildren) (INode _ _ iChildren) = do
+    go path (ENode eTag eAttrs eChildren) (INode _ _ _ iChildren) = do
         (newChildren, _remainingChildren) <- foldlM (\(newChildren, oldChildren) (i, childE) -> do
             let key = KIndex i
             case M.lookup key oldChildren of
                 Nothing -> do
-                    childI <- lift $ instantiate childE
+                    childI <- lift $ instantiate (Path (path ++ [key])) childE
                     -- lift $ writeTChan (changeSignal h) ()
                     pure (newChildren ++ [(key, childI)], oldChildren)
                 Just oldChildI -> do
@@ -120,30 +120,30 @@ render h rootElement = do
 
         -- TODO: dispose remainingChildren
 
-        pure $ INode eTag eAttrs newChildren
+        pure $ INode (Path path) eTag eAttrs newChildren
 
-    go _ el@(EThunk eComp eProps) inst@(IThunk iComp iProps _) = do
+    go path el@(EThunk eComp eProps) inst@(IThunk _ iComp iProps _) = do
         if not (shouldThunkUpdate' eComp eProps iComp iProps)
             then pure inst
             else do
-                childI <- lift $ instantiate el
+                childI <- lift $ instantiate (Path path) el
                 -- lift $ writeTChan (changeSignal h) ()
-                pure $ IThunk eComp eProps childI
+                pure $ IThunk (Path path) eComp eProps childI
 
-    go path el@(EComponent eApp eProps) inst@(IComponent iApp iState) = do
+    go path el@(EComponent eApp eProps) inst@(IComponent _ iApp iState) = do
         case guard (componentId eApp == componentId iApp) >> cast eProps of
             Just newProps -> do
-                actions <- lift $ sendProps iApp iState newProps
+                actions <- lift $ sendProps (Path path) iApp iState newProps
                 tell [Effect (ComponentInstance (Path path) iApp iState) actions]
                 pure inst
             Nothing -> do
                 -- lift $ writeTChan (changeSignal h) ()
-                lift $ instantiate el
+                lift $ instantiate (Path path) el
 
-    go _ el _ = lift $ do
+    go path el _ = lift $ do
         -- TODO: dispose inst
         -- writeTChan (changeSignal h) ()
-        instantiate el
+        instantiate (Path path) el
 
 
 
@@ -157,31 +157,31 @@ contextForPath h path = do
   where
     go :: Maybe SomeComponentInstance -> Path -> Instance -> ExceptT String STM (Maybe SomeComponentInstance, Instance)
     go mbSCI (Path []) inst = case inst of
-        (INull)                         -> pure (mbSCI, inst)
-        (IText _)                       -> pure (mbSCI, inst)
-        (INode _ _ _)                   -> pure (mbSCI, inst)
-        (IThunk _ _ childI)             -> go mbSCI (Path []) childI
-        (IComponent component stateRef) -> do
+        (INull _)                         -> pure (mbSCI, inst)
+        (IText _ _)                       -> pure (mbSCI, inst)
+        (INode _ _ _ _)                   -> pure (mbSCI, inst)
+        (IThunk _ _ _ childI)             -> go mbSCI (Path []) childI
+        (IComponent _ component stateRef) -> do
             state <- lift $ readTMVar stateRef
             let sci = SomeComponentInstance $ ComponentInstance path component stateRef
             go (Just sci) (Path []) $ componentInstance state
 
     go mbSCI (Path (key:rest)) inst = case inst of
-        (INull) -> do
+        (INull _) -> do
             throwError $ "contextForPath: INull doesn't have any children"
 
-        (IText _) -> do
+        (IText _ _) -> do
             throwError $ "contextForPath: IText doesn't have any children"
 
-        (INode _ _ children) -> do
+        (INode _ _ _ children) -> do
             case lookup key children of
                 Nothing -> throwError $ "contextForPath: Child at key " ++ show key ++ " not found"
                 Just childI -> go mbSCI (Path rest) childI
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go mbSCI (Path (key:rest)) childI
 
-        (IComponent component stateRef) -> do
+        (IComponent _ component stateRef) -> do
             state <- lift $ readTMVar stateRef
             let sci = SomeComponentInstance $ ComponentInstance (Path $ take (length (unPath path) - length rest - 1) $ unPath path) component stateRef
             go (Just sci) (Path (key:rest)) $ componentInstance state
@@ -231,26 +231,26 @@ dispatchHook h path rawValue = do
   where
     go :: Path -> Instance -> ExceptT String STM Effect
     go (Path []) inst = case inst of
-        (INull) ->
+        (INull _) ->
             throwError $ "Can not dispatch hook to INull (at path " ++ show path ++ ")"
 
-        (IText _) ->
+        (IText _ _) ->
             throwError $ "Can not dispatch hook to IText (at path " ++ show path ++ ")"
 
-        (INode _ _ _) ->
+        (INode _ _ _ _) ->
             throwError $ "Can not dispatch hook to INode (at path " ++ show path ++ ")"
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go (Path []) childI
 
-        (IComponent component stateRef) -> do
+        (IComponent p component stateRef) -> do
             case A.parseEither parseValue (taggedWithHook component rawValue) of
                 Left e -> throwError e
                 Right value -> do
                     actions <- lift $ do
                         state <- takeTMVar stateRef
                         let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
-                        newInst <- instantiate $ renderComponent component (componentProps state) newState
+                        newInst <- instantiate p $ renderComponent component (componentProps state) newState
                         putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                         writeTChan (changeSignal h) (ChangeComponent path inst)
                         pure actions
@@ -259,21 +259,21 @@ dispatchHook h path rawValue = do
 
 
     go (Path (key:rest)) inst = case inst of
-        (INull) -> do
+        (INull _) -> do
             throwError $ "INull doesn't have any children"
 
-        (IText _) -> do
+        (IText _ _) -> do
             throwError $ "IText doesn't have any children"
 
-        (INode _ _ children) -> do
+        (INode _ _ _ children) -> do
             case lookup key children of
                 Nothing -> throwError $ "Child at key " ++ show key ++ " not found"
                 Just childI -> go (Path rest) childI
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go (Path rest) childI
 
-        (IComponent _ stateRef) -> do
+        (IComponent _ _ stateRef) -> do
             state <- lift $ readTMVar stateRef
             go (Path rest) (componentInstance state)
 
@@ -295,46 +295,46 @@ dispatchRef h path rawValue = do
   where
     go :: ([Key], Instance) -> Path -> Instance -> ExceptT String STM Effect
     go (appPath, appAncestor) (Path []) inst = case inst of
-        (INull) ->
+        (INull _) ->
             throwError $ "Can not dispatch ref to a INull node (at path " ++ show path ++ ")"
 
-        (IText _) ->
+        (IText _ _) ->
             throwError $ "Can not dispatch ref to a IText node (at path " ++ show path ++ ")"
 
-        (INode _ _ _) -> case appAncestor of
+        (INode _ _ _ _) -> case appAncestor of
             -- We've reached the native element which emitted the event.
             -- Dispatch it to the closest 'IComponent' ancestor (if there is one).
-            (INull) -> throwError $ "No App is ancestor of " ++ show path
-            (IText _) -> throwError $ "No App is ancestor of " ++ show path
-            (INode _ _ _) -> throwError $ "No App is ancestor of " ++ show path
-            (IThunk _ _ _) -> throwError $ "No App is ancestor of " ++ show path
-            (IComponent component stateRef) -> lift $ case A.parseEither parseValue (taggedWithAction component rawValue) of
+            (INull _) -> throwError $ "No App is ancestor of " ++ show path
+            (IText _ _) -> throwError $ "No App is ancestor of " ++ show path
+            (INode _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
+            (IThunk _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
+            (IComponent _ component stateRef) -> lift $ case A.parseEither parseValue (taggedWithAction component rawValue) of
                 Left e -> error $ show e
                 Right action -> applyAction h action (ComponentInstance (Path appPath) component stateRef)
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go (appPath, appAncestor) (Path []) childI
 
-        (IComponent _ stateRef) -> do
+        (IComponent _ _ stateRef) -> do
             state <- lift $ readTMVar stateRef
             go (appPath, inst) (Path []) (componentInstance state)
 
     go (appPath, appAncestor) (Path (key:rest)) inst = case inst of
-        (INull) -> do
+        (INull _) -> do
             throwError $ "INull doesn't have any children"
 
-        (IText _) -> do
+        (IText _ _) -> do
             throwError $ "IText doesn't have any children"
 
-        (INode _ _ children) -> do
+        (INode _ _ _ children) -> do
             case lookup key children of
                 Nothing -> throwError $ "Child at key " ++ show key ++ " not found"
                 Just childI -> go (appPath, appAncestor) (Path rest) childI
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go (appPath, appAncestor) (Path rest) childI
 
-        (IComponent _ stateRef) -> do
+        (IComponent _ _ stateRef) -> do
             state <- lift $ readTMVar stateRef
             go (take (length (unPath path) - length rest - 1) (unPath path), inst) (Path rest) $ componentInstance state
 
@@ -345,20 +345,20 @@ dispatchRef h path rawValue = do
 -- extract the instance from it.
 toSpine :: Instance -> STM Spine
 toSpine inst = case inst of
-    (INull) -> pure SNull
-    (IText text) -> pure $ SText text
+    (INull _) -> pure SNull
+    (IText _ text) -> pure $ SText text
 
-    (INode tag attrs children) -> do
+    (INode _ tag attrs children) -> do
         newChildren <- forM children $ \(key, childI) -> do
             newChild <- toSpine childI
             pure (key, newChild)
 
         pure $ SNode tag attrs newChildren
 
-    (IThunk _ _ childI) ->
+    (IThunk _ _ _ childI) ->
         toSpine childI
 
-    (IComponent component stateRef) -> do
+    (IComponent _ component stateRef) -> do
         state <- readTMVar stateRef
         spine <- toSpine $ componentInstance state
 
@@ -372,11 +372,11 @@ toSpine inst = case inst of
 
 
 
-sendProps :: Component p h s a -> TMVar (State p s a) -> p -> STM [IO (Maybe a)]
-sendProps component stateRef newProps = do
+sendProps :: Path -> Component p h s a -> TMVar (State p s a) -> p -> STM [IO (Maybe a)]
+sendProps path component stateRef newProps = do
     state <- takeTMVar stateRef
     (newState, signals, actions) <- receiveProps component newProps (componentState state)
-    inst <- instantiate $ renderComponent component (componentProps state) newState
+    inst <- instantiate path $ renderComponent component (componentProps state) newState
     putTMVar stateRef $ State newProps newState signals inst
     pure actions
 
@@ -386,9 +386,9 @@ applyAction :: (Typeable p, A.FromJSON a, Value h, Value a) => Handle -> a -> Co
 applyAction h action (ComponentInstance path component stateRef) = do
     state <- takeTMVar stateRef
     let (newState, actions) = update component action (componentProps state) (componentState state)
-    newInst <- instantiate $ renderComponent component (componentProps state) newState
+    newInst <- instantiate path $ renderComponent component (componentProps state) newState
     putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
-    writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
+    writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
     pure $ Effect (ComponentInstance path component stateRef) actions
 
 
@@ -396,24 +396,27 @@ applyAction h action (ComponentInstance path component stateRef) = do
 -- | Create an 'Instance' which corresponds to the given 'Element'. This runs
 -- in 'STM', because we need to allocate new 'TMVar's to store 'Component'
 -- state ('State') for newly allocated 'IComponent' instances.
-instantiate :: Element -> STM Instance
-instantiate el = case el of
-    (ENull) -> pure INull
+instantiate :: Path -> Element -> STM Instance
+instantiate path el = case el of
+    (ENull) -> pure $ INull path
 
-    (EText t) -> pure $ IText t
+    (EText t) -> pure $ IText path t
 
-    (ENode tag attributes children) ->
-        INode tag attributes <$>
-            mapM (\(key,child) -> (,) <$> pure key <*> instantiate child)
-                (zip (map KIndex [1..]) children)
+    (ENode tag attributes children) -> do
+        childInstances <- forM (zip (map KIndex [1..]) children) $ \(key, child) -> do
+            childInstance <- instantiate (Path (unPath path <> [key])) child
+            pure (key, childInstance)
+
+        pure $ INode path tag attributes childInstances
+
 
     (EThunk thunk p) ->
-        IThunk thunk p <$> instantiate (forceThunk thunk p)
+        IThunk path thunk p <$> instantiate path (forceThunk thunk p)
 
     (EComponent component p) -> do
         (s, signals) <- initialComponentState component p
-        inst <- instantiate $ renderComponent component p s
-        IComponent component <$> newTMVar (State p s signals inst)
+        inst <- instantiate path $ renderComponent component p s
+        IComponent path component <$> newTMVar (State p s signals inst)
 
 
 executeEffects :: Handle -> [Effect] -> IO ()
@@ -457,18 +460,18 @@ createSnapshot h = Snapshot <$> execWriterT (do
   where
     go :: [Key] -> Instance -> WriterT (Map [Key] A.Value) STM ()
     go path inst = case inst of
-        (INull) -> pure ()
+        (INull _) -> pure ()
 
-        (IText _) -> pure ()
+        (IText _ _) -> pure ()
 
-        (INode _ _ children) -> do
+        (INode _ _ _ children) -> do
             forM_ children $ \(key, child) ->
                 go (path <> [key]) child
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go path childI
 
-        (IComponent component stateRef) -> do
+        (IComponent _ component stateRef) -> do
             State _ s _ _ <- lift $ readTMVar stateRef
             tell $ M.singleton path $ componentSnapshot component s
 
@@ -490,18 +493,18 @@ restoreSnapshot h snapshot = do
   where
     go :: [Key] -> Instance -> WriterT [Effect] STM ()
     go path inst = case inst of
-        (INull) -> pure ()
+        (INull _) -> pure ()
 
-        (IText _) -> pure ()
+        (IText _ _) -> pure ()
 
-        (INode _ _ children) -> do
+        (INode _ _ _ children) -> do
             forM_ children $ \(key, child) ->
                 go (path <> [key]) child
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             go path childI
 
-        (IComponent component stateRef) -> do
+        (IComponent _ component stateRef) -> do
             state <- lift $ takeTMVar stateRef
             newState <- case M.lookup path (unSnapshot snapshot) of
                 Nothing -> pure state
@@ -510,7 +513,7 @@ restoreSnapshot h snapshot = do
                         Left _ -> pure state
                         Right (newState, effects) -> do
                             tell [Effect (ComponentInstance (Path path) component stateRef) effects]
-                            newInst <- lift $ instantiate $ renderComponent component (componentProps state) newState
+                            newInst <- lift $ instantiate (Path path) $ renderComponent component (componentProps state) newState
                             pure $ State (componentProps state) newState (componentSignals state) newInst
 
             lift $ putTMVar stateRef newState
@@ -537,9 +540,9 @@ processSignals h = do
                 Just a  -> do
                     state <- takeTMVar stateRef
                     let (newState, actions) = f a (componentState state)
-                    newInst <- instantiate $ renderComponent component (componentProps state) newState
+                    newInst <- instantiate path $ renderComponent component (componentProps state) newState
                     putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
-                    writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
+                    writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
                     pure $ [Effect ci actions]
 
         pure $ mconcat effects
@@ -549,16 +552,16 @@ processSignals h = do
   where
     go :: [Key] -> Instance -> WriterT [SomeSignal] STM ()
     go path inst = case inst of
-        (INull)                         -> pure ()
+        (INull _)                       -> pure ()
 
-        (IText _)                       -> pure ()
+        (IText _ _)                       -> pure ()
 
-        (INode _ _ children)            -> do
+        (INode _ _ _ children)            -> do
             forM_ children $ \(key, childI) -> go (path <> [key]) childI
 
-        (IThunk _ _ childI)             -> go path childI
+        (IThunk _ _ _ childI)             -> go path childI
 
-        (IComponent component stateRef) -> do
+        (IComponent _ component stateRef) -> do
             (State _ _ signals childI) <- lift $ readTMVar stateRef
             tell $ map (SomeSignal (ComponentInstance (Path path) component stateRef)) signals
             go path childI
