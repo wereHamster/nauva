@@ -458,26 +458,25 @@ instance A.FromJSON Snapshot where
 
 -- | Create a new snapshot of the application at this point in time.
 createSnapshot :: Handle -> STM Snapshot
-createSnapshot h = Snapshot <$> execWriterT (do
-    rootInstance <- lift $ readTMVar (hInstance h)
-    go [] rootInstance)
+createSnapshot h = Snapshot <$> execWriterT (go <$> (lift (readTMVar (hInstance h))))
   where
-    go :: [Key] -> Instance -> WriterT (Map [Key] A.Value) STM ()
-    go path inst = case inst of
-        (INull _) -> pure ()
+    go :: Instance -> WriterT (Map [Key] A.Value) STM ()
+    go inst = case inst of
+        (INull _) ->
+            pure ()
 
-        (IText _ _) -> pure ()
+        (IText _ _) ->
+            pure ()
 
-        (INode _ _ _ children) -> do
-            forM_ children $ \(key, child) ->
-                go (path <> [key]) child
+        (INode _ _ _ children) ->
+            mapM_ (go <$> snd) children
 
         (IThunk _ _ _ childI) ->
-            go path childI
+            go childI
 
-        (IComponent _ component stateRef) -> do
+        (IComponent path component stateRef) -> do
             State _ s _ _ <- lift $ readTMVar stateRef
-            tell $ M.singleton path $ componentSnapshot component s
+            tell $ M.singleton (unPath path) $ componentSnapshot component s
 
 
 -- | Restore the state of the application from the snapshot. If a component
@@ -535,7 +534,7 @@ processSignals :: Handle -> IO ()
 processSignals h = do
     effects <- atomically $ do
         currentInstance <- takeTMVar (hInstance h)
-        someSignals <- execWriterT $ go [] currentInstance
+        someSignals <- execWriterT $ go currentInstance
         putTMVar (hInstance h) currentInstance
 
         effects <- forM someSignals $ \(SomeSignal ci@(ComponentInstance path component stateRef) (Signal chan f)) -> do
@@ -555,18 +554,19 @@ processSignals h = do
     executeEffects h effects
 
   where
-    go :: [Key] -> Instance -> WriterT [SomeSignal] STM ()
-    go path inst = case inst of
-        (INull _)                       -> pure ()
+    go :: Instance -> WriterT [SomeSignal] STM ()
+    go inst = case inst of
+        (INull _) -> pure ()
 
-        (IText _ _)                       -> pure ()
+        (IText _ _) -> pure ()
 
-        (INode _ _ _ children)            -> do
-            forM_ children $ \(key, childI) -> go (path <> [key]) childI
+        (INode _ _ _ children) ->
+            mapM_ (go <$> snd) children
 
-        (IThunk _ _ _ childI)             -> go path childI
+        (IThunk _ _ _ childI) ->
+            go childI
 
-        (IComponent _ component stateRef) -> do
+        (IComponent path component stateRef) -> do
             (State _ _ signals childI) <- lift $ readTMVar stateRef
-            tell $ map (SomeSignal (ComponentInstance (Path path) component stateRef)) signals
-            go path childI
+            tell $ map (SomeSignal (ComponentInstance path component stateRef)) signals
+            go childI
