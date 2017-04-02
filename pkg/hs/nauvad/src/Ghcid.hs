@@ -12,7 +12,6 @@ import Control.Monad.Extra
 import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
-import Data.Version
 import Session
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
@@ -22,8 +21,6 @@ import System.Exit
 import System.FilePath
 import System.IO
 
-import Paths_ghcid
-import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
@@ -48,7 +45,6 @@ import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.STM
 
-import           System.Environment
 import           System.Process
 
 import           Network.PortFinder (findPort)
@@ -104,7 +100,7 @@ options = cmdArgsMode $ Options
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     } &= verbosity &=
-    program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
+    program "nauvad" &= summary ("Auto reloading GHCi daemon")
 
 
 {-
@@ -165,7 +161,7 @@ autoOptions o@Options{..}
 
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
-mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -> do
+mainWithTerminal termSize termOutput = withSession $ \session -> do
     -- On certain Cygwin terminals stdout defaults to BlockBuffering
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr NoBuffering
@@ -173,7 +169,6 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
     withCurrentDirectory (directory opts) $ do
         opts <- autoOptions opts
         opts <- return $ opts{restart = nubOrd $ restart opts, reload = nubOrd $ reload opts}
-        when (topmost opts) terminalTopmost
 
         termSize <- return $ case (width opts, height opts) of
             (Just w, Just h) -> return (w,h)
@@ -368,9 +363,6 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     atomically $ writeTChan chan $ NVDMSpine spine
                     pure ()
 
-            unless no_title $ setWindowIcon $
-                if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
-
             let updateTitle extra = unless no_title $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
@@ -461,7 +453,6 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     hFlush stdout -- may not have been a terminating newline from test output
                     if "*** Exception: " `isPrefixOf` stderr then do
                         updateTitle "(test failed)"
-                        setWindowIcon IconError
                      else
                         updateTitle "(test done)"
 

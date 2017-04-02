@@ -1,6 +1,6 @@
 cabal-version:      >= 1.18
 build-type:         Simple
-name:               ghcid
+name:               nauvad
 version:            0.6.6
 license:            BSD3
 license-file:       LICENSE
@@ -11,16 +11,12 @@ copyright:          Neil Mitchell 2014-2017
 synopsis:           GHCi based bare bones IDE
 description:
     Either \"GHCi as a daemon\" or \"GHC + a bit of an IDE\". A very simple Haskell development tool which shows you the errors in your project and updates them whenever you save. Run @ghcid --topmost --command=ghci@, where @--topmost@ makes the window on top of all others (Windows only) and @--command@ is the command to start GHCi on your project (defaults to @ghci@ if you have a @.ghci@ file, or else to @cabal repl@).
-homepage:           https://github.com/ndmitchell/ghcid#readme
-bug-reports:        https://github.com/ndmitchell/ghcid/issues
-tested-with:        GHC==8.0.2, GHC==7.10.3, GHC==7.8.4, GHC==7.6.3
-extra-doc-files:
-    CHANGES.txt
-    README.md
+homepage:           https://github.com/wereHamster/nauva#readme
+bug-reports:        https://github.com/wereHamster/nauva/issues
 
 source-repository head
     type:     git
-    location: https://github.com/ndmitchell/ghcid.git
+    location: https://github.com/wereHamster/nauva.git
 
 library
     hs-source-dirs:  src
@@ -38,18 +34,12 @@ library
         process >= 1.1,
         cmdargs >= 0.10,
         terminal-size >= 0.3
-    if os(windows)
-        build-depends: Win32
-    else
-        build-depends: unix
 
     exposed-modules:
         Language.Haskell.Ghcid
     other-modules:
-        Paths_ghcid,
         Language.Haskell.Ghcid.Types,
         Language.Haskell.Ghcid.Parser,
-        Language.Haskell.Ghcid.Terminal,
         Language.Haskell.Ghcid.Util
 
 executable nauvad
@@ -86,14 +76,9 @@ executable nauvad
         portfinder,
         file-embed,
         template-haskell
-    if os(windows)
-        build-depends: Win32
-    else
-        build-depends: unix
     other-modules:
         Language.Haskell.Ghcid.Types
         Language.Haskell.Ghcid.Parser
-        Language.Haskell.Ghcid.Terminal
         Language.Haskell.Ghcid.Util
         Language.Haskell.Ghcid
         Session
