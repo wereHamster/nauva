@@ -256,12 +256,8 @@ websocketApplication chan connTMVar pendingConnection = do
 index :: Int -> H.Html
 index port = H.docTypeHtml $ do
     H.head $ do
-        H.title "NauvaD"
-
         H.script H.! A.src "/react.min.js" $ ""
         H.script H.! A.src "/react-dom.min.js" $ ""
-
-        H.link H.! A.rel "stylesheet" H.! A.type_ "text/css" H.! A.href "/nauva-dev-server.css"
 
     H.body $ do
         H.div H.! A.id "root" $ ""

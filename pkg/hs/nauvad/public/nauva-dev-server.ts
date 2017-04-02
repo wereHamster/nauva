@@ -8,153 +8,266 @@ declare const React: {
     createClass: any;
 };
 declare const ReactDOM: {
-    render(element, container: HTMLElement): void;
+    render(element, container: Node): void;
 };
 
+// NAUVA_PORT is the TCP/websocket port where we can connect to.
+// It's set in the index.html file in a generated <script> tag.
+declare const NAUVA_PORT: number;
 
-const appE = document.getElementById('root');
-let rafId: number = undefined;
+// This is the URL to which we'll try to connect to.
+const wsURL = 'ws://localhost:' + NAUVA_PORT + '/_nauva';
+
 
 class Context {
     fn: { [id: string]: { [path: string]: any } } = {};
     refs: Map<string, any> = new Map;
 }
 
-let ctx = new Context
+type ComponentId = number
+type ComponentRegistry = Map<ComponentId, any>
 
-function renderSpine(ws: WebSocket, spine): void {
-    if (rafId === undefined) {
-        cancelAnimationFrame(rafId);
+
+// Initialize the nauvad runtime. Make sure everything is in place
+// and we're ready to connect to the server.
+const nauvadInit = () => {
+    const appE = document.getElementById('root');
+    if (appE === null) {
+        throw new Error('nauvadInit: could not find container element (#root)');
     }
 
-    rafId = requestAnimationFrame(() => {
-        // console.time('spineToReact');
-        const rootElement = spineToReact(ws, [], ctx, spine, undefined);
-        // console.timeEnd('spineToReact');
+    return {
+        appE,
+        // ^ The HTMLElement into which we're rendering the application.
 
-        // console.time('ReactDOM.render');
-        ReactDOM.render(rootElement, appE);
-        // console.timeEnd('ReactDOM.render');
+        rafId: <void | number> undefined,
+        // ^ Rendering is done asynchronously, scheduled through rAF.
 
-        rafId = undefined;
-    });
+        ctx: new Context,
+        // ^ Top-level context.
+
+        componentRegistry: <ComponentRegistry> new Map,
+        // ^ Registry for (stateful) components.
+
+        ws: <void | WebSocket> undefined,
+        // ^ WebSocket connection to the server.
+
+        spine: <void | any> undefined,
+        // ^ The raw spine which was rendered into 'appE' or that's going
+        // to be rendered into 'appE' in the next rAF tick.
+
+        headFragment: document.createDocumentFragment(),
+        // ^ Fragment into which we're rendering the head elements so that
+        // we can hook into React's automatic handling of instance
+        // lifecycles (mount/unmount).
+    }
 }
 
-class Dots extends React.Component {
-    rafId: any;
-    updateScale: any;
+// Think of it as a global 'IORef' with the nauvad client state.
+const nauvad = nauvadInit()
 
-    dots = [];
-    dotElements = Array.from(Array(5)).map((_, i) => {
-        const ref = el => this.dots[i] = el;
-        return React.createElement('div', { ref, className: 'dot' },
-            React.createElement('div', { className: 'gfx' }));
-    });
 
-    constructor(props) {
-        super(props);
+// Actions
+// ----------------------------------------------------------------------------
+//
+// These actions are 'IO ()', they have access to the global 'nauvad' ref and
+// modify it in-place.
 
-        this.updateScale = () => {
-            this.rafId = requestAnimationFrame(this.updateScale);
+const sendValue = (v): void => {
+    if (typeof nauvad.ws !== 'undefined') {
+        nauvad.ws.send(JSON.stringify(v));
+    }
+}
 
-            this.dots.forEach(dot => {
-                const bounds = dot.getBoundingClientRect();
+const sendLocation = (): void => {
+    sendValue(['location', window.location.pathname])
+}
 
-                const scale = this.dots.reduce((scale, otherDot) => {
-                    if (dot === otherDot) {
-                        return scale;
-                    } else {
-                        const otherBounds = otherDot.getBoundingClientRect();
-                        const dx = bounds.left - otherBounds.left;
-                        const dy = bounds.top - otherBounds.top;
-                        const distance = Math.sqrt((dx*dx)+(dy*dy));
-                        const max = 20;
-                        const p = Math.max(0, (max - distance) / max);
-                        return scale + (1.5 - scale) * 0.4 * p;
-                    }
-                }, 1);
+const sendHook = (path, value): void => {
+    sendValue(['hook', path, value])
+}
 
-                dot.childNodes[0].style.transform = `scale(${scale})`;
-            });
-        };
+const sendAction = (path, name, action): void => {
+    sendValue(['action', path, name, action])
+}
+
+const sendRef = (path, action): void => {
+    sendValue(['ref', path, action])
+}
+
+class HeadElement extends React.Component {
+    props: {
+        el: any
     }
 
-    componentDidMount() {
-        this.updateScale();
+    elementClone: null | Node
+
+    ref: null | Node
+    refFn: (ref: null | Node) => void
+
+    update: () => void;
+
+    constructor() {
+        super();
+
+        this.elementClone = null;
+
+        this.ref = null;
+        this.refFn = ref => {
+            this.ref = ref;
+            this.update();
+        }
+
+        this.update = () => {
+            if (this.elementClone !== null) {
+                document.head.removeChild(this.elementClone);
+            }
+
+            const ref = this.ref;
+            if (ref) {
+                this.elementClone = ref.childNodes.item(0).cloneNode(true);
+                document.head.appendChild(this.elementClone);
+            }
+        }
     }
-    componentWillUnmount() {
-        cancelAnimationFrame(this.rafId);
+
+    shouldComponentUpdate(nextProps) {
+        const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        return !deepEqual(this.props.el, nextProps.el);
+    }
+
+    componentDidUpdate() {
+        this.update();
     }
 
     render() {
-        return React.createElement('div', { className: 'dots' }, ...this.dotElements);
+        return React.createElement('div', {ref: this.refFn}, this.props.el);
     }
 }
 
-const loadingScreenElement = React.createElement
-    ( 'div'
-    , { className: 'loadingScreen' }
-    , React.createElement(Dots)
-    );
-
-function loadingScreen() {
-    ReactDOM.render(loadingScreenElement, appE);
+const renderHead = (elements: any[]): void => {
+    ReactDOM.render(React.createElement('div', {}, ...elements.map(el => React.createElement(HeadElement, {el}))), nauvad.headFragment)
 }
 
 
-function runClient() {
-    const ws = new WebSocket('ws://localhost:8000/ws');
+const render = (): void => {
+    const {appE, ctx, ws, spine} = nauvad
 
-    function onPopState(ev) {
-        ws.send(JSON.stringify(['location', window.location.pathname]));
+    if (typeof ws === 'undefined' || typeof spine === 'undefined') {
+        console.warn('render: called without valid ws / spine')
+        return
     }
+
+    // console.time('spineToReact');
+    const rootElement = spineToReact(ws, [], ctx, spine, undefined);
+    // console.timeEnd('spineToReact');
+
+    // console.time('ReactDOM.render');
+    ReactDOM.render(rootElement, appE);
+    // console.timeEnd('ReactDOM.render');
+}
+
+const scheduleRender = (spine: any): void => {
+    nauvad.spine = spine;
+
+    if (typeof nauvad.rafId === "undefined") {
+        nauvad.rafId = requestAnimationFrame(() => {
+            nauvad.rafId = undefined
+            render()
+        })
+    }
+}
+
+const loadingScreen = (heading: string, detail?: string, reason?: string): void => {
+    const style = {
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        width: '100vw',
+        position: 'fixed',
+
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
+        fontSize: '3rem',
+        fontWeight: '200',
+        letterSpacing: '-1px',
+        lineHeight: 1.4,
+        color: 'black',
+    }
+
+    const p = (t, style) => React.createElement('p', {style}, t)
+
+    const detailEl = detail === undefined ? null : p(detail, {fontSize: '1.5rem', fontWeight: '200', margin: 0})
+    const reasonEl = reason === undefined ? null : p(reason, {fontSize: '0.825rem', color: '#999'})
+
+    const el = React.createElement('div', { style }, heading,
+        React.createElement('div', {style: {maxWidth: '520px', marginTop: '16px', letterSpacing: 0}}, detailEl, reasonEl))
+
+    ReactDOM.render(el, nauvad.appE);
+}
+
+const connectWebSocket = (): void => {
+    renderHead([React.createElement('title', {}, 'Nauva: Connecting…')]);
+    const ws = nauvad.ws = new WebSocket(wsURL)
 
     ws.addEventListener('open', () => {
-        window.addEventListener('popstate', onPopState);
-        componentRegistry = new Map;
-        ctx = new Context;
-
-        ws.send(JSON.stringify(['location', window.location.pathname]));
-    });
+        renderHead([React.createElement('title', {}, 'Nauva: Compiling…')]);
+        sendLocation()
+    })
 
     ws.addEventListener('message', msg => {
         const data = JSON.parse(msg.data);
         switch (data[0]) {
-        case 'location':
+        case 1:
+            break;
+        case 2:
+            sendLocation()
+            setTimeout(() => { sendLocation() }, 200);
+            break;
+        case 3:
+            break;
+        case 4:
             if (window.location.pathname !== data[1]) {
                 window.history.pushState({}, '', data[1]);
             }
             break;
-        case 'spine':
-            renderSpine(ws, data[1]);
+        case 5:
+            scheduleRender(data[1]);
             break;
         }
-    });
+    })
+
+    const codeToString: {[code: number]: (ev: {reason: string}) => string} = {
+        [1000]: _ => "Normal closure, meaning that the purpose for which the connection was established has been fulfilled.",
+        [1001]: _ => "An endpoint is \"going away\", such as a server going down or a browser having navigated away from a page.",
+        [1002]: _ => "An endpoint is terminating the connection due to a protocol error",
+        [1003]: _ => "An endpoint is terminating the connection because it has received a type of data it cannot accept (e.g., an endpoint that understands only text data MAY send this if it receives a binary message).",
+        [1004]: _ => "Reserved. The specific meaning might be defined in the future.",
+        [1005]: _ => "No status code was actually present.",
+        [1006]: _ => "The connection was closed abnormally, e.g., without sending or receiving a Close control frame",
+        [1007]: _ => "An endpoint is terminating the connection because it has received data within a message that was not consistent with the type of the message (e.g., non-UTF-8 [http://tools.ietf.org/html/rfc3629] data within a text message).",
+        [1008]: _ => "An endpoint is terminating the connection because it has received a message that \"violates its policy\". This reason is given either if there is no other sutible reason, or if there is a need to hide specific details about the policy.",
+        [1009]: _ => "An endpoint is terminating the connection because it has received a message that is too big for it to process.",
+        [1010]: e => "An endpoint (client) is terminating the connection because it has expected the server to negotiate one or more extension, but the server didn't return them in the response message of the WebSocket handshake. <br /> Specifically, the extensions that are needed are: " + e.reason,
+        [1011]: _ => "A server is terminating the connection because it encountered an unexpected condition that prevented it from fulfilling the request.",
+        [1015]: _ => "The connection was closed due to a failure to perform a TLS handshake (e.g., the server certificate can't be verified).",
+    }
 
     ws.addEventListener('close', ev => {
-        window.removeEventListener('popstate', onPopState);
-        componentRegistry = new Map;
-        ctx = new Context;
-        loadingScreen();
-        runClient();
-    });
+        const reason = codeToString[ev.code] || (_ => `Unknown WebSocket code: ${ev.code}`)
+        loadingScreen('Goodbye', 'The session has ended — please restart the server.', reason(ev))
+    })
 
     ws.addEventListener('error', ev => {
-        window.removeEventListener('popstate', onPopState);
-        componentRegistry = new Map;
-        ctx = new Context;
-        loadingScreen();
-        // runClient();
-    });
+        loadingScreen('Error', "💀 WHAT'S HAPPENING ?!?? 👀 ")
+    })
 }
 
 
-type ComponentId = number;
-
-let componentRegistry: Map<ComponentId, any> = new Map;
 
 function getComponent(componentId: ComponentId, displayName: string) {
-    let component = componentRegistry.get(componentId);
+    let component = nauvad.componentRegistry.get(componentId);
     if (component === undefined) {
         component = class extends React.Component {
             props: {
@@ -173,9 +286,9 @@ function getComponent(componentId: ComponentId, displayName: string) {
             }
 
             componentDidMount() {
-                const {ws, path, spine: {eventListeners, hooks: {componentDidMount}}} = this.props;
+                const {path, spine: {eventListeners, hooks: {componentDidMount}}} = this.props;
                 componentDidMount.forEach(exp => {
-                    ws.send(JSON.stringify(['hook', path, evalExp(exp, {}, this.ctx)]));
+                    sendHook(path, evalExp(exp, {}, this.ctx))
                 });
 
                 eventListeners.forEach(([fid, name, expr]) => {
@@ -188,7 +301,7 @@ function getComponent(componentId: ComponentId, displayName: string) {
                             eh.stopImmediatePropagation && ev.stopImmediatePropagation();
 
                             if (eh.action) {
-                                this.props.ws.send(JSON.stringify(['action', path, name, eh.action]));
+                                sendAction(path, name, eh.action)
                             }
                         };
                     }));
@@ -196,9 +309,9 @@ function getComponent(componentId: ComponentId, displayName: string) {
             }
 
             componentWillUnmount() {
-                const {ws, path, spine: {eventListeners, hooks: {componentWillUnmount}}} = this.props;
+                const {path, spine: {eventListeners, hooks: {componentWillUnmount}}} = this.props;
                 componentWillUnmount.forEach(exp => {
-                    this.props.ws.send(JSON.stringify(['hook', path, evalExp(exp, {}, this.ctx)]));
+                    sendHook(path, evalExp(exp, {}, this.ctx))
                 });
 
                 eventListeners.forEach(([fid, name, expr]) => {
@@ -216,7 +329,7 @@ function getComponent(componentId: ComponentId, displayName: string) {
 
         component.displayName = displayName;
 
-        componentRegistry.set(componentId, component);
+        nauvad.componentRegistry.set(componentId, component);
     }
 
     return component;
@@ -367,11 +480,12 @@ const cssRuleExText = (() => {
         switch (rule.type) {
         case 1: return cssStyleRuleExText(rule);
         case 5: return `@font-face{${renderCSSDeclarations(rule.cssDeclarations)}}`;
+        default: return '';
         }
     };
 })();
 
-function spineToReact(ws, path, ctx: Context, spine, key) {
+const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
     if (spine === null) {
         return null;
 
@@ -395,7 +509,7 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
                     eh.stopImmediatePropagation && ev.stopImmediatePropagation();
 
                     if (eh.action) {
-                        ws.send(JSON.stringify(['action', path, name, eh.action]));
+                        sendAction(path, name, eh.action)
                     }
                 };
             });
@@ -424,7 +538,7 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
 
                             const r = evalExp(a.detach, { ['1']: ref }, this.ctx);
                             if (r.action) {
-                                ws.send(JSON.stringify(['ref', path, r.action]));
+                                sendRef(path, r.action)
                             }
                         } else {
                             if (a.key) {
@@ -433,7 +547,7 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
 
                             const r = evalExp(a.attach, { ['1']: ref }, this.ctx);
                             if (r.action) {
-                                ws.send(JSON.stringify(['ref', path, r.action]));
+                                sendRef(path, r.action)
                             }
                         }
                     };
@@ -461,5 +575,9 @@ function spineToReact(ws, path, ctx: Context, spine, key) {
 }
 
 
-loadingScreen();
-runClient();
+renderHead([React.createElement('title', {}, 'Loading…')]);
+connectWebSocket();
+
+window.addEventListener('popstate', () => {
+    sendLocation();
+});
