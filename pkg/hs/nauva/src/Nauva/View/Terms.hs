@@ -43,6 +43,7 @@ module Nauva.View.Terms
     , r_
     , rect_
     , ref_
+    , rel_
     , section_
     , source_
     , span_
@@ -52,7 +53,9 @@ module Nauva.View.Terms
     , strong_
     , style_
     , svg_
+    , title_
     , track_
+    , type_
     , ul_
     , value_
     , viewBox_
@@ -229,6 +232,10 @@ svg_ :: Term arg res => arg -> res
 svg_ = term "svg"
 {-# INLINE svg_ #-}
 
+title_ :: Term arg res => arg -> res
+title_ = term "title"
+{-# INLINE title_ #-}
+
 ul_ :: Term arg res => arg -> res
 ul_ = term "ul"
 {-# INLINE ul_ #-}
@@ -275,6 +282,10 @@ ref_ :: Term arg res => arg -> res
 ref_ = term "ref"
 {-# INLINE ref_ #-}
 
+rel_ :: Term arg res => arg -> res
+rel_ = term "rel"
+{-# INLINE rel_ #-}
+
 src_ :: Term arg res => arg -> res
 src_ = term "src"
 {-# INLINE src_ #-}
@@ -286,6 +297,10 @@ stroke_ = term "stroke"
 strokeWidth_ :: Term arg res => arg -> res
 strokeWidth_ = term "strokeWidth"
 {-# INLINE strokeWidth_ #-}
+
+type_ :: Term arg res => arg -> res
+type_ = term "type"
+{-# INLINE type_ #-}
 
 viewBox_ :: Term arg res => arg -> res
 viewBox_ = term "viewBox"
