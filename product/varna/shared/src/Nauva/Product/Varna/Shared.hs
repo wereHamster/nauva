@@ -13,30 +13,40 @@ import qualified Data.Aeson as A
 
 import           Nauva.View
 
+import           Nauva.Service.Head
+
 import           Nauva.Product.Varna.Element.Card
 
 import           Prelude hiding (rem)
 
 
 
-root :: Element
-root = component_ rootComponent ()
+root :: HeadH -> Element
+root = component_ rootComponent
 
-rootComponent :: Component () () () ()
+rootComponent :: Component HeadH () () ()
 rootComponent = createComponent $ \cId -> Component
     { componentId = cId
     , componentDisplayName = "Root"
-    , initialComponentState = \_ -> pure ((), [], [])
+    , initialComponentState = \p -> pure ((), [], [updateHead p])
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \_ _ s -> (s, [])
     , receiveProps = \_ s -> pure (s, [], [])
-    , update = \_ _ _ -> ((), [])
+    , update = \_ p _ -> ((), [updateHead p])
     , renderComponent = render
     , componentSnapshot = \_ -> A.Null
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
+    updateHead :: HeadH -> IO (Maybe ())
+    updateHead headH = do
+        hReplace headH
+            [ style_ [str_ "*,*::before,*::after{box-sizing:inherit}body{margin:0;box-sizing:border-box}"]
+            , title_ [str_ "Varna"]
+            ]
+        pure Nothing
+
     render _ _ = div_ [style_ rootStyle] $
         [ navbar
         , batteries

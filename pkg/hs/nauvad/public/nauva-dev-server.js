@@ -156,6 +156,9 @@ const connectWebSocket = () => {
                 }
                 break;
             case 5:
+                if (data[2]) {
+                    renderHead(data[2].map(x => spineToReact(ws, [], nauvad.ctx, x, undefined)));
+                }
                 scheduleRender(data[1]);
                 break;
         }

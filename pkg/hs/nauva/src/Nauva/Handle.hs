@@ -434,6 +434,11 @@ executeEffects h effects = do
                     nextEffects <- atomically $ applyAction h a ci
                     executeEffects h nextEffects
 
+    atomically $ do
+        rootInstance <- readTMVar (hInstance h)
+        writeTChan (changeSignal h) (ChangeRoot rootInstance)
+
+
 
 --------------------------------------------------------------------------------
 -- | A Snapshot captures the states of all 'Component's. You can serialize it

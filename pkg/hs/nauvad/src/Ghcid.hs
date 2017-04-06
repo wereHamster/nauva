@@ -408,11 +408,11 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                                             print datum
                                             print e
 
-                                        Right ("spine" :: Text, v :: A.Value) -> do
-                                            atomically $ writeTChan chan $ NVDMSpineRaw v
+                                        Right ("spine" :: Text, v :: A.Value, headElements :: A.Value) -> do
+                                            atomically $ writeTChan chan $ NVDMSpineRaw v headElements
                                             pure ()
 
-                                        Right ("location", v) -> do
+                                        Right ("location", v, _) -> do
                                             atomically $ writeTChan chan $ NVDMLocationRaw v
                                             pure ()
 

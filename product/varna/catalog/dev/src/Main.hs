@@ -18,7 +18,7 @@ import           Nauva.Product.Varna.Catalog (catalogPages)
 
 main :: IO ()
 main = do
-    runServer $ Config (\routerH -> catalog $ CatalogProps routerH catalogPages) $ do
+    runServer $ Config (\headH routerH -> catalog $ CatalogProps headH routerH catalogPages) $ do
         H.link H.! A.rel "stylesheet" H.! A.type_ "text/css" H.! A.href "https://fonts.googleapis.com/css?family=Roboto:400,700,400italic"
         H.link H.! A.rel "stylesheet" H.! A.type_ "text/css" H.! A.href "https://fonts.googleapis.com/css?family=Source+Code+Pro:400,700"
 

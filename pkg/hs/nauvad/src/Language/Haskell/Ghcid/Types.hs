@@ -66,7 +66,7 @@ data NVDMessage
     | NVDMLocation Text
     | NVDMLocationRaw A.Value
     | NVDMSpine Spine
-    | NVDMSpineRaw A.Value
+    | NVDMSpineRaw A.Value A.Value
 
 instance A.ToJSON NVDMessage where
     toJSON NVDMLoading        = A.toJSON [A.toJSON (1 :: Int)]
@@ -75,7 +75,7 @@ instance A.ToJSON NVDMessage where
     toJSON (NVDMLocation loc) = A.toJSON [A.toJSON (4 :: Int), A.toJSON loc]
     toJSON (NVDMLocationRaw v) = A.toJSON [A.toJSON (4 :: Int), v]
     toJSON (NVDMSpine spine)  = A.toJSON [A.toJSON (5 :: Int), A.toJSON spine]
-    toJSON (NVDMSpineRaw v)   = A.toJSON [A.toJSON (5 :: Int), v]
+    toJSON (NVDMSpineRaw v h) = A.toJSON [A.toJSON (5 :: Int), v, h]
 
 
 data GHCMessage = GHCMessage Severity FilePath (Int, Int) [Text]

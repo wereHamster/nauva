@@ -37,6 +37,7 @@ import qualified Snap.Core           as Snap
 import           Snap.Http.Server    (ConfigLog(..), httpServe, setPort, setAccessLog, setErrorLog)
 import           Snap.Blaze          (blaze)
 
+import           Nauva.Service.Head
 import           Nauva.Service.Router
 
 import           Prelude
@@ -44,7 +45,7 @@ import           Prelude
 
 
 data Config = Config
-    { cElement :: RouterH -> Element
+    { cElement :: HeadH -> RouterH -> Element
       -- ^ The root elment of the application. This will be rendered into the
       -- Handle once.
 
@@ -58,6 +59,16 @@ data Config = Config
 runServer :: Config -> IO ()
 runServer c = do
     nauvaH <- newHandle
+
+    headH <- do
+        var <- newTVarIO []
+        pure $ HeadH
+            { hElements = var
+            , hReplace = \newElements -> do
+                print (length newElements)
+                atomically $ writeTVar var newElements
+                processSignals nauvaH
+            }
 
     routerH <- do
         var <- newTVarIO (Location "/")
@@ -75,7 +86,7 @@ runServer c = do
                 processSignals nauvaH
             }
 
-    render nauvaH (cElement c routerH)
+    render nauvaH (cElement c headH routerH)
 
     -- Try to restore the application from the snapshot.
     stateExists <- doesFileExist "snapshot.json"
@@ -97,13 +108,13 @@ runServer c = do
 
     let config = setPort port . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
-        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication nauvaH routerH))
+        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication nauvaH headH routerH))
         , blaze index
         ]
 
 
-websocketApplication :: Handle -> RouterH -> WS.PendingConnection -> IO ()
-websocketApplication nauvaH routerH pendingConnection = do
+websocketApplication :: Handle -> HeadH -> RouterH -> WS.PendingConnection -> IO ()
+websocketApplication nauvaH headH routerH pendingConnection = do
     conn <- WS.acceptRequest pendingConnection
     WS.forkPingThread conn 5
 
@@ -112,7 +123,7 @@ websocketApplication nauvaH routerH pendingConnection = do
         path <- atomically $ do
             locPathname <$> readTChan locationSignalCopy
 
-        WS.sendTextData conn $ A.encode [A.toJSON ("location" :: Text), A.toJSON path]
+        WS.sendTextData conn $ A.encode [A.toJSON ("location" :: Text), A.toJSON path, A.Null]
 
     -- Fork a thread to the background and send the spine to the client
     -- whenever the root instance in the 'Handle' changes.
@@ -123,14 +134,24 @@ websocketApplication nauvaH routerH pendingConnection = do
             rootInstance <- readTMVar (hInstance nauvaH)
             toSpine rootInstance
 
-        WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine]
+        headSpines <- atomically $ do
+            elements <- readTVar (hElements headH)
+            instances <- map fst <$> mapM (instantiate (Path [])) elements
+            mapM toSpine instances
+
+        WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine, A.toJSON headSpines]
 
     -- Send the current state of the application.
     spine <- atomically $ do
         rootInstance <- readTMVar (hInstance nauvaH)
         toSpine rootInstance
 
-    WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine]
+    headSpines <- atomically $ do
+        elements <- readTVar (hElements headH)
+        instances <- map fst <$> mapM (instantiate (Path [])) elements
+        mapM toSpine instances
+
+    WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine, A.toJSON headSpines]
 
     -- Forever read messages from the WebSocket and process.
     forever $ do

@@ -18,6 +18,7 @@ import           Control.Concurrent.STM
 import           Nauva.Internal.Types (Signal(..), Element, Component(..), createComponent, emptyHooks)
 import           Nauva.View
 
+import           Nauva.Service.Head
 import           Nauva.Service.Router
 
 import           Nauva.Catalog.Shell
@@ -31,7 +32,8 @@ import           Nauva.Catalog.Types
 -- on the current location.
 
 data CatalogProps = CatalogProps
-    { p_routerH :: !RouterH
+    { p_headH :: !HeadH
+    , p_routerH :: !RouterH
     , p_pages :: ![Page]
     }
 
@@ -55,25 +57,51 @@ catalogComponent = createComponent $ \componentId -> Component
         loc <- readTVar $ fst $ hLocation $ p_routerH (props :: CatalogProps)
         pure
             ( State (locPathname loc)
-            , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) _ s -> (s { path = p }, [])) ]
-            , []
+            , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) props s -> (s { path = p }, [updateHead props p])) ]
+            , [ updateHead props (locPathname loc) ]
             )
 
     , componentEventListeners = \_ -> []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() _ s -> (s, [])
-    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) _ s' -> (s' { path = p }, []))], [])
+    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) props s' -> (s' { path = p }, [updateHead props p]))], [])
     , update = update
     , renderComponent = render
     , componentSnapshot = \_ -> A.object []
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
-    update () _ s = (s, [])
+    updateHead :: CatalogProps -> Text -> IO (Maybe ())
+    updateHead props path = do
+        hReplace (p_headH props)
+            [ style_ [str_ "*,*::before,*::after{box-sizing:inherit}body{margin:0;box-sizing:border-box}"]
+            , title_ [str_ $ title (p_pages (props :: CatalogProps)) path]
+
+            , link_ [rel_ ("stylesheet" :: Text), type_ ("text/css" :: Text), href_ ("https://fonts.googleapis.com/css?family=Roboto:400,700,400italic" :: Text)]
+            , link_ [rel_ ("stylesheet" :: Text), type_ ("text/css" :: Text), href_ ("https://fonts.googleapis.com/css?family=Source+Code+Pro:400,700" :: Text)]
+            , link_ [rel_ ("stylesheet" :: Text), type_ ("text/css" :: Text), href_ ("https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700" :: Text)]
+            ]
+        pure Nothing
+
+    update () props s =
+        ( s
+        , [ updateHead props (path s) ]
+        )
+
+    title :: [Page] -> Text -> Text
+    title pages p = case lookup p (flattenedPages pages) of
+        Nothing   -> "Unknown Page"
+        Just leaf -> leafTitle leaf
+
+    flattenPage :: Page -> [(Text, Leaf)]
+    flattenPage (PLeaf leaf@(Leaf {..})) = [(leafHref, leaf)]
+    flattenPage (PDirectory (Directory {..})) = map (\x -> (leafHref x, x)) directoryChildren
+
+    flattenedPages pages = concat $ map flattenPage pages
 
     render props (State {..}) = div_ [style_ rootStyle]
         [ div_ [style_ mainStyle]
-            [ header (HeaderProps { section, title })
+            [ header (HeaderProps { section, title = title (p_pages (props :: CatalogProps)) path })
             , div_ [style_ pageStyle] [page]
             ]
 
@@ -86,13 +114,7 @@ catalogComponent = createComponent $ \componentId -> Component
       where
         p_logoUrl = "/"
 
-        flattenPage :: Page -> [(Text, Leaf)]
-        flattenPage (PLeaf leaf@(Leaf {..})) = [(leafHref, leaf)]
-        flattenPage (PDirectory (Directory {..})) = map (\x -> (leafHref x, x)) directoryChildren
-
-        flattenedPages = concat $ map flattenPage $ p_pages (props :: CatalogProps)
-
-        page = case lookup path flattenedPages of
+        page = case lookup path (flattenedPages $ p_pages (props :: CatalogProps)) of
             Nothing   -> div_ [style_ pageInnerStyle] [str_ "page not found"]
             Just leaf -> leafElement leaf
 
@@ -104,11 +126,6 @@ catalogComponent = createComponent $ \componentId -> Component
             findSection mbTitle (PLeaf (Leaf {..}):xs)           = if leafHref == path
                 then fromMaybe "Catalog" mbTitle
                 else findSection mbTitle xs
-
-        title :: Text
-        title = case lookup path flattenedPages of
-            Nothing   -> "Unknown Page"
-            Just leaf -> leafTitle leaf
 
         rootStyle = mkStyle $ do
             position relative

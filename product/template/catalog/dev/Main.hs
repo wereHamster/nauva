@@ -9,6 +9,6 @@ import           Nauva.Product.Template.Catalog (catalogPages)
 
 main :: IO ()
 main = runServer $ Config
-    { cElement = \routerH -> catalog $ CatalogProps routerH catalogPages
+    { cElement = \headH routerH -> catalog $ CatalogProps headH routerH catalogPages
     , cHead = mempty
     }
