@@ -16,5 +16,4 @@ main = do
         H.style $ mconcat
             [ "*, *:before, *:after { box-sizing: inherit; }"
             , "html { box-sizing: border-box; }"
-            , "body { margin: 0; }"
             ]
