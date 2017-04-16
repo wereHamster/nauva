@@ -52,6 +52,7 @@ library
    , Nauva.View.Terms
    , Nauva.Service.Head
    , Nauva.Service.Router
+   , Nauva.App
 
   build-depends:
      base >= 4.7 && < 5

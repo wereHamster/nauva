@@ -15,4 +15,3 @@ executable nauva-product-template-catalog-dev
    , nauva-catalog
    , nauva-dev-server
    , nauva-product-template-shared
-   , blaze-html

@@ -2,9 +2,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Nauva.Server
-    ( Config(..)
-    , runServer
-
+    ( devServer
     , Message(..)
     ) where
 
@@ -29,6 +27,7 @@ import           System.Environment
 
 import           Nauva.Handle
 import           Nauva.Internal.Types
+import           Nauva.App
 
 import qualified Network.WebSockets as WS
 import           Network.WebSockets.Snap
@@ -44,15 +43,8 @@ import           Prelude
 
 
 
-data Config = Config
-    { cElement :: HeadH -> RouterH -> Element
-      -- ^ The root elment of the application. This will be rendered into the
-      -- Handle once.
-    }
-
-
-runServer :: Config -> IO ()
-runServer c = do
+devServer :: App -> IO ()
+devServer app = do
     nauvaH <- newHandle
 
     headH <- do
@@ -81,7 +73,8 @@ runServer c = do
                 processSignals nauvaH
             }
 
-    render nauvaH (cElement c headH routerH)
+    let appH = AppH headH routerH
+    render nauvaH (rootElement app appH)
 
     -- Try to restore the application from the snapshot.
     stateExists <- doesFileExist "snapshot.json"

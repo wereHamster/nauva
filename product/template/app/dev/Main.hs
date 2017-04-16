@@ -3,6 +3,7 @@
 module Main (main) where
 
 
+import           Nauva.App
 import           Nauva.Server
 import           Nauva.View
 
@@ -12,13 +13,13 @@ import           Nauva.Service.Router
 
 
 main :: IO ()
-main = runServer $ Config
-    { cElement = app
+main = devServer $ App
+    { rootElement = app
     }
 
 
-app :: HeadH -> RouterH -> Element
-app headH routerH = constHead headH headElements $ div_ [style_ style]
+app :: AppH -> Element
+app appH = constHead (headH appH) headElements $ div_ [style_ style]
     [ header
     , intro
     ]

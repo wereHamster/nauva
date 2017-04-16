@@ -1,13 +1,8 @@
 module Main (main) where
 
-
-import           Nauva.Server
-import           Nauva.Catalog
-import           Nauva.Product.Template.Catalog (catalogPages)
-
+import Nauva.Server
+import Nauva.Product.Template.Catalog (catalogApp)
 
 
 main :: IO ()
-main = runServer $ Config
-    { cElement = \headH routerH -> catalog $ CatalogProps headH routerH catalogPages
-    }
+main = devServer catalogApp
