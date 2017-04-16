@@ -19,17 +19,28 @@ main = runServer $ Config
 
 
 app :: HeadH -> RouterH -> Element
-app headH routerH = div_
+app headH routerH = div_ [style_ style]
     [ header
+    , intro
     ]
+  where
+    style = mkStyle $ do
+        textAlign center
+
 
 header :: Element
-header = div_ [style_ rootStyle] [str_ "Template Application"]
+header = div_ [style_ style]
+    [ h1_ [str_ "Welcome to Nauva"]
+    ]
   where
-    rootStyle = mkStyle $ do
-        height "calc(.4 * 100vh)"
-        backgroundColor "#F1F1F1"
-        display flex
-        justifyContent center
-        alignItems center
-        fontSize (px 24)
+    style = mkStyle $ do
+        backgroundColor "#222"
+        height "150px"
+        padding "20px"
+        color "white"
+
+intro :: Element
+intro = p_ [style_ style] [str_ "To get started, edit ??? and save to reload."]
+  where
+    style = mkStyle $ do
+        fontSize "large"
