@@ -19,11 +19,15 @@ main = runServer $ Config
 
 
 app :: HeadH -> RouterH -> Element
-app headH routerH = div_ [style_ style]
+app headH routerH = constHead headH headElements $ div_ [style_ style]
     [ header
     , intro
     ]
   where
+    headElements =
+        [ style_ [str_ "*,*::before,*::after{box-sizing:inherit}body{margin:0;box-sizing:border-box;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"}"]
+        ]
+
     style = mkStyle $ do
         textAlign center
 
