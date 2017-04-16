@@ -25,8 +25,8 @@ data HeadH = HeadH
 
 
 constHeadComponent :: Component (HeadH, [Element], Element) () () ()
-constHeadComponent = createComponent $ \componentId -> Component
-    { componentId = componentId
+constHeadComponent = createComponent $ \cId -> Component
+    { componentId = cId
     , componentDisplayName = "constHeadComponent"
     , initialComponentState = \(headH, headElements, _) -> pure ((), [], [updateHead headH headElements])
     , componentEventListeners = \_ -> []

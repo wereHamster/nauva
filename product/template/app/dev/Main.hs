@@ -11,7 +11,6 @@ import           Nauva.Server
 import           Nauva.View
 
 import           Nauva.Service.Head
-import           Nauva.Service.Router
 
 import           Language.Haskell.TH
 

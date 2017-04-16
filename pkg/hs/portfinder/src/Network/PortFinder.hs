@@ -5,7 +5,7 @@ module Network.PortFinder
     ) where
 
 
-import Control.Exception
+import Control.Exception (IOException, catch)
 import Network.Socket
 
 
@@ -20,24 +20,26 @@ findPort basePort = do
     addr:_ <- getAddrInfo (Just hints) (Just "0.0.0.0") (Just $ show basePort)
     sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
 
-    go 99 sock (addrAddress addr)
+    case addrAddress addr of
+        (SockAddrInet port hostAddress) -> go 99 sock port hostAddress
+        _                               -> error "findPort: not an inet addr"
+
 
   where
-    go :: Int -> Socket -> SockAddr -> IO PortNumber
-    go 0 _ _ = error "findPort: exhausted"
-    go i sock addr = try sock addr `catch` \(e :: IOException) -> do
+    go :: Int -> Socket -> PortNumber -> HostAddress -> IO PortNumber
+    go 0 _ _ _ = error "findPort: exhausted"
+    go i sock port hostAddress = try sock port hostAddress `catch` \(_ :: IOException) -> do
         -- Bummer. Try the next port.
-        let sockAddr@(SockAddrInet port a) = addr
-        go (i - 1) sock (SockAddrInet (port + 1) a)
+        go (i - 1) sock (port + 1) hostAddress
 
-    try :: Socket -> SockAddr -> IO PortNumber
-    try sock sockAddr@(SockAddrInet port addr) = do
+    try :: Socket -> PortNumber -> HostAddress -> IO PortNumber
+    try sock port hostAddress = do
         -- Try to bind the socket the the address. This will throw
         -- an 'IOException' in the following common cases:
         --
         --  - EADDRINUSE: The port is occupied (bound to an exinstig socket).
         --  - EACCESS: Port is priviledged (<1024) and user is not root.
-        bind sock sockAddr
+        bind sock (SockAddrInet port hostAddress)
 
         -- Verify that we can listen on the port. May not be necessary but
         -- it's a good, additional check to have.

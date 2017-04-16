@@ -43,37 +43,40 @@ import           Prelude
 
 
 
+newHeadH :: Handle -> IO HeadH
+newHeadH nauvaH = do
+    var <- newTVarIO []
+    pure $ HeadH
+        { hElements = var
+        , hReplace = \newElements -> do
+            print (length newElements)
+            atomically $ writeTVar var newElements
+            processSignals nauvaH
+        }
+
+
+newRouterH :: Handle -> IO RouterH
+newRouterH nauvaH = do
+    var <- newTVarIO (Location "/")
+    chan <- newTChanIO
+
+    pure $ RouterH
+        { hLocation = (var, chan)
+        , hPush = \url -> do
+            putStrLn $ "Router hPush: " <> T.unpack url
+
+            atomically $ do
+                writeTVar var (Location url)
+                writeTChan chan (Location url)
+
+            processSignals nauvaH
+        }
+
+
 devServer :: App -> IO ()
 devServer app = do
     nauvaH <- newHandle
-
-    headH <- do
-        var <- newTVarIO []
-        pure $ HeadH
-            { hElements = var
-            , hReplace = \newElements -> do
-                print (length newElements)
-                atomically $ writeTVar var newElements
-                processSignals nauvaH
-            }
-
-    routerH <- do
-        var <- newTVarIO (Location "/")
-        chan <- newTChanIO
-
-        pure $ RouterH
-            { hLocation = (var, chan)
-            , hPush = \url -> do
-                putStrLn $ "Router hPush: " <> T.unpack url
-
-                atomically $ do
-                    writeTVar var (Location url)
-                    writeTChan chan (Location url)
-
-                processSignals nauvaH
-            }
-
-    let appH = AppH headH routerH
+    appH <- AppH <$> newHeadH nauvaH <*> newRouterH nauvaH
     render nauvaH (rootElement app appH)
 
     -- Try to restore the application from the snapshot.
@@ -96,17 +99,17 @@ devServer app = do
 
     let config = setPort port . setAccessLog (ConfigIoLog BS8.putStrLn) . setErrorLog (ConfigIoLog BS8.putStrLn) $ mempty
     httpServe config $ foldl1 (<|>)
-        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication nauvaH headH routerH))
+        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication nauvaH appH))
         , blaze index
         ]
 
 
-websocketApplication :: Handle -> HeadH -> RouterH -> WS.PendingConnection -> IO ()
-websocketApplication nauvaH headH routerH pendingConnection = do
+websocketApplication :: Handle -> AppH -> WS.PendingConnection -> IO ()
+websocketApplication nauvaH appH pendingConnection = do
     conn <- WS.acceptRequest pendingConnection
     WS.forkPingThread conn 5
 
-    locationSignalCopy <- atomically $ dupTChan (snd $ hLocation routerH)
+    locationSignalCopy <- atomically $ dupTChan (snd $ hLocation $ routerH appH)
     void $ forkIO $ forever $ do
         path <- atomically $ do
             locPathname <$> readTChan locationSignalCopy
@@ -123,7 +126,7 @@ websocketApplication nauvaH headH routerH pendingConnection = do
             toSpine rootInstance
 
         headSpines <- atomically $ do
-            elements <- readTVar (hElements headH)
+            elements <- readTVar (hElements $ headH appH)
             instances <- map fst <$> mapM (instantiate (Path [])) elements
             mapM toSpine instances
 
@@ -135,7 +138,7 @@ websocketApplication nauvaH headH routerH pendingConnection = do
         toSpine rootInstance
 
     headSpines <- atomically $ do
-        elements <- readTVar (hElements headH)
+        elements <- readTVar (hElements $ headH appH)
         instances <- map fst <$> mapM (instantiate (Path [])) elements
         mapM toSpine instances
 
@@ -164,7 +167,7 @@ websocketApplication nauvaH headH routerH pendingConnection = do
                         void $ dispatchRef nauvaH path value
 
                     (LocationM path) -> do
-                        hPush routerH path
+                        hPush (routerH appH) path
 
 
 data Message

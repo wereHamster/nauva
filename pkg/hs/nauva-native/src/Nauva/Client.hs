@@ -160,10 +160,10 @@ hookHandler accessor h path = do
                             actions <- lift $ do
                                 state <- takeTMVar stateRef
                                 let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
-                                newInst <- instantiate $ renderComponent component (componentProps state) newState
+                                (newInst, _effects) <- instantiate path $ renderComponent component (componentProps state) newState
                                 putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                                 -- traceShowM path
-                                writeTChan (changeSignal h) (ChangeComponent path $ IComponent component stateRef)
+                                writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
                                 pure actions
 
                             pure $ (Effect (ComponentInstance path component stateRef) actions, ioAction)
@@ -197,7 +197,7 @@ attachRefHandler h refsVar path jsVal = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
         case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ attrs _) -> do
+            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ _ attrs _) -> do
                 let mbRef = refFromAttributes attrs
                 let mbRefKey = mbRef >>= \(Ref mbRefKey _ _) -> mbRefKey
                 case mbRefKey of
@@ -223,9 +223,9 @@ attachRefHandler h refsVar path jsVal = do
         Left e -> do
             print e
             pure $ Left e
-        Right (effect, ioAction) -> do
+        Right (effects, ioAction) -> do
             ioAction
-            executeEffects h [effect]
+            executeEffects h effects
             pure $ Right ()
 
 
@@ -234,7 +234,7 @@ detachRefHandler h refsVar path = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
         case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ attrs _) -> do
+            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ _ attrs _) -> do
                 let mbRef = refFromAttributes attrs
                 let mbRefKey = mbRef >>= \(Ref mbRefKey _ _) -> mbRefKey
                 case mbRefKey of
@@ -258,9 +258,9 @@ detachRefHandler h refsVar path = do
 
     case res of
         Left e -> pure $ Left e
-        Right (effect, ioAction) -> do
+        Right (effects, ioAction) -> do
             ioAction
-            executeEffects h [effect]
+            executeEffects h effects
             pure $ Right ()
 
 
@@ -278,8 +278,8 @@ dispatchNodeEventHandler h refsVar path fid ev = do
         (mbSCI, inst) <- contextForPath h path
         (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef), attrs) <- do
             case (mbSCI, inst) of
-                (Just sci, INode _ attrs _) -> pure (sci, attrs)
-                _                           -> throwError $ "dispatchNodeEventHandler: " ++ show (unPath path)
+                (Just sci, INode _ _ attrs _) -> pure (sci, attrs)
+                _                             -> throwError $ "dispatchNodeEventHandler: " ++ show (unPath path)
 
         -- Find the correct 'EventListener'.
         --
@@ -309,9 +309,9 @@ dispatchNodeEventHandler h refsVar path fid ev = do
     case res of
         Left e -> do
             pure $ Left e
-        Right (effect, ioAction) -> do
+        Right (effects, ioAction) -> do
             ioAction
-            executeEffects h [effect]
+            executeEffects h effects
             pure $ Right ()
 
 
@@ -350,9 +350,9 @@ dispatchComponentEventHandler h refsVar path fid ev = do
 
     case res of
         Left e -> pure $ Left e
-        Right (effect, ioAction) -> do
+        Right (effects, ioAction) -> do
             ioAction
-            executeEffects h [effect]
+            executeEffects h effects
             pure $ Right ()
 
 foreign import javascript unsafe "$r = $1"
@@ -403,11 +403,11 @@ instanceToJSVal = go []
   where
     go :: [Key] -> Instance -> STM JSVal
     go path inst = case inst of
-        (INull) -> pure js_null
+        (INull _) -> pure js_null
 
-        (IText text) -> pure $ jsval $ textToJSString text
+        (IText _ text) -> pure $ jsval $ textToJSString text
 
-        (INode tag attrs children) -> do
+        (INode _ tag attrs children) -> do
             newChildren <- forM children $ \(key, childI) -> do
                 newChild <- instanceToJSVal childI
                 key' <- case key of
@@ -451,10 +451,10 @@ instanceToJSVal = go []
 
                 pure $ jsval o
 
-        (IThunk _ _ childI) ->
+        (IThunk _ _ _ childI) ->
             instanceToJSVal childI
 
-        (IComponent component stateRef) -> do
+        (IComponent _ component stateRef) -> do
             state <- readTMVar stateRef
             spine <- instanceToJSVal $ componentInstance state
 

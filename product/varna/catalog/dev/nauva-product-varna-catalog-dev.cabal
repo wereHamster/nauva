@@ -12,6 +12,6 @@ executable nauva-product-varna-catalog-dev
 
   build-depends:
      base >= 4.7 && < 5
-   , nauva-product-varna-shared
-   , nauva-catalog
+   , nauva
    , nauva-dev-server
+   , nauva-product-varna-shared

@@ -12,6 +12,8 @@ executable nauva-product-template-app-dev
 
   build-depends:
      base >= 4.7 && < 5
+   , nauva
    , nauva-dev-server
    , nauva-product-template-shared
-   , blaze-html
+   , text
+   , template-haskell

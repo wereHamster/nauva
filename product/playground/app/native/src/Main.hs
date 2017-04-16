@@ -11,4 +11,4 @@ import           Nauva.Product.Playground.Shared
 main :: IO ()
 main = do
     putStrLn "playground/app/native"
-    runClient (Config (rootElement 1))
+    runClient (Config (\_ -> rootElement 1))
