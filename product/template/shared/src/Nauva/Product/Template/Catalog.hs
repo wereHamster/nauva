@@ -19,6 +19,7 @@ catalogApp = App
     { rootElement = \appH -> catalog $ CatalogProps (headH appH) (routerH appH) catalogPages
     }
 
+
 catalogPages :: [Page]
 catalogPages =
     [ PLeaf Leaf

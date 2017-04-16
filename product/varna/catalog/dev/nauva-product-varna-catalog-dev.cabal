@@ -6,13 +6,12 @@ cabal-version:       >=1.10
 
 executable nauva-product-varna-catalog-dev
   default-language:    Haskell2010
-  main-is:             src/Main.hs
+  main-is:             Main.hs
 
   ghc-options:         -Wall -Wno-type-defaults
 
   build-depends:
      base >= 4.7 && < 5
    , nauva-product-varna-shared
-   , blaze-html
    , nauva-catalog
    , nauva-dev-server

@@ -2,16 +2,25 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuasiQuotes           #-}
 
-module Nauva.Product.Nauva.Catalog (catalogPages) where
+module Nauva.Product.Nauva.Catalog (catalogApp) where
 
+
+import           Nauva.App
 
 import           Nauva.Internal.Types
 
+import           Nauva.Catalog
 import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
 
 import           Nauva.Product.Nauva.Element.Message as Message
 
+
+
+catalogApp :: App
+catalogApp = App
+    { rootElement = \appH -> catalog $ CatalogProps (headH appH) (routerH appH) catalogPages
+    }
 
 
 catalogPages :: [Page]
