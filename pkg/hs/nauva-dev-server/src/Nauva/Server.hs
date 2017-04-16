@@ -48,11 +48,6 @@ data Config = Config
     { cElement :: HeadH -> RouterH -> Element
       -- ^ The root elment of the application. This will be rendered into the
       -- Handle once.
-
-    , cHead :: H.Html
-      -- ^ Extra stuff to inject into the HTML <head>. It is added /after/
-      -- the code that is needed by nauva. In particular, it means that
-      -- React and ReactDOM are available to scripts loaded here.
     }
 
 

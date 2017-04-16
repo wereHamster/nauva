@@ -14,7 +14,6 @@ import           Nauva.Service.Router
 main :: IO ()
 main = runServer $ Config
     { cElement = app
-    , cHead = mempty
     }
 
 
