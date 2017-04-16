@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Main (main) where
 
+
+import qualified Data.Text as T
 
 import           Nauva.App
 import           Nauva.Server
@@ -9,6 +12,8 @@ import           Nauva.View
 
 import           Nauva.Service.Head
 import           Nauva.Service.Router
+
+import           Language.Haskell.TH
 
 
 
@@ -44,7 +49,18 @@ header = div_ [style_ style]
         color "white"
 
 intro :: Element
-intro = p_ [style_ style] [str_ "To get started, edit ??? and save to reload."]
+intro = p_ [style_ style]
+    [ str_ "To get started, edit "
+    , code_ [str_ $ T.pack file]
+    , str_ " and save to reload."
+    ]
   where
     style = mkStyle $ do
         fontSize "large"
+
+    file :: String
+    file = $(do
+        loc <- location
+        let s = loc_filename loc
+        [| s |]
+      )
