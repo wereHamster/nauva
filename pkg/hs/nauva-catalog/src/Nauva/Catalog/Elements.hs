@@ -26,6 +26,9 @@ module Nauva.Catalog.Elements
     , CodeSpecimenProps(..)
     , codeSpecimen
 
+    , typefaceSpecimen
+    , typefaceSpecimen'
+
     , codeBlock
     ) where
 
@@ -36,6 +39,7 @@ import           Data.Monoid
 import           Data.Aeson
 import           Data.Typeable
 import           Data.Data
+import           Data.List
 
 import          Language.Haskell.TH.Syntax
 
@@ -360,3 +364,39 @@ codeSpecimen (CodeSpecimenProps {..}) c lang s = if cspNoSource
         width "100%"
         background "rgb(255, 255, 255)"
         border "1px solid rgb(238, 238, 238)"
+
+
+
+typefaceSpecimen :: Text -> Typeface -> Element
+typefaceSpecimen t tf = pageElement
+    (PageElementProps {pepTitle = Nothing, pepSpan = 6})
+    [div_ [style_ rootStyle]
+    [ div_ [style_ metaStyle] [str_ $ (tfName tf) <> " – " <> metaString]
+    , div_ [style_ previewStyle] [str_ t]
+    ]]
+  where
+    rootStyle = mkStyle $ do
+        display flex
+        flexDirection column
+
+    metaStyle = mkStyle $ do
+        color "black"
+        marginBottom "4px"
+        color "#666"
+        fontFamily "Roboto"
+        fontSize "16px"
+
+    metaString = mconcat $ intersperse ", "
+        [ unCSSValue (tfFontFamily tf)
+        , unCSSValue (tfFontWeight tf)
+        , unCSSValue (tfFontSize tf) <> "/" <> unCSSValue (tfLineHeight tf)
+        ]
+
+    previewStyle = mkStyle $ do
+        typeFace tf
+        padding "20px"
+        backgroundColor "white"
+        border "1px solid #eee"
+
+typefaceSpecimen' :: Typeface -> Element
+typefaceSpecimen' = typefaceSpecimen "A very bad quack might jinx zippy fowls"
