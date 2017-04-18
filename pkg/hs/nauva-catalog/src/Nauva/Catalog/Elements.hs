@@ -51,7 +51,6 @@ pageRoot c = div_ [style_ outerStyle] [div_ [style_ innerStyle] c]
 
     innerStyle = mkStyle $ do
         marginLeft "-16px"
-        maxWidth "64em"
         display flex
         flexFlow row wrap
         padding "48px 0px"
@@ -116,6 +115,7 @@ pageParagraph = p_ [style_ style]
         flexBasis "100%"
         margin "16px 0 0 0"
         paddingLeft "16px"
+        maxWidth "64em"
 
 
 
@@ -277,6 +277,7 @@ pageUL = ul_ [style_ style]
         listStyle "disc"
         marginTop "16px"
         marginBottom "0"
+        maxWidth "64em"
 
 pageOL :: [Element] -> Element
 pageOL = ol_ [style_ style]
@@ -297,6 +298,7 @@ pageOL = ol_ [style_ style]
         listStyle "disc"
         marginTop "16px"
         marginBottom "0"
+        maxWidth "64em"
 
 
 data PageElementProps = PageElementProps
