@@ -23,6 +23,8 @@ import qualified Data.Text as T
 import           Data.String
 import           Data.List (intersperse)
 
+import           Control.Monad
+
 import qualified Text.Blaze.Html     as B
 import qualified Text.Blaze.Internal as B
 
@@ -45,13 +47,13 @@ import           Prelude
 -- Attributes is not accurate: 'Nauva' models them after IDL attributes, while
 -- 'blaze-html' uses content attributes.
 
-elementToMarkup :: Element -> STM (B.Html, [Style])
+elementToMarkup :: Element -> STM (B.Html, [Style], [IO ()])
 elementToMarkup el = case el of
     ENull ->
-        pure (mempty, mempty)
+        pure (mempty, mempty, [])
 
     (EText text) ->
-        pure (B.toMarkup text, mempty)
+        pure (B.toMarkup text, mempty, [])
 
     (ENode tag attributes children) -> do
         let tagString = T.unpack $ unTag tag
@@ -73,16 +75,17 @@ elementToMarkup el = case el of
                 AVDouble d -> B.stringValue $ show d
             parentWithAttributes = foldl (B.!) parent attrs
 
-        (children', childrenStyles) :: (B.Html, [Style]) <- mconcat <$> mapM elementToMarkup children
+        (children', childrenStyles, childrenActions) :: (B.Html, [Style], [IO ()]) <- mconcat <$> mapM elementToMarkup children
         let html = parentWithAttributes children' B.! B.attribute (B.textTag "class") (B.textTag " class=\"") (B.textValue (mconcat (intersperse " " classes)))
-        pure (html, styles <> childrenStyles)
+        pure (html, styles <> childrenStyles, childrenActions)
 
     (EThunk thunk p) ->
         elementToMarkup $ forceThunk thunk p
 
     (EComponent component p) -> do
-        (s, _, _) <- initialComponentState component p
-        elementToMarkup $ renderComponent component p s
+        (s, _, actions) <- initialComponentState component p
+        (html, styles, innerActions) <- elementToMarkup $ renderComponent component p s
+        pure (html, styles, map void actions <> innerActions)
 
 
 
