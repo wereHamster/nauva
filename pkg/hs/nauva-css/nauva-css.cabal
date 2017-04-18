@@ -41,6 +41,7 @@ library
      Nauva.CSS
    , Nauva.CSS.Helpers
    , Nauva.CSS.Terms
+   , Nauva.CSS.Typeface
    , Nauva.CSS.Types
 
   build-depends:
