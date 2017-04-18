@@ -11,6 +11,7 @@ library
 
   exposed-modules:
      Nauva.Product.Nauva.Catalog
+   , Nauva.Product.Nauva.Element.Terminal
    , Nauva.Product.Nauva.Element.Message
 
   build-depends:

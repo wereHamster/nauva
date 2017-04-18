@@ -13,7 +13,8 @@ import           Nauva.Catalog
 import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
 
-import           Nauva.Product.Nauva.Element.Message as Message
+import           Nauva.Product.Nauva.Element.Terminal as Terminal
+import           Nauva.Product.Nauva.Element.Message  as Message
 
 
 
@@ -49,6 +50,11 @@ catalogPages =
         { directoryTitle = "Elements"
         , directoryChildren =
             [ Leaf
+                { leafHref = "/elements/terminal"
+                , leafTitle = "Terminal"
+                , leafElement = Terminal.catalogPage
+                }
+            , Leaf
                 { leafHref = "/elements/message"
                 , leafTitle = "Message"
                 , leafElement = Message.catalogPage

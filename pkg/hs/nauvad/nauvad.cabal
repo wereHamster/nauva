@@ -32,8 +32,7 @@ library
         nauva-product-nauva-shared,
         extra >= 1.2,
         process >= 1.1,
-        cmdargs >= 0.10,
-        terminal-size >= 0.3
+        cmdargs >= 0.10
 
     exposed-modules:
         Language.Haskell.Ghcid

@@ -48,6 +48,7 @@ messageEl props = div_ [style_ rootStyle]
 
     filePathStyle :: Style
     filePathStyle = mkStyle $ do
+        fontFamily "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\""
         fontSize "14px"
         padding (px 8) (px 12)
         case severity props of

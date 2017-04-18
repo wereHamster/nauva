@@ -4,7 +4,7 @@
 
 
 -- | The application entry point
-module Ghcid(main, mainWithTerminal) where
+module Ghcid (main) where
 
 import Control.Exception
 import System.IO.Error
@@ -13,9 +13,7 @@ import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
 import Session
-import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
-import System.Console.ANSI
 import System.Directory.Extra
 import System.Exit
 import System.FilePath
@@ -57,12 +55,173 @@ import           Snap.Util.FileServe (serveDirectory)
 import           Snap.Blaze          (blaze)
 
 import           Nauva.Handle
-import           Nauva.View hiding (Style, width, height)
+import           Nauva.View
 
 import           Nauva.Product.Nauva.Element.Message (messageEl, MessageProps(..), MessageSeverity(..))
+import           Nauva.Product.Nauva.Element.Terminal (terminalEl, TerminalProps(..))
 
 import           Settings
----
+
+
+{-
+
+# State Change Triggers (SCT)
+
+- SCT-1: client opens websocket connection
+- SCT-2: reading from the client websocket connection fails
+- SCT-3: writing to the client websocket connection fails
+
+- SCT-4: reading from the backend websocket connection fails
+- SCT-5: writing to the backend websocket connection fails
+
+- SCT-6: ghcid session has started the test command
+
+- SCT-7: ghcid test command has exited
+
+-}
+
+--
+
+data State = State
+    { _clientConnection :: Maybe (WS.Connection, ThreadId)
+    , _backendConnection :: Maybe (WS.Connection, ThreadId)
+
+    , _backendPort :: Maybe Int
+      -- The port number allocated for the backend. Everytime the backend
+      -- is recompiled and restarted a new port is allocated so that the
+      -- backend can immediately bind to it.
+
+    , _sessionOutput :: [Text]
+     -- ^ The raw output from the current run (reload) of the GHCi session.
+
+    , _sessionMessages :: [Load]
+      -- ^ The latest batch of messages produced by the current session.
+    }
+
+
+sendToClient :: TVar State -> NVDMessage -> IO ()
+sendToClient stateVar msg = do
+    mbClientConnection <- _clientConnection <$> atomically (readTVar stateVar)
+    case mbClientConnection of
+        Nothing -> pure ()
+        Just (conn, _) -> WS.sendTextData conn (A.encode msg) `catch`
+            \(_ :: IOException) -> shutdownClientConnection stateVar -- SCT-3
+
+
+appendLine :: TVar State -> Text -> IO ()
+appendLine stateVar line = do
+    atomically $ modifyTVar' stateVar (\s -> s { _sessionOutput = _sessionOutput s <> [line] })
+
+
+registerClientConnection :: TVar State -> (WS.Connection, ThreadId) -> IO ()
+registerClientConnection stateVar clientConnection = do
+    atomically $ modifyTVar' stateVar $ \s ->
+        s { _clientConnection = Just clientConnection }
+
+
+shutdownClientConnection :: TVar State -> IO ()
+shutdownClientConnection stateVar = do
+    mbClientConnection <- atomically $ do
+        state <- readTVar stateVar
+        modifyTVar' stateVar $ \s -> s { _clientConnection = Nothing }
+        pure $ _clientConnection state
+
+    case mbClientConnection of
+        Nothing -> pure ()
+        Just (_, threadId) -> killThread threadId
+
+
+registerBackendConnection :: TVar State -> (WS.Connection, ThreadId) -> IO ()
+registerBackendConnection stateVar backendConnection = do
+    atomically $ modifyTVar' stateVar $ \s ->
+        s { _backendConnection = Just backendConnection }
+
+
+shutdownBackendConnection :: TVar State -> IO ()
+shutdownBackendConnection stateVar = do
+    mbBackendConnection <- atomically $ do
+        state <- readTVar stateVar
+        modifyTVar' stateVar $ \s -> s { _backendConnection = Nothing }
+        pure $ _backendConnection state
+
+    case mbBackendConnection of
+        Nothing -> pure ()
+        Just (_, threadId) -> killThread threadId
+
+
+connectToBackend :: TVar State -> Int -> IO ()
+connectToBackend stateVar portNumber = void $ forkIO $ go `catches`
+    [ Handler $ \(_ :: IOException) -> do -- SCT-4
+        -- Immediately retry to establish the connection to the backend.
+        currentBackendPort <- _backendPort <$> atomically (readTVar stateVar)
+        if currentBackendPort == Just portNumber
+            then connectToBackend stateVar portNumber
+            else pure ()
+
+    , Handler $ warnSomeException "connectToBackend"
+    ]
+
+  where
+    go = WS.runClient "localhost" portNumber "/_nauva" $ \conn -> do
+        shutdownBackendConnection stateVar
+        threadId <- myThreadId
+        registerBackendConnection stateVar (conn, threadId)
+
+        forever $ do
+            datum <- WS.receiveData conn
+            case A.eitherDecode datum of
+                Right ("spine" :: Text, v :: A.Value, headElements :: A.Value) -> do
+                    sendToClient stateVar $ NVDMSpineRaw v headElements
+
+                Right ("location", v, _) -> do
+                    sendToClient stateVar $ NVDMLocationRaw v
+
+                _ -> do
+                    putStrLn "Failed to decode message"
+                    print datum
+
+
+
+-- SCT-1
+handleClient :: TVar State -> WS.PendingConnection -> IO ()
+handleClient stateVar pendingConnection = do
+    conn <- WS.acceptRequest pendingConnection
+    WS.forkPingThread conn 5
+
+    threadId <- myThreadId
+    registerClientConnection stateVar (conn, threadId)
+
+    pump conn `catches`
+        [ Handler $ \(_ :: IOException) ->
+            shutdownClientConnection stateVar -- SCT-2
+
+        , Handler $ warnSomeException "handleClient/pump"
+        ]
+
+  where
+    pump conn = forever $ do
+        d <- WS.receiveData conn
+        sendMessage d
+
+    sendMessage :: Text -> IO ()
+    sendMessage d = do
+        mbBackendConnection <- _backendConnection <$> atomically (readTVar stateVar)
+        case mbBackendConnection of
+            Nothing -> pure ()
+            Just (conn, _) -> WS.sendTextData conn d `catches`
+                [ Handler $ \(_ :: IOException) ->
+                    shutdownBackendConnection stateVar -- SCT-5
+
+                , Handler $ warnSomeException "handleClient/sendMessage"
+                ]
+
+warnSomeException :: String -> SomeException -> IO ()
+warnSomeException f (SomeException e) = do
+    let rep = typeOf e
+        tyCon = typeRepTyCon rep
+    putStrLn $ "## " ++ f ++ " Exception: Type " ++ show rep ++ " from module " ++ tyConModule tyCon ++ " from package " ++ tyConPackage tyCon
+
+
 
 -- | Command line options
 data Options = Options
@@ -70,16 +229,9 @@ data Options = Options
     ,arguments :: [String]
     ,test :: [String]
     ,warnings :: Bool
-    ,no_status :: Bool
-    ,height :: Maybe Int
-    ,width :: Maybe Int
-    ,topmost :: Bool
-    ,no_title :: Bool
-    ,project :: String
     ,reload :: [FilePath]
     ,restart :: [FilePath]
     ,directory :: FilePath
-    ,outputfile :: [FilePath]
     }
     deriving (Data,Typeable,Show)
 
@@ -89,16 +241,9 @@ options = cmdArgsMode $ Options
     ,arguments = [] &= args &= typ "MODULE"
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
-    ,no_status = False &= name "S" &= help "Suppress status messages"
-    ,height = Nothing &= help "Number of lines to use (defaults to console height)"
-    ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
-    ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
-    ,no_title = False &= help "Don't update the shell title/icon"
-    ,project = "" &= typ "NAME" &= help "Name of the project, defaults to current directory"
     ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file)"
     ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
-    ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     } &= verbosity &=
     program "nauvad" &= summary ("Auto reloading GHCi daemon")
 
@@ -159,49 +304,24 @@ autoOptions o@Options{..}
                  | otherwise = x
 
 
--- | Like 'main', but run with a fake terminal for testing
-mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
-mainWithTerminal termSize termOutput = withSession $ \session -> do
+main :: IO ()
+main = withSession $ \session -> do
     -- On certain Cygwin terminals stdout defaults to BlockBuffering
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr NoBuffering
+
     opts <- cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
         opts <- autoOptions opts
         opts <- return $ opts{restart = nubOrd $ restart opts, reload = nubOrd $ reload opts}
 
-        termSize <- return $ case (width opts, height opts) of
-            (Just w, Just h) -> return (w,h)
-            (w, h) -> do
-                term <- termSize
-                -- if we write to the final column of the window then it wraps automatically
-                -- so putStrLn width 'x' uses up two lines
-                return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
-
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter termSize termOutput opts
+                runGhcid session waiter opts
 
 
-
-main :: IO ()
-main = mainWithTerminal termSize termOutput
-    where
-        termSize = maybe (80, 8) (Term.width &&& Term.height) <$> Term.size
-
-        termOutput xs = do
-            pure ()
-            -- outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
-            --     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
-            --     putStr $ concatMap ((:) '\n' . snd) x
-            --     when (s == Bold) $ setSGR []
-            -- hFlush stdout -- must flush, since we don't finish with a newline
-
-
-data Style = Plain | Bold deriving Eq
-
-server :: Int -> TChan NVDMessage -> TMVar WS.Connection -> IO ()
-server port chan connTMVar = do
+server :: Int -> TVar State -> IO ()
+server port stateVar = do
     let startupHook _ = do
             callProcess "open" ["http://localhost:" <> show port <> "/"]
             pure ()
@@ -215,7 +335,7 @@ server port chan connTMVar = do
     staticApp <- mkStaticSettings
 
     httpServe config $ foldl1 (<|>)
-        [ Snap.path "_nauva" (runWebSocketsSnap (websocketApplication chan connTMVar))
+        [ Snap.path "_nauva" (runWebSocketsSnap (handleClient stateVar))
 
           -- Static files required by nauvad itself.
         , staticApp
@@ -226,32 +346,6 @@ server port chan connTMVar = do
           -- index.html
         , blaze $ index port
         ]
-
-websocketApplication :: TChan NVDMessage -> TMVar WS.Connection -> WS.PendingConnection -> IO ()
-websocketApplication chan connTMVar pendingConnection = do
-    conn <- WS.acceptRequest pendingConnection
-    WS.forkPingThread conn 5
-
-    chanCopy <- atomically $ dupTChan chan
-    void $ forkIO $ forever $ do
-        msg <- atomically $ readTChan chanCopy
-        WS.sendTextData conn $ A.encode msg
-
-    WS.sendTextData conn $ A.encode NVDMLoading
-
-    -- Forever read messages from the WebSocket and process.
-    forever $ do
-        d <- WS.receiveData conn
-        -- print $ "recv: " <> d
-        mbOutConn <- atomically $ tryReadTMVar connTMVar
-        case mbOutConn of
-            Nothing -> do
-                -- print "no out connection"
-                pure ()
-            Just outConn -> do
-                -- print $ "out: " <> d
-                WS.sendTextData outConn (d :: Text) `catch` \(e :: WS.ConnectionException) -> pure ()
-
 
 index :: Int -> H.Html
 index port = H.docTypeHtml $ do
@@ -266,9 +360,18 @@ index port = H.docTypeHtml $ do
         H.script H.! A.src "/nauva-dev-server.js" $ ""
 
 
-runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO ()
-runGhcid session waiter termSize termOutput opts@Options{..} = do
+runGhcid :: Session -> Waiter -> Options -> IO ()
+runGhcid session waiter opts@Options{..} = do
     port <- fromIntegral <$> findPort 8000
+    stateVar <- newTVarIO $ State
+        { _clientConnection = Nothing
+        , _backendConnection = Nothing
+        , _backendPort = Nothing
+        , _sessionOutput = []
+        , _sessionMessages = []
+        }
+
+    _ <- forkIO $ server port stateVar
 
     putStrLn ""
     putStrLn ""
@@ -276,39 +379,20 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
     putStrLn ""
     putStrLn ""
 
-    chan <- newTChanIO
-    connTMVar <- newEmptyTMVarIO
-    _ <- forkIO $ server port chan connTMVar
-
-    echoTVar <- newTVarIO []
-
     let echo _ s = do
-            strs <- atomically $ do
-                modifyTVar' echoTVar (\x -> x <> [T.pack s])
-                readTVar echoTVar
-
-            let els = (flip map) strs $ \str -> div_ [style_ $ mkStyle (whiteSpace "nowrap" >> overflow "hidden" >> cssTerm "text-overflow" "ellipsis")] [str_ str]
-
+            appendLine stateVar (T.pack s)
+            strs <- _sessionOutput <$> atomically (readTVar stateVar)
             spine <- atomically $ do
-                (inst, _effects) <- instantiate (Path []) (div_ [style_ $ mkStyle (fontSize "12px" >> lineHeight "16px" >> fontFamily "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace" >> backgroundColor "black" >> color "white" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] els)
+                (inst, _effects) <- instantiate (Path []) (div_ [style_ $ mkStyle (backgroundColor "black" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] [terminalEl $ TerminalProps { terminalLines = strs }])
                 toSpine inst
-            atomically $ writeTChan chan $ NVDMSpine spine
-
-
-    let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
-        outputFill load msg = do
-            (width, height) <- termSize
-            let n = height - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput (maybe 0 fst load)
-                [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
-                | m@Message{} <- maybe [] snd load]
-            termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
+            sendToClient stateVar $ NVDMSpine spine
 
     restartTimes <- mapM getModTime restart
-    curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages/loaded
     let fire nextWait (messages, loaded) = do
+            atomically $ modifyTVar' stateVar $ \s -> s { _sessionMessages = messages }
+
             let loadedCount = length loaded
             whenLoud $ do
                 outStrLn $ "%MESSAGES: " ++ show messages
@@ -323,7 +407,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             case (countErrors, countWarnings) of
                 (0, _) -> do
-                    atomically $ do writeTChan chan NVDMGood
+                    sendToClient stateVar $ NVDMGood
                     -- spine <- atomically $ do
                     --     inst <- instantiate (div_ [str_ "good"])
                     --     toSpine inst
@@ -356,114 +440,37 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     spine <- atomically $ do
                         (inst, _effects) <- instantiate (Path []) (div_ [style_ $ mkStyle (backgroundColor "black" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] children)
                         toSpine inst
-                    atomically $ writeTChan chan $ NVDMSpine spine
+                    sendToClient stateVar $ NVDMSpine spine
                     pure ()
 
-            let updateTitle extra = unless no_title $ setTitle $
-                    let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
-                    in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
-                       (if countErrors >  0 && countWarnings >  0 then ", " else "") ++ f countWarnings "warning") ++
-                       " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++
-                       (if null project then takeFileName curdir else project)
+            backendPort <- fromIntegral <$> findPort 9000
+            atomically $ modifyTVar' stateVar $ \s -> s { _backendPort = Just backendPort }
 
-            updateTitle $ if isJust test then "(running test)" else ""
-            outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
-
-            appPort <- fromIntegral <$> findPort 9000
-
-            wsClientThreadIdTMVar <- newEmptyTMVarIO
-            let runClient :: IO ()
-                runClient = do
-                    -- print "runClient"
-                    mbConn <- atomically $ tryTakeTMVar connTMVar
-                    case mbConn of
-                        Nothing -> pure ()
-                        Just conn -> do
-                            WS.sendClose conn ("Bye!" :: Text) `catch` \(e :: SomeException) -> do
-                                pure ()
-
-                            let drain = WS.receiveDataMessage conn >> drain
-                            drain `catch`  \(e :: SomeException) -> do
-                                pure ()
-
-                    void $ forkIO $ do
-                        mbOldThreadId <- atomically $ tryTakeTMVar wsClientThreadIdTMVar
-                        case mbOldThreadId of
-                            Nothing -> pure ()
-                            Just tId -> killThread tId
-
-                        threadId <- myThreadId
-                        atomically $ putTMVar wsClientThreadIdTMVar threadId
-
-                        -- print $ "run WS Client -> " ++ show appPort
-
-                        let go = WS.runClient "localhost" appPort "/_nauva" $ \conn -> do
-                                -- print "Registering out conn"
-                                atomically $ putTMVar connTMVar conn
-                                forever $ do
-                                    datum <- WS.receiveData conn
-                                    case A.eitherDecode datum of
-                                        Left e -> do
-                                            putStrLn "Failed to decode message"
-                                            print datum
-                                            print e
-
-                                        Right ("spine" :: Text, v :: A.Value, headElements :: A.Value) -> do
-                                            atomically $ writeTChan chan $ NVDMSpineRaw v headElements
-                                            pure ()
-
-                                        Right ("location", v, _) -> do
-                                            atomically $ writeTChan chan $ NVDMLocationRaw v
-                                            pure ()
-
-                                        _ -> do
-                                            putStrLn "Failed to decode message"
-                                            print datum
-                                    pure ()
-
-                        go `catches`
-                            [ Handler $ \(e :: IOException) -> do
-                                -- print e
-                                runClient
-
-                            , Handler $ \(SomeException e) -> do
-                                -- print "catch in go"
-                                let rep = typeOf e
-                                    tyCon = typeRepTyCon rep
-                                putStrLn $ "## Exception: Type " ++ show rep ++ " from module " ++ tyConModule tyCon ++ " from package " ++ tyConPackage tyCon
-                            ]
-
-                        pure ()
-
-            runClient
-
-            forM_ outputfile $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
             when (null loaded) $ do
                 putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
-                sessionExecAsync session (t ++ " " ++ (show appPort)) $ \stderr -> do
+                sessionExecAsync session (t ++ " " ++ (show backendPort)) $ \stderr -> do
                     whenLoud $ outStrLn "%TESTING: Completed"
                     hFlush stdout -- may not have been a terminating newline from test output
-                    if "*** Exception: " `isPrefixOf` stderr then do
-                        updateTitle "(test failed)"
-                     else
-                        updateTitle "(test done)"
+
+            -- SCT-6
+            connectToBackend stateVar backendPort
 
             reason <- nextWait $ restart ++ reload ++ loaded
-
             -- One or more files have been modified. Reload the session or restart GHCi.
 
-            unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
-            atomically $ do writeTChan chan NVDMLoading
+            atomically $ modifyTVar' stateVar $ \s -> s { _backendPort = Nothing, _sessionOutput = [] }
+            shutdownBackendConnection stateVar
+
+            sendToClient stateVar NVDMLoading
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session echo
             else do
-                runGhcid session waiter termSize termOutput opts
+                runGhcid session waiter opts
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session echo command
@@ -471,11 +478,3 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
         exitFailure
     fire nextWait (messages, loaded)
-
-
--- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Int -> [Load] -> [(Style,String)]
-prettyOutput loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
-prettyOutput loaded xs = concat $ msg1:msgs
-    where (err, warn) = partition ((==) Error . loadSeverity) xs
-          msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
