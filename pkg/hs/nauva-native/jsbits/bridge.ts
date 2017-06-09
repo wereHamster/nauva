@@ -16,12 +16,52 @@ class Context {
     fn: { [id: string]: { [path: string]: any } } = {};
 }
 
+class HeadElement extends React.Component {
+    props: {
+        el: any
+    }
+
+    elementClone: null | Node = null;
+
+    ref: null | Node = null;
+    refFn = (ref: null | Node) => {
+        this.ref = ref;
+        this.update();
+    };
+
+    update = () => {
+        if (this.elementClone !== null) {
+            document.head.removeChild(this.elementClone);
+        }
+
+        const ref = this.ref;
+        if (ref) {
+            this.elementClone = ref.childNodes.item(0).cloneNode(true);
+            document.head.appendChild(this.elementClone);
+        }
+    }
+
+    shouldComponentUpdate(nextProps) {
+        const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        return !deepEqual(this.props.el, nextProps.el);
+    }
+
+    componentDidUpdate() {
+        this.update();
+    }
+
+    render() {
+        return React.createElement('div', {ref: this.refFn}, this.props.el);
+    }
+}
+
 class ClientH {
     rafId: number = undefined;
     componentRegistry: Map<ComponentId, any> = new Map;
     rootContext = new Context;
 
     components: Map<string, any> = new Map;
+    headFragment: any = document.createDocumentFragment();
 
     constructor
         ( public appE: HTMLElement
@@ -32,6 +72,12 @@ class ClientH {
         , public componentDidMount: any
         , public componentWillUnmount: any
         ) {}
+
+    renderHead(elements: any): void {
+        ReactDOM.render(React.createElement('div', {}, ...elements
+            .map(x => spineToReact(this, [], this.rootContext, x, undefined))
+            .map(el => React.createElement(HeadElement, { el }))), this.headFragment);
+    }
 
     renderSpine(spine: any): void {
         if (this.rafId !== undefined) {

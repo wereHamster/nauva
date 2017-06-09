@@ -3,6 +3,37 @@ class Context {
         this.fn = {};
     }
 }
+class HeadElement extends React.Component {
+    constructor() {
+        super(...arguments);
+        this.elementClone = null;
+        this.ref = null;
+        this.refFn = (ref) => {
+            this.ref = ref;
+            this.update();
+        };
+        this.update = () => {
+            if (this.elementClone !== null) {
+                document.head.removeChild(this.elementClone);
+            }
+            const ref = this.ref;
+            if (ref) {
+                this.elementClone = ref.childNodes.item(0).cloneNode(true);
+                document.head.appendChild(this.elementClone);
+            }
+        };
+    }
+    shouldComponentUpdate(nextProps) {
+        const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        return !deepEqual(this.props.el, nextProps.el);
+    }
+    componentDidUpdate() {
+        this.update();
+    }
+    render() {
+        return React.createElement('div', { ref: this.refFn }, this.props.el);
+    }
+}
 class ClientH {
     constructor(appE, dispatchComponentEvent, dispatchNodeEvent, attachRef, detachRef, componentDidMount, componentWillUnmount) {
         this.appE = appE;
@@ -16,6 +47,12 @@ class ClientH {
         this.componentRegistry = new Map;
         this.rootContext = new Context;
         this.components = new Map;
+        this.headFragment = document.createDocumentFragment();
+    }
+    renderHead(elements) {
+        ReactDOM.render(React.createElement('div', {}, ...elements
+            .map(x => spineToReact(this, [], this.rootContext, x, undefined))
+            .map(el => React.createElement(HeadElement, { el }))), this.headFragment);
     }
     renderSpine(spine) {
         if (this.rafId !== undefined) {

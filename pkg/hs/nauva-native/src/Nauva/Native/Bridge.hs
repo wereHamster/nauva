@@ -11,6 +11,7 @@ module Nauva.Native.Bridge
 
     , Bridge(..)
     , newBridge
+    , renderHead
     , renderSpine
     , renderSpineAtPath
     ) where
@@ -97,6 +98,9 @@ newtype Bridge = Bridge { unBridge :: JSVal }
 foreign import javascript unsafe "newBridge($1, $2)" js_newBridge
     :: DOMElement -> JSVal -> IO Bridge
 
+foreign import javascript unsafe "$1.renderHead($2)" js_renderHead
+    :: Bridge -> JSVal -> IO ()
+
 foreign import javascript unsafe "$1.renderSpine($2)" js_renderSpine
     :: Bridge -> JSVal -> IO ()
 
@@ -166,6 +170,9 @@ newBridge el impl = do
 
     js_newBridge el callbacks
 
+
+renderHead :: Bridge -> JSVal -> IO ()
+renderHead = js_renderHead
 
 renderSpine :: Bridge -> JSVal -> IO ()
 renderSpine = js_renderSpine

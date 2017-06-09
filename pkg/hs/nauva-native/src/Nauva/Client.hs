@@ -3,8 +3,7 @@
 {-# LANGUAGE RankNTypes        #-}
 
 module Nauva.Client
-    ( Config(..)
-    , runClient
+    ( runClient
     ) where
 
 
@@ -30,11 +29,15 @@ import           Control.Monad.Writer.Lazy
 
 import           System.IO.Unsafe
 
+import           Nauva.App
 import           Nauva.Handle
 import           Nauva.Internal.Types
 import           Nauva.View
 import           Nauva.NJS.Eval
+
+import           Nauva.Service.Head
 import           Nauva.Service.Router
+
 import           Nauva.Native.Bridge
 
 import           GHCJS.Types
@@ -53,52 +56,50 @@ import           Debug.Trace
 
 
 
-data Config = Config
-    { cElement :: RouterH -> Element
-      -- ^ The root elment of the application. This will be rendered into the
-      -- Handle once.
-    }
+newHeadH :: Handle -> Bridge -> IO HeadH
+newHeadH nauvaH bridge = do
+    var <- newTVarIO []
+    pure $ HeadH
+        { hElements = var
+        , hReplace = \newElements -> do
+            print (length newElements)
+            atomically $ writeTVar var newElements
+            processSignals nauvaH
+
+            h <- atomically $ do
+                instances <- mapM (\x -> fst <$> instantiate (Path []) x) newElements
+                mapM instanceToJSVal instances
+
+            renderHead bridge (jsval $ fromList h)
+        }
 
 
-data Handle = Handle
-    { nauvaH :: Nauva.Handle.Handle
-    }
+newRouterH :: Handle -> IO RouterH
+newRouterH nauvaH = do
+    var <- newTVarIO (Location "/")
+    chan <- newTChanIO
+
+    pure $ RouterH
+        { hLocation = (var, chan)
+        , hPush = \url -> do
+            putStrLn $ "Router hPush: " <> T.unpack url
+
+            atomically $ do
+                writeTVar var (Location url)
+                writeTChan chan (Location url)
+
+            processSignals nauvaH
+        }
 
 
-runClient :: Config -> IO ()
-runClient c = do
+
+runClient :: App -> IO ()
+runClient app = do
     appEl <- getElementById ("app" :: JSString)
 
     nauvaH <- newHandle
+
     refsVar <- newTVarIO (M.empty :: Map (ComponentId, RefKey) JSVal)
-
-    routerH <- do
-        var <- newTVarIO (Location "/")
-        chan <- newTChanIO
-
-        pure $ RouterH
-            { hLocation = (var, chan)
-            , hPush = \url -> do
-                putStrLn $ "Router hPush: " <> T.unpack url
-
-                atomically $ do
-                    writeTVar var (Location url)
-                    writeTChan chan (Location url)
-
-                processSignals nauvaH
-            }
-
-    render nauvaH (cElement c routerH)
-
-    locationSignalCopy <- atomically $ dupTChan (snd $ hLocation routerH)
-    void $ forkIO $ forever $ do
-        path <- atomically $ do
-            Location path <- readTChan locationSignalCopy
-            pure path
-
-        print path
-
-
     bridge <- newBridge appEl $ Impl
         { componentEventImpl = \path fid val -> void $ dispatchComponentEventHandler nauvaH refsVar path fid val
         , nodeEventImpl = \path fid val -> void $ dispatchNodeEventHandler nauvaH refsVar path fid val
@@ -107,6 +108,11 @@ runClient c = do
         , componentDidMountImpl = \path -> void $ componentDidMountHandler nauvaH path
         , componentWillUnmountImpl = \path -> void $ componentWillUnmountHandler nauvaH path
         }
+
+    routerH <- newRouterH nauvaH
+    headH <- newHeadH nauvaH bridge
+    appH <- AppH <$> pure headH <*> pure routerH
+    render nauvaH (rootElement app appH)
 
     changeSignalCopy <- atomically $ dupTChan (changeSignal nauvaH)
     void $ forkIO $ forever $ do
