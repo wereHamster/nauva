@@ -2,7 +2,7 @@
 
 module Nauva.CSS.Typeface
     ( Typeface(..)
-    , typeFace
+    , typeface
     ) where
 
 
@@ -41,12 +41,14 @@ data Typeface = Typeface
 
 -- | Apply the given 'Typeface' in a CSS block.
 --
+-- > someTypeface = Typeface "brandBodyCopy" "Helvetica, sans-serif" "normal" "16px" "1.4"
+--
 -- > rootStyle = mkStyle $ do
--- >     typeFace someTypeFace
+-- >     typeface someTypeface
 -- >     color "black"
 
-typeFace :: Typeface -> Writer [Statement] ()
-typeFace (Typeface {..}) = do
+typeface :: Typeface -> Writer [Statement] ()
+typeface (Typeface {..}) = do
     fontFamily tfFontFamily
     fontWeight tfFontWeight
     fontSize tfFontSize
