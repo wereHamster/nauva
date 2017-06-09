@@ -3,6 +3,7 @@
 module Nauva.CSS.Typeface
     ( Typeface(..)
     , typeface
+    , typeFace
     ) where
 
 
@@ -53,3 +54,6 @@ typeface (Typeface {..}) = do
     fontWeight tfFontWeight
     fontSize tfFontSize
     lineHeight tfLineHeight
+
+{-# DEPRECATED typeFace "Use typeface instead of typeFace (with capital F)" #-}
+typeFace = typeface
