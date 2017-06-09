@@ -393,7 +393,7 @@ typefaceSpecimen t tf = pageElement
         ]
 
     previewStyle = mkStyle $ do
-        typeFace tf
+        typeface tf
         padding "20px"
         backgroundColor "white"
         border "1px solid #eee"
