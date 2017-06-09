@@ -23,13 +23,13 @@ First install [stack], then:
 
     git clone https://github.com/wereHamster/nauva.git
     cd nauva
-    ./bin/dev playground/app
+    ./bin/dev template/app
 
 A browser should automatically open. If not then open [http://localhost:8000](http://localhost:8000)
 manually. Note: if port 8000 is already occupied the server will pick the next
 free port. See in the output which port the server has picked.
 
-Now edit the playground app source file (product/playground/app/dev/src/Main.hs),
+Now edit the template app source file (product/template/app/dev/src/Main.hs),
 save and observe how the UI instantly reloads to reflect your changes.
 
 
