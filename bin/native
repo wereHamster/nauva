@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+TOP="$PWD"
+
+function die () {
+    echo $1
+    exit 1
+}
+
+DIR="$TOP/product/$1/native"
+if ! test -d "$DIR"; then
+    die "$DIR does not exist!"
+fi
+
+cd $DIR
+exec stack exec stack -- --install-ghc build
