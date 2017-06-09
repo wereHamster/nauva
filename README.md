@@ -21,7 +21,7 @@ will follow later.
 
 First install [stack], then:
 
-    git clone https://github.com/wereHamster/navua.git
+    git clone https://github.com/wereHamster/nauva.git
     cd nauva
     ./bin/dev playground/app
 
