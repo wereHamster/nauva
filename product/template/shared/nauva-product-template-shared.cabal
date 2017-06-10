@@ -10,9 +10,12 @@ library
   ghc-options:         -Wall -Wno-type-defaults
 
   exposed-modules:
+     Nauva.Product.Template.App
      Nauva.Product.Template.Catalog
 
   build-depends:
      base >= 4.7 && < 5
+   , template-haskell
+   , text
    , nauva
    , nauva-catalog

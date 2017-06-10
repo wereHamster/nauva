@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Nauva.Server
+import Nauva.Client
 import Nauva.Product.Template.App
 
 main :: IO ()
-main = devServer app
+main = runClient app

@@ -10,8 +10,6 @@ import           Nauva.Client
 import           Nauva.Catalog
 import           Nauva.Product.Template.Catalog (catalogApp)
 
-import           Nauva.Service.Head
-import           Nauva.Service.Router
 
 
 main :: IO ()
