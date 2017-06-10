@@ -56,4 +56,5 @@ typeface (Typeface {..}) = do
     lineHeight tfLineHeight
 
 {-# DEPRECATED typeFace "Use typeface instead of typeFace (with capital F)" #-}
+typeFace :: Typeface -> Writer [Statement] ()
 typeFace = typeface
