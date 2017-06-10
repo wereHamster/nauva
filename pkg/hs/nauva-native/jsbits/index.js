@@ -35,8 +35,9 @@ class HeadElement extends React.Component {
     }
 }
 class ClientH {
-    constructor(appE, dispatchComponentEvent, dispatchNodeEvent, attachRef, detachRef, componentDidMount, componentWillUnmount) {
+    constructor(appE, sendLocation, dispatchComponentEvent, dispatchNodeEvent, attachRef, detachRef, componentDidMount, componentWillUnmount) {
         this.appE = appE;
+        this.sendLocation = sendLocation;
         this.dispatchComponentEvent = dispatchComponentEvent;
         this.dispatchNodeEvent = dispatchNodeEvent;
         this.attachRef = attachRef;
@@ -48,6 +49,19 @@ class ClientH {
         this.rootContext = new Context;
         this.components = new Map;
         this.headFragment = document.createDocumentFragment();
+        window.addEventListener('popstate', () => {
+            this.sendLocation(window.location.pathname);
+        });
+    }
+    pushLocation(path) {
+        try {
+            if (window.location.pathname !== path) {
+                window.history.pushState({}, '', path);
+            }
+        }
+        catch (e) {
+            console.error('ClientH::pushLocation', e);
+        }
     }
     renderHead(elements) {
         ReactDOM.render(React.createElement('div', {}, ...elements
@@ -283,5 +297,5 @@ function spineToReact(clientH, path, ctx, spine, key) {
     }
 }
 function newBridge(appE, callbacks) {
-    return new ClientH(appE, callbacks.componentEvent, callbacks.nodeEvent, callbacks.attachRef, callbacks.detachRef, callbacks.componentDidMount, callbacks.componentWillUnmount);
+    return new ClientH(appE, callbacks.sendLocation, callbacks.componentEvent, callbacks.nodeEvent, callbacks.attachRef, callbacks.detachRef, callbacks.componentDidMount, callbacks.componentWillUnmount);
 }

@@ -65,13 +65,28 @@ class ClientH {
 
     constructor
         ( public appE: HTMLElement
+        , public sendLocation: any
         , public dispatchComponentEvent: any
         , public dispatchNodeEvent: any
         , public attachRef: any
         , public detachRef: any
         , public componentDidMount: any
         , public componentWillUnmount: any
-        ) {}
+        ) {
+        window.addEventListener('popstate', () => {
+            this.sendLocation(window.location.pathname);
+        })
+    }
+
+    pushLocation(path: string): void {
+        try {
+            if (window.location.pathname !== path) {
+                window.history.pushState({}, '', path);
+            }
+        } catch (e) {
+            console.error('ClientH::pushLocation', e);
+        }
+    }
 
     renderHead(elements: any): void {
         ReactDOM.render(React.createElement('div', {}, ...elements
@@ -383,6 +398,7 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
 function newBridge(appE, callbacks) {
     return new ClientH
         ( appE
+        , callbacks.sendLocation
         , callbacks.componentEvent
         , callbacks.nodeEvent
         , callbacks.attachRef

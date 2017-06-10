@@ -11,6 +11,7 @@ module Nauva.Native.Bridge
 
     , Bridge(..)
     , newBridge
+    , pushLocation
     , renderHead
     , renderSpine
     , renderSpineAtPath
@@ -51,7 +52,8 @@ getElementById = js_getElementById
 
 
 data Impl = Impl
-    { componentEventImpl :: Path -> FID -> JSVal -> IO ()
+    { sendLocationImpl :: Text -> IO ()
+    , componentEventImpl :: Path -> FID -> JSVal -> IO ()
     , nodeEventImpl :: Path -> FID -> JSVal -> IO ()
     , attachRefImpl :: Path -> JSVal -> IO ()
     , detachRefImpl :: Path -> IO ()
@@ -66,7 +68,8 @@ data Impl = Impl
 -- interface so that the bridge can communicate with the DOM.
 
 data Callbacks = Callbacks
-    { componentEventCallback :: Callback (JSVal -> JSVal -> JSVal -> IO ())
+    { sendLocationCallback :: Callback (JSVal -> IO ())
+    , componentEventCallback :: Callback (JSVal -> JSVal -> JSVal -> IO ())
     , nodeEventCallback :: Callback (JSVal -> JSVal -> JSVal -> IO ())
     , attachRefCallback :: Callback (JSVal -> JSVal -> IO ())
     , detachRefCallback :: Callback (JSVal -> IO ())
@@ -78,6 +81,7 @@ instance ToJSVal Callbacks where
     toJSVal cb = do
         o <- O.create
 
+        O.setProp "sendLocation" (unsafeCoerce $ sendLocationCallback cb) o
         O.setProp "componentEvent" (unsafeCoerce $ componentEventCallback cb) o
         O.setProp "nodeEvent" (unsafeCoerce $ nodeEventCallback cb) o
         O.setProp "attachRef" (unsafeCoerce $ attachRefCallback cb) o
@@ -97,6 +101,9 @@ newtype Bridge = Bridge { unBridge :: JSVal }
 
 foreign import javascript unsafe "newBridge($1, $2)" js_newBridge
     :: DOMElement -> JSVal -> IO Bridge
+
+foreign import javascript unsafe "$1.pushLocation($2)" js_pushLocation
+    :: Bridge -> JSVal -> IO ()
 
 foreign import javascript unsafe "$1.renderHead($2)" js_renderHead
     :: Bridge -> JSVal -> IO ()
@@ -132,6 +139,10 @@ instance FromJSVal Path where
 
 newBridge :: DOMElement -> Impl -> IO Bridge
 newBridge el impl = do
+    sendLocationCallback <- syncCallback1 ContinueAsync $ \vPath -> do
+        path <- fromJSValUnchecked vPath
+        sendLocationImpl impl path
+
     componentEventCallback <- syncCallback3 ContinueAsync $ \vPath vFID vEvent -> do
         path <- fromJSValUnchecked vPath
         fid <- FID <$> fromJSValUnchecked vFID
@@ -160,7 +171,8 @@ newBridge el impl = do
 
 
     callbacks <- toJSVal $ Callbacks
-        { componentEventCallback       = componentEventCallback
+        { sendLocationCallback         = sendLocationCallback
+        , componentEventCallback       = componentEventCallback
         , nodeEventCallback            = nodeEventCallback
         , attachRefCallback            = attachRefCallback
         , detachRefCallback            = detachRefCallback
@@ -170,6 +182,9 @@ newBridge el impl = do
 
     js_newBridge el callbacks
 
+
+pushLocation :: Bridge -> JSVal -> IO ()
+pushLocation = js_pushLocation
 
 renderHead :: Bridge -> JSVal -> IO ()
 renderHead = js_renderHead

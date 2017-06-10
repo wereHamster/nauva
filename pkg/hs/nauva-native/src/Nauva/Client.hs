@@ -98,10 +98,12 @@ runClient app = do
     appEl <- getElementById ("app" :: JSString)
 
     nauvaH <- newHandle
+    routerH <- newRouterH nauvaH
 
     refsVar <- newTVarIO (M.empty :: Map (ComponentId, RefKey) JSVal)
     bridge <- newBridge appEl $ Impl
-        { componentEventImpl = \path fid val -> void $ dispatchComponentEventHandler nauvaH refsVar path fid val
+        { sendLocationImpl = \path -> void $ hPush routerH path
+        , componentEventImpl = \path fid val -> void $ dispatchComponentEventHandler nauvaH refsVar path fid val
         , nodeEventImpl = \path fid val -> void $ dispatchNodeEventHandler nauvaH refsVar path fid val
         , attachRefImpl = \path val -> void $ attachRefHandler nauvaH refsVar path val
         , detachRefImpl = \path -> void $ detachRefHandler nauvaH refsVar path
@@ -109,10 +111,17 @@ runClient app = do
         , componentWillUnmountImpl = \path -> void $ componentWillUnmountHandler nauvaH path
         }
 
-    routerH <- newRouterH nauvaH
     headH <- newHeadH nauvaH bridge
     appH <- AppH <$> pure headH <*> pure routerH
     render nauvaH (rootElement app appH)
+
+    locationSignalCopy <- atomically $ dupTChan (snd $ hLocation routerH)
+    void $ forkIO $ forever $ do
+        path <- atomically $ do
+            locPathname <$> readTChan locationSignalCopy
+
+        pushLocation bridge (jsval $ textToJSString path)
+
 
     changeSignalCopy <- atomically $ dupTChan (changeSignal nauvaH)
     void $ forkIO $ forever $ do
