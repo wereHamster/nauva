@@ -46,9 +46,7 @@ library
    , aeson
    , blaze-html
    , bytestring
-   , data-default
    , directory
-   , file-embed
    , filepath
    , nauva
    , snap-blaze
