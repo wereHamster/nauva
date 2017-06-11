@@ -50,7 +50,7 @@ toCIELAB white = iso sa bt
         l' = (l + 16) / 116
 
         x = xn * f (l' + (a / 500))
-        y = yn * f (l'            )
+        y = yn * f  l'
         z = zn * f (l' - (b / 200))
 
         f t = if t > rho then t ** 3 else 3 * (rho ** 2) * (t - 4 / 29)

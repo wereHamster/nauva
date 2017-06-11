@@ -28,7 +28,7 @@ findPort basePort = do
   where
     go :: Int -> Socket -> PortNumber -> HostAddress -> IO PortNumber
     go 0 _ _ _ = error "findPort: exhausted"
-    go i sock port hostAddress = try sock port hostAddress `catch` \(_ :: IOException) -> do
+    go i sock port hostAddress = try sock port hostAddress `catch` \(_ :: IOException) ->
         -- Bummer. Try the next port.
         go (i - 1) sock (port + 1) hostAddress
 

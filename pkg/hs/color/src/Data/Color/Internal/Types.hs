@@ -105,7 +105,7 @@ cvSRGB = to $ \(SRGB a b c) -> ColorV (a, b, c)
 cvSRGB8 :: Getter SRGB (ColorV Word8)
 cvSRGB8 = to $ \(SRGB a b c) -> ColorV (f a, f b, f c)
   where
-    f x = round $ (fromIntegral (maxBound :: Word8)) * clamp x
+    f x = round $ fromIntegral (maxBound :: Word8) * clamp x
     clamp x
         | x < 0     = 0
         | x > 1     = 1

@@ -50,12 +50,12 @@ main = hspec $ parallel $ do
             it "should convert D65 at 100% luminance to L=100" $
                 whiteD65_1 ^. toCIELAB d65 ^. cvCIELAB ^. _unColorV ^. _1 `shouldBe` 100
 
-        describe "L=50" $ do
+        describe "L=50" $
             it "should convert to sRGB (119,119,119)" $
                 CIELAB 50 0 0 ^.re (toCIELAB d65) ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (119,119,119)
 
-    describe "sRGB" $ do
-        describe "toSRGB" $ do
+    describe "sRGB" $
+        describe "toSRGB" $
             it "should convert D65 at 0% luminance to (0,0,0)" $
                 whiteD65_0 ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (0,0,0)
             it "should convert D65 at 100% luminance to (255,255,255)" $
@@ -70,7 +70,7 @@ main = hspec $ parallel $ do
                     sRGB_b ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (0,0,255)
 
 
-    describe "regressions" $ do
+    describe "regressions" $
         it "roundtrip from sRGB to CIE LAB and back" $
             let rgb = (44,9,103)
                 ColorV (l, a, b) = mkSRGB8 rgb ^.re toSRGB ^. toCIELAB d65 ^. cvCIELAB
