@@ -6,6 +6,9 @@
 module Nauva.Catalog
     ( CatalogProps(..)
     , catalog
+
+    , module Nauva.App
+    , module Nauva.Catalog.Types
     ) where
 
 

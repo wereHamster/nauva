@@ -11,7 +11,6 @@ import           Nauva.Internal.Types
 import           Nauva.Catalog
 import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
-import           Nauva.View
 
 
 
