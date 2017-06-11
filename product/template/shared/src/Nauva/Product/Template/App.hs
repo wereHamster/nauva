@@ -42,9 +42,6 @@ header = div_ [style_ style]
         padding "20px"
         color "white"
 
-        onHover $ do
-            color "red"
-
 intro :: Element
 intro = p_ [style_ style]
     [ str_ "To get started, edit "

@@ -34,12 +34,4 @@ catalogPages =
 introductionPage :: Element
 introductionPage = [nauvaCatalogPage|
 # Welcome to the Template catalog
-
-arst arst
-
-## heading 2
-
-```nauva
-button_ [str_ "xxx"]
-```
 |]
