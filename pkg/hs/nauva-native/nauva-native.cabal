@@ -46,13 +46,10 @@ library
      base >= 4.7 && < 5
    , aeson
    , bytestring
-   , safe
    , text
    , mtl
    , stm
    , containers
-   , blaze-markup
-   , blaze-html
    , tagged
    , scientific
    , data-default
