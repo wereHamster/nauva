@@ -1,3 +1,5 @@
+[![license](https://img.shields.io/github/license/wereHamster/nauva.svg?style=flat-square)]() [![GitHub issues](https://img.shields.io/github/issues/wereHamster/nauva.svg?style=flat-square&label=GitHub+–+Issues)]() [![Code Climate](https://img.shields.io/codeclimate/issues/github/wereHamster/nauva.svg?style=flat-square&label=Code+Climate+–+Issues)]()
+
 # Nauva
 
 > **Etymology:** nauva, from Quenya, "it will".
