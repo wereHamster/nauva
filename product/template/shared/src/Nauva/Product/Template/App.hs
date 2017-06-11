@@ -1,12 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Nauva.Product.Template.App (app) where
 
 
 import           Nauva.App
-import           Nauva.Internal.Types
 import           Nauva.View
 
 import           Language.Haskell.TH

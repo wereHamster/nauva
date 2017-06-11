@@ -8,6 +8,7 @@ module Nauva.Catalog
     , catalog
 
     , module Nauva.App
+    , module Nauva.View
     , module Nauva.Catalog.Types
     ) where
 
@@ -21,8 +22,6 @@ import           Control.Concurrent.STM
 import           Nauva.App
 import           Nauva.Internal.Types (Signal(..), Element, Component(..), createComponent, emptyHooks)
 import           Nauva.View
-
-import           Nauva.Service.Router
 
 import           Nauva.Catalog.Shell
 import           Nauva.Catalog.Types
