@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -e
+
+find . -name stack.yaml | while read path; do
+    hlint "$(dirname $path)" ||:
+done
