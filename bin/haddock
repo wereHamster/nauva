@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+TOP="$PWD"
+
+function die () {
+    echo $1
+    exit 1
+}
+
+DIR="$TOP/product/$1/shared"
+if ! test -d "$DIR"; then
+    die "$DIR does not exist!"
+fi
+
+cd $DIR
+stack --install-ghc haddock
+
+open $(stack path --local-doc-root)/index.html
