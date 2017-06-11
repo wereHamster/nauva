@@ -15,10 +15,10 @@ import           Data.Maybe
 
 import           Control.Concurrent.STM
 
+import           Nauva.App
 import           Nauva.Internal.Types (Signal(..), Element, Component(..), createComponent, emptyHooks)
 import           Nauva.View
 
-import           Nauva.Service.Head
 import           Nauva.Service.Router
 
 import           Nauva.Catalog.Shell
@@ -32,9 +32,8 @@ import           Nauva.Catalog.Types
 -- on the current location.
 
 data CatalogProps = CatalogProps
-    { p_headH :: !HeadH
-    , p_routerH :: !RouterH
-    , p_pages :: ![Page]
+    { p_pages :: ![Page]
+    , p_appH :: !AppH
     }
 
 catalog :: CatalogProps -> Element
@@ -54,17 +53,17 @@ catalogComponent = createComponent $ \componentId -> Component
     , componentDisplayName = "Catalog"
 
     , initialComponentState = \props -> do
-        loc <- readTVar $ fst $ hLocation $ p_routerH (props :: CatalogProps)
+        loc <- readTVar $ fst $ hLocation $ routerH $ p_appH (props :: CatalogProps)
         pure
             ( State (locPathname loc)
-            , [ Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) props' s -> (s { path = p }, [updateHead props' p])) ]
+            , [ Signal (snd $ hLocation $ routerH $ p_appH (props :: CatalogProps)) (\(Location p) props' s -> (s { path = p }, [updateHead props' p])) ]
             , [ updateHead props (locPathname loc) ]
             )
 
-    , componentEventListeners = \_ -> []
+    , componentEventListeners = const []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() _ s -> (s, [])
-    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ p_routerH (props :: CatalogProps)) (\(Location p) props' s' -> (s' { path = p }, [updateHead props' p]))], [])
+    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ routerH $ p_appH (props :: CatalogProps)) (\(Location p) props' s' -> (s' { path = p }, [updateHead props' p]))], [])
     , update = update
     , renderComponent = render
     , componentSnapshot = \_ -> A.object []
@@ -73,7 +72,7 @@ catalogComponent = createComponent $ \componentId -> Component
   where
     updateHead :: CatalogProps -> Text -> IO (Maybe ())
     updateHead props path = do
-        hReplace (p_headH props)
+        hReplace (headH $ p_appH props)
             [ style_ [str_ "*,*::before,*::after{box-sizing:inherit}body{margin:0;box-sizing:border-box}"]
             , title_ [str_ $ title (p_pages (props :: CatalogProps)) path]
 
@@ -106,9 +105,9 @@ catalogComponent = createComponent $ \componentId -> Component
             ]
 
         , sidebar $ SidebarProps
-            { p_routerH = p_routerH (props :: CatalogProps)
+            { p_routerH = routerH $ p_appH (props :: CatalogProps)
             , p_logoUrl
-            , p_pages   = p_pages (props :: CatalogProps)
+            , p_pages = p_pages (props :: CatalogProps)
             }
         ]
       where

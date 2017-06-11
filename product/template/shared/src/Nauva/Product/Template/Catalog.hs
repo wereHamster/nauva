@@ -17,7 +17,7 @@ import           Nauva.View
 
 catalogApp :: App
 catalogApp = App
-    { rootElement = \appH -> catalog $ CatalogProps (headH appH) (routerH appH) catalogPages
+    { rootElement = catalog . CatalogProps catalogPages
     }
 
 
