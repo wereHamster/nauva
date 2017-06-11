@@ -11,8 +11,6 @@ import           Nauva.App
 import           Nauva.Internal.Types
 import           Nauva.View
 
-import           Nauva.Service.Head
-
 import           Language.Haskell.TH
 
 

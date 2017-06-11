@@ -1,6 +1,11 @@
 module Nauva.App
     ( AppH(..)
     , App(..)
+
+    , HeadH(..)
+    , constHead
+
+    , RouterH(..)
     ) where
 
 
