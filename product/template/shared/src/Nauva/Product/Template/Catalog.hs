@@ -4,12 +4,7 @@
 module Nauva.Product.Template.Catalog (catalogApp) where
 
 
-import           Nauva.App
-
-import           Nauva.Internal.Types
-
 import           Nauva.Catalog
-import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
 
 
