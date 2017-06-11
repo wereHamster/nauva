@@ -37,7 +37,7 @@ save and observe how the UI instantly reloads to reflect your changes.
 
 ## Documentation
 
-Haddock documentation of the core packages is available [here](https://storage.googleapis.com/nvdocs/latest/index.html).
+Haddock documentation of the core packages is available [here][nvdocs].
 It is automatically built from the current source (`master` branch).
 
 
@@ -102,3 +102,4 @@ you can upload to your HTTP server.
 [GHCJS]: https://github.com/ghcjs/ghcjs
 [stack]: https://github.com/commercialhaskell/stack
 [ghcid]: https://github.com/ndmitchell/ghcid
+[nvdocs]: https://storage.googleapis.com/nvdocs/latest/index.html
