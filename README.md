@@ -68,6 +68,7 @@ are all related to Nauva.
      - **navua-native/** - JavaScript bindings to run an application in the browser.
      - **nauvad/** - Heavily modified [ghcid] with integrated HTTP / WebSocket server.
  - **product/**
+   - **template/** - A mostly empty application template you can use as a starting point for your own application.
    - **playground/** - Really ugly application which I use to test new features, performance etc.
    - **varna/** - Port of one of my personal applications, a somewhat more realistic example of a real-world application.
    - **nauva/** - For now just the catalog for some of the UI components used by nauva itself.
