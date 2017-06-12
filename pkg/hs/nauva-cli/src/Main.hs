@@ -72,6 +72,11 @@ modifyTextFile u f = readfile f >>= pure . u >>= writefile f
 modifyFileName :: (Text -> Text) -> FS.FilePath -> Sh ()
 modifyFileName u f = mv f $ fromText (u $ toTextIgnore f)
 
+
+
+-------------------------------------------------------------------------------
+-- start – start an application in dev mode
+
 start :: Text -> IO ()
 start projectName = shelly $ do
     currentWorkingDirectory <- pwd
@@ -81,20 +86,22 @@ start projectName = shelly $ do
     unless projectExists $
         errorExit $ mconcat ["Project ", projectName, " does not exist"]
 
+    let nauvadBase = pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad")
+        nauvaStackYaml = nauvadBase <> "/stack.yaml"
 
     echo "Building nauvad… this may take a while"
     run_ "stack"
-        [ "--stack-yaml", pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad/stack.yaml")
+        [ "--stack-yaml", nauvadStackYaml
         , "--install-ghc"
         , "build"
         ]
 
-    setenv "NAUVAD_PUBLIC_PATH" $ pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad/public")
+    setenv "NAUVAD_PUBLIC_PATH" (nauvadBase <> "/public")
     cd projectDevNameFP
 
     run_ "stack"
         [ "exec"
-        , "--stack-yaml", pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad/stack.yaml")
+        , "--stack-yaml", nauvadStackYaml
         , "nauvad"
         , "--"
         , "--command=stack ghci"
