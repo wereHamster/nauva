@@ -4,6 +4,7 @@
 
 module Nauva.Product.Nauva.Book.App
     ( bookApp
+    , catalogPages
     ) where
 
 
