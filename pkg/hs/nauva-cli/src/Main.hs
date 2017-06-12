@@ -2,27 +2,44 @@
 
 module Main where
 
-import Shelly hiding (command)
+
 import Data.Text (Text, replace, isSuffixOf, toTitle, pack)
 import Data.String (IsString, fromString)
-import Filesystem.Path.CurrentOS as FS hiding (hasExtension)
-import Options.Applicative.Extra (execParser, helper)
-import Options.Applicative.Builder (auto, progDesc, argument, command, subparser, info, str, metavar, command)
-import Control.Monad (join)
 import Data.Monoid ((<>), mconcat)
 
+import Control.Monad (join)
 
-opts = subparser
-  (
-    command "create" (info (
-      createNewProject <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Creates new project"))
-    <>
-    command "start" (info (
-      start <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
-  )
+import Filesystem.Path.CurrentOS as FS hiding (hasExtension)
+
+import Options.Applicative (Parser, execParser, helper)
+import Options.Applicative.Builder (auto, progDesc, argument, command, subparser, info, str, metavar, command)
+
+import Shelly hiding (command)
+
+
 
 main :: IO ()
-main = join $ execParser (info (helper <*> opts) mempty)
+main = do
+    nvc <- execParser (info (helper <*> nvCommand) mempty)
+    case nvc of
+        (NCCreate n) -> createNewProject n
+        (NCStart n)  -> start n
+
+
+
+data NvCommand
+    = NCCreate Text
+    | NCStart Text
+
+nvCommand :: Parser NvCommand
+nvCommand = subparser
+    ( command "create" (info (
+        NCCreate <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Creates new project"))
+   <> command "start" (info (
+        NCStart <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
+    )
+
+
 
 hasExtension :: Monad m => Text -> FS.FilePath -> m Bool
 hasExtension e = pure . isSuffixOf e . toTextIgnore
@@ -87,7 +104,7 @@ start projectName = shelly $ do
         errorExit $ mconcat ["Project ", projectName, " does not exist"]
 
     let nauvadBase = pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad")
-        nauvaStackYaml = nauvadBase <> "/stack.yaml"
+        nauvadStackYaml = nauvadBase <> "/stack.yaml"
 
     echo "Building nauvad… this may take a while"
     run_ "stack"
