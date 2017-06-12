@@ -46,5 +46,8 @@ onActive style = tell [SSuffix ":active" style]
 firstChild :: Writer [Statement] () -> Writer [Statement] ()
 firstChild style = tell [SSuffix ":first-child" style]
 
+lastChild :: Writer [Statement] () -> Writer [Statement] ()
+lastChild style = tell [SSuffix ":last-child" style]
+
 media :: Text -> Writer [Statement] () -> Writer [Statement] ()
 media m style = tell [SCondition (CMedia m) style]
