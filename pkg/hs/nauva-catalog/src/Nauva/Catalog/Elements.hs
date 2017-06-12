@@ -326,7 +326,7 @@ pageUL = ul_ [style_ style]
     style = mkStyle $ do
         typeface paragraphTypeface
         width "100%"
-        paddingLeft "2rem"
+        paddingLeft (px (16 + 32))
         fontStyle "normal"
         color "#333333"
         listStyle "disc"
@@ -374,7 +374,7 @@ pageElement PageElementProps{..} c = case pepTitle of
   where
     style = mkStyle $ do
         maxWidth "100%"
-        margin "24px 0 0 0"
+        margin "24px 0"
         position "relative"
         paddingLeft "16px"
         flexBasis $ cssTerm $ T.pack $ "calc((100% / 6 * " <> show pepSpan <> "))"

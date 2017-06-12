@@ -18,6 +18,8 @@ import           Data.Conduit
 import qualified Data.Conduit.List     as CL
 import           Data.Functor.Identity (runIdentity)
 import           Data.Yaml
+import           Data.Foldable
+import           Data.Monoid
 
 import           Text.Markdown         (def)
 import           Text.Markdown.Block
@@ -42,7 +44,55 @@ markdownBlocksT = map (fmap $ toInline mempty) . parseMarkdown
     parseMarkdown md = runIdentity (yield md $$ toBlocks def =$ CL.consume)
 
 
-renderBlock :: Bool -> Block [Inline] -> Q Exp -- [Q Element]
+data MState = NoState | InList ListType [Exp]
+
+renderBlocks :: Bool -> [Block [Inline]] -> Q Exp -- Q [Element]
+renderBlocks isTopLevel bs = ListE <$> go NoState bs
+  where
+    lt :: ListType -> [Element] -> Element
+    lt Ordered   = pageOL
+    lt Unordered = pageUL
+
+    go :: MState -> [Block [Inline]] -> Q [Exp]
+    go s [] = case s of
+        NoState              -> pure []
+        (InList listType es) -> do
+            es' <- case listType of
+                Ordered   -> appE [| \x -> [pageOL $ mconcat x] |] (pure $ ListE es)
+                Unordered -> appE [| \x -> [pageUL $ mconcat x] |] (pure $ ListE es)
+            pure [es']
+
+    go NoState (b@(BlockList listType _):bs) = do
+        e <- renderBlock isTopLevel b
+        go (InList listType [e]) bs
+
+    go NoState (b:bs) = do
+        e <- renderBlock isTopLevel b
+        rest <- go NoState bs
+        pure $ [e] <> rest
+
+    go (InList inListType es) (b@(BlockList listType _):bs) = if inListType == listType
+        then do
+            e <- renderBlock isTopLevel b
+            go (InList listType (es <> [e])) bs
+        else do
+            es' <- case inListType of
+                Ordered   -> appE [| \x -> [pageOL $ mconcat x] |] (pure $ ListE es)
+                Unordered -> appE [| \x -> [pageUL $ mconcat x] |] (pure $ ListE es)
+            e <- renderBlock isTopLevel b
+            rest <- go (InList listType [e]) bs
+            pure $ [es'] <> rest
+
+    go (InList listType es) (b:bs) = do
+        es' <- case listType of
+            Ordered   -> appE [| \x -> [pageOL $ mconcat x] |] (pure $ ListE es)
+            Unordered -> appE [| \x -> [pageUL $ mconcat x] |] (pure $ ListE es)
+        e <- renderBlock isTopLevel b
+        rest <- go NoState bs
+        pure $ [es', e] <> rest
+
+
+renderBlock :: Bool -> Block [Inline] -> Q Exp -- Q [Element]
 renderBlock isTopLevel b = case b of
     (BlockPara is) ->
         appE [| \x -> [pageParagraph isTopLevel $ mconcat x] |] (ListE <$> mapM renderInline is)
@@ -100,12 +150,12 @@ renderBlock isTopLevel b = case b of
         _ -> [| [pageCodeBlock str] |]
 
     (BlockList Ordered inlineOrBlocks) ->
-        appE [| \x -> [pageOL $ mconcat x] |] $ case inlineOrBlocks of
+        appE [| \x -> [li_ $ mconcat x] |] $ case inlineOrBlocks of
             Left is -> ListE <$> mapM renderInline is
             Right bs -> ListE <$> mapM (renderBlock False) bs
 
     (BlockList Unordered inlineOrBlocks) ->
-        appE [| \x -> [pageUL $ mconcat x] |] $ case inlineOrBlocks of
+        appE [| \x -> [li_ $ mconcat x] |] $ case inlineOrBlocks of
             Left is -> ListE <$> mapM renderInline is
             Right bs -> ListE <$> mapM (renderBlock False) bs
 
@@ -151,7 +201,7 @@ renderInline i = case i of
 
 catalogPage :: ByteString -> Q Exp -- Element
 catalogPage bs = do
-    children <- ListE <$> mapM (renderBlock True) (markdownBlocks bs)
+    children <- renderBlocks True (markdownBlocks bs)
 
     appE [| pageRoot . mconcat |] (pure children)
 
