@@ -9,9 +9,9 @@ import qualified Data.Text as T
 import           Data.String (fromString)
 import           Data.Monoid ((<>), mconcat)
 
-import           Control.Monad (join, forM_)
+import           Control.Monad
 
-import           Filesystem.Path.CurrentOS as FS hiding (hasExtension)
+import           Filesystem.Path.CurrentOS as FS hiding (hasExtension, null)
 
 import           Options.Applicative (Parser, execParser, helper)
 import           Options.Applicative.Builder (auto, progDesc, argument, command, subparser, info, str, metavar, command)
@@ -28,6 +28,7 @@ main = do
         (NCStart n)   -> start n
         (NCHaddock n) -> haddock n
         (NCNative n)  -> native n
+        (NCChangeStackResolver v) -> changeStackResolver v
 
 
 
@@ -36,6 +37,7 @@ data NvCommand
     | NCStart Text
     | NCHaddock Text
     | NCNative Text
+    | NCChangeStackResolver Text
 
 nvCommand :: Parser NvCommand
 nvCommand = subparser
@@ -47,6 +49,8 @@ nvCommand = subparser
         NCHaddock <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Build the haddock documentation for the project"))
    <> command "native" (info (
         NCNative <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Compile the project to native JavaScript code"))
+   <> command "change-stack-resolver" (info (
+        NCChangeStackResolver <$> fmap fromString (argument str (metavar "STACK RESOLVER"))) (progDesc "Change the stack resolver in all stack files in the repository"))
     )
 
 
@@ -198,3 +202,26 @@ native projectName = shelly $ do
     forM_ filesToCopy $ \fp -> cp fp "build"
 
     echo "Files copied to 'build/' folder"
+
+
+
+-------------------------------------------------------------------------------
+-- changeStackResolver – build the project into native JavaScript code
+
+changeStackResolver :: Text -> IO ()
+changeStackResolver v = shelly $ do
+    currentWorkingDirectory <- pwd
+
+    echo $ "Changing stack resolver to: " <> v <> "…"
+
+    stackYamlFiles <- findWhen (\fp -> pure ("stack.yaml" == filename fp)) "."
+    forM_ stackYamlFiles $ \fp -> do
+        echo $ " - " <> toTextIgnore fp
+        contents <- readfile fp
+
+        -- Skip stack files which mention "ghcjs", those resolvers are tightly bound
+        -- to the GHCJS version and can not be changed that easily.
+        when (fst (T.breakOn "ghcjs" contents) == contents) $ do
+            let lines0 = T.lines contents
+            let lines1 = map (\l -> if "resolver:" `T.isPrefixOf` l then "resolver: " <> v else l) lines0
+            writefile fp (T.unlines lines1)
