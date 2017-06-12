@@ -13,6 +13,7 @@ library
      Nauva.Product.Nauva.Catalog
    , Nauva.Product.Nauva.Element.Terminal
    , Nauva.Product.Nauva.Element.Message
+   , Nauva.Product.Nauva.Book.App
 
   build-depends:
      base >= 4.7 && < 5
