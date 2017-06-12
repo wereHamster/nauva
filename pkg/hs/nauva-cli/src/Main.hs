@@ -3,7 +3,7 @@
 module Main where
 
 import Shelly hiding (command)
-import Data.Text (Text, replace, isSuffixOf, toTitle)
+import Data.Text (Text, replace, isSuffixOf, toTitle, pack)
 import Data.String (IsString, fromString)
 import Filesystem.Path.CurrentOS as FS hiding (hasExtension)
 import Options.Applicative.Extra (execParser, helper)
@@ -16,6 +16,9 @@ opts = subparser
   (
     command "create" (info (
       createNewProject <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Creates new project"))
+    <>
+    command "start" (info (
+      start <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
   )
 
 main :: IO ()
@@ -30,7 +33,7 @@ isFileName n f = pure $ n == (toTextIgnore . filename) f
 -- Copies the template projects and renames files
 createNewProject :: Text -> IO ()
 createNewProject projectName = shelly $ do
-  cd "../../../product"
+  cd "product"
   let projectNameFP = fromText projectName
 
   projectExists <- test_e projectNameFP
@@ -68,3 +71,33 @@ modifyTextFile u f = readfile f >>= pure . u >>= writefile f
 
 modifyFileName :: (Text -> Text) -> FS.FilePath -> Sh ()
 modifyFileName u f = mv f $ fromText (u $ toTextIgnore f)
+
+start :: Text -> IO ()
+start projectName = shelly $ do
+    currentWorkingDirectory <- pwd
+    let projectDevNameFP = fromText ("product/" <> projectName <> "/dev")
+
+    projectExists <- test_e projectDevNameFP
+    unless projectExists $
+        errorExit $ mconcat ["Project ", projectName, " does not exist"]
+
+
+    echo "Building nauvad… this may take a while"
+    run_ "stack"
+        [ "--stack-yaml", pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad/stack.yaml")
+        , "--install-ghc"
+        , "build"
+        ]
+
+    setenv "NAUVAD_PUBLIC_PATH" $ pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad/public")
+    cd projectDevNameFP
+
+    run_ "stack"
+        [ "exec"
+        , "--stack-yaml", pack (encodeString currentWorkingDirectory <> "/pkg/hs/nauvad/stack.yaml")
+        , "nauvad"
+        , "--"
+        , "--command=stack ghci"
+        , "--test=:main"
+        , "--warnings"
+        ]
