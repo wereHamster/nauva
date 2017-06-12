@@ -40,54 +40,54 @@ nvCommand = subparser
     )
 
 
-
-hasExtension :: Monad m => Text -> FS.FilePath -> m Bool
-hasExtension e = pure . isSuffixOf e . toTextIgnore
-
-isFileName :: Monad m => Text -> FS.FilePath -> m Bool
-isFileName n f = pure $ n == (toTextIgnore . filename) f
-
 -- Copies the template projects and renames files
 createNewProject :: Text -> IO ()
 createNewProject projectName = shelly $ do
-  cd "product"
-  let projectNameFP = fromText projectName
+    cd "product"
+    let projectNameFP = fromText projectName
 
-  projectExists <- test_e projectNameFP
-  when projectExists $ errorExit $ mconcat ["Project ", projectName, " already exists"]
+    projectExists <- test_e projectNameFP
+    when projectExists $ errorExit $ mconcat ["Project ", projectName, " already exists"]
 
-  cp_r "template" projectNameFP
+    cp_r "template" projectNameFP
 
-  -- needs to be done this way, because otherwise we collide with template-haskell
-  let projectPackageName = mconcat ["nauva-product-", projectName]
-  let projectModuleName = mconcat ["Nauva.Product.", toTitle projectName]
-  let replace_template = replace "nauva-product-template" projectName
-  let replace_Template = replace "Nauva.Product.Template" projectModuleName
+    -- needs to be done this way, because otherwise we collide with template-haskell
+    let projectPackageName = mconcat ["nauva-product-", projectName]
+    let projectModuleName = mconcat ["Nauva.Product.", toTitle projectName]
+    let replace_template = replace "nauva-product-template" projectName
+    let replace_Template = replace "Nauva.Product.Template" projectModuleName
 
-  let changeCabalFile file = do
-        modifyTextFile replace_template file
-        modifyTextFile replace_Template file
-        modifyFileName replace_template file
-  mapM_ changeCabalFile =<< findWhen (hasExtension ".cabal") projectNameFP
+    let changeCabalFile file = do
+            modifyTextFile replace_template file
+            modifyTextFile replace_Template file
+            modifyFileName replace_template file
+    mapM_ changeCabalFile =<< findWhen (hasExtension ".cabal") projectNameFP
 
-  let changeSourceFile file = do
-        modifyTextFile replace_Template file
-        modifyFileName replace_template file
-  mapM_ changeSourceFile =<< findWhen (hasExtension ".hs") projectNameFP
+    let changeSourceFile file = do
+            modifyTextFile replace_Template file
+            modifyFileName replace_template file
+    mapM_ changeSourceFile =<< findWhen (hasExtension ".hs") projectNameFP
 
-  dirs <- findWhen (\f -> (&&) <$>  isFileName "Template" f <*> test_d f) projectNameFP
-  mapM_ (\f -> mv f $ append (parent f) (fromText (toTitle projectName)))   dirs
+    dirs <- findWhen (\f -> (&&) <$>  isFileName "Template" f <*> test_d f) projectNameFP
+    mapM_ (\f -> mv f $ append (parent f) (fromText (toTitle projectName)))   dirs
 
-  let echoA = echo . mconcat
-  echoA ["Project ", projectName, " created"]
-  echo "To run use command:"
-  echoA [" ./bin/nauva start ", projectName, "/app"]
+    let echoA = echo . mconcat
+    echoA ["Project ", projectName, " created"]
+    echo "To run use command:"
+    echoA [" ./bin/nauva start ", projectName, "/app"]
 
-modifyTextFile :: (Text -> Text) -> FS.FilePath -> Sh ()
-modifyTextFile u f = readfile f >>= pure . u >>= writefile f
+  where
+    modifyTextFile :: (Text -> Text) -> FS.FilePath -> Sh ()
+    modifyTextFile u f = readfile f >>= pure . u >>= writefile f
 
-modifyFileName :: (Text -> Text) -> FS.FilePath -> Sh ()
-modifyFileName u f = mv f $ fromText (u $ toTextIgnore f)
+    modifyFileName :: (Text -> Text) -> FS.FilePath -> Sh ()
+    modifyFileName u f = mv f $ fromText (u $ toTextIgnore f)
+
+    hasExtension :: Monad m => Text -> FS.FilePath -> m Bool
+    hasExtension e = pure . isSuffixOf e . toTextIgnore
+
+    isFileName :: Monad m => Text -> FS.FilePath -> m Bool
+    isFileName n f = pure $ n == (toTextIgnore . filename) f
 
 
 
