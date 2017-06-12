@@ -42,10 +42,10 @@ markdownBlocksT = map (fmap $ toInline mempty) . parseMarkdown
     parseMarkdown md = runIdentity (yield md $$ toBlocks def =$ CL.consume)
 
 
-renderBlock :: Block [Inline] -> Q Exp -- [Q Element]
-renderBlock b = case b of
+renderBlock :: Bool -> Block [Inline] -> Q Exp -- [Q Element]
+renderBlock isTopLevel b = case b of
     (BlockPara is) ->
-        appE [| \x -> [pageParagraph $ mconcat x] |] (ListE <$> mapM renderInline is)
+        appE [| \x -> [pageParagraph isTopLevel $ mconcat x] |] (ListE <$> mapM renderInline is)
 
     (BlockHeading level is) -> case level of
         1 -> appE [| \x -> [pageH2 $ mconcat x] |] (ListE <$> mapM renderInline is)
@@ -57,7 +57,7 @@ renderBlock b = case b of
         appE [| mconcat |] (ListE <$> mapM renderInline is)
 
     (BlockQuote is) ->
-        appE [| \x -> [pageBlockquote $ mconcat x] |] (ListE <$> mapM renderBlock is)
+        appE [| \x -> [pageBlockquote $ mconcat x] |] (ListE <$> mapM (renderBlock False) is)
 
     (BlockCode mbType str) -> case mbType of
         Nothing -> [| [pageCodeBlock str] |]
@@ -87,7 +87,7 @@ renderBlock b = case b of
             appE [| \c -> [pageElement (cspPEP csp) [codeSpecimen csp c "Haskell" str2]] |] (pure expr)
         Just "hint" -> do
             let blocks = markdownBlocksT str
-            children <- ListE <$> mapM renderBlock blocks
+            children <- ListE <$> mapM (renderBlock False) blocks
             appE [| \x -> [pageHint $ mconcat x] |] (pure children)
 
         Just "element" -> do
@@ -102,12 +102,12 @@ renderBlock b = case b of
     (BlockList Ordered inlineOrBlocks) ->
         appE [| \x -> [pageOL $ mconcat x] |] $ case inlineOrBlocks of
             Left is -> ListE <$> mapM renderInline is
-            Right bs -> ListE <$> mapM renderBlock bs
+            Right bs -> ListE <$> mapM (renderBlock False) bs
 
     (BlockList Unordered inlineOrBlocks) ->
         appE [| \x -> [pageUL $ mconcat x] |] $ case inlineOrBlocks of
             Left is -> ListE <$> mapM renderInline is
-            Right bs -> ListE <$> mapM renderBlock bs
+            Right bs -> ListE <$> mapM (renderBlock False) bs
 
     (BlockHtml _) ->
         [| [div_ [str_ "TODO: BlockHtml"]] |]
@@ -151,7 +151,7 @@ renderInline i = case i of
 
 catalogPage :: ByteString -> Q Exp -- Element
 catalogPage bs = do
-    children <- ListE <$> mapM renderBlock (markdownBlocks bs)
+    children <- ListE <$> mapM (renderBlock True) (markdownBlocks bs)
 
     appE [| pageRoot . mconcat |] (pure children)
 

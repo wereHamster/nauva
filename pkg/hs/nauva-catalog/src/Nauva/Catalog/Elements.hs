@@ -41,9 +41,10 @@ import           Data.Typeable
 import           Data.Data
 import           Data.List
 
-import          Language.Haskell.TH.Syntax
+import           Control.Monad
 
-import           Nauva.Internal.Types
+import           Language.Haskell.TH.Syntax
+
 import           Nauva.View
 
 
@@ -51,7 +52,7 @@ pageRoot :: [Element] -> Element
 pageRoot c = div_ [style_ outerStyle] [div_ [style_ innerStyle] c]
   where
     outerStyle = mkStyle $ do
-        margin "0 30px 0 40px"
+        margin "0 30px"
 
     innerStyle = mkStyle $ do
         marginLeft "-16px"
@@ -75,6 +76,11 @@ pageH2 = h2_ [style_ style]
         margin "48px 0 0 0"
         paddingLeft "16px"
 
+        firstChild $
+            marginTop "0"
+        lastChild $
+            marginBottom "0"
+
 
 pageH3 :: [Element] -> Element
 pageH3 = h3_ [style_ style]
@@ -89,6 +95,11 @@ pageH3 = h3_ [style_ style]
         flexBasis "100%"
         margin "48px 0 0 0"
         paddingLeft "16px"
+
+        firstChild $
+            marginTop "0"
+        lastChild $
+            marginBottom "0"
 
 
 pageH4 :: [Element] -> Element
@@ -105,9 +116,14 @@ pageH4 = h4_ [style_ style]
         margin "16px 0 0 0"
         paddingLeft "16px"
 
+        firstChild $
+            marginTop "0"
+        lastChild $
+            marginBottom "0"
 
-pageParagraph :: [Element] -> Element
-pageParagraph = p_ [style_ style]
+
+pageParagraph :: Bool -> [Element] -> Element
+pageParagraph isTopLevel = p_ [style_ style]
   where
     style = mkStyle $ do
         fontStyle "normal"
@@ -117,10 +133,18 @@ pageParagraph = p_ [style_ style]
         fontSize "16px"
         lineHeight "1.44"
         flexBasis "100%"
-        margin "16px 0 0 0"
-        paddingLeft "16px"
+        margin "8px 0"
+
         maxWidth "64em"
 
+        when isTopLevel $
+            paddingLeft "16px"
+
+
+        firstChild $
+            marginTop "0"
+        lastChild $
+            marginBottom "0"
 
 
 pageBlockquote :: [Element] -> Element
@@ -197,8 +221,8 @@ pageCodeBlock s = div_ [style_ pageCodeBlockStyle]
         flexBasis "100%"
         maxWidth "100%"
         flexWrap "wrap"
-        margin "24px 0px 0px"
-        padding "0"
+        margin "8px 0"
+        paddingLeft "16px"
         position "relative"
 
     sectionStyle = mkStyle $ do
@@ -228,10 +252,13 @@ pageElementContainer = div_ [style_ style]
 
 
 pageHint :: [Element] -> Element
-pageHint = div_ [style_ pageHintDefaultStyle]
+pageHint c = div_ [style_ pageHintContainerStyle] [div_ [style_ pageHintDefaultStyle] c]
   where
     pageHintDefaultStyle = pageHintStyle "rgb(255, 180, 0)" "rgb(255, 246, 221)" "rgb(255, 239, 170)"
     -- pageHintDirectiveStyle = pageHintStyle "rgb(47, 191, 98)" "rgb(234, 250, 234)" "rgb(187, 235, 200)"
+
+    pageHintContainerStyle = mkStyle $ do
+        paddingLeft "16px"
 
     pageHintStyle fg bg b = mkStyle $ do
         fontStyle "normal"
@@ -245,6 +272,7 @@ pageHint = div_ [style_ pageHintDefaultStyle]
         borderRadius "2px"
         padding "20px"
         flexBasis "100%"
+        margin "16px 0"
 
 
 
