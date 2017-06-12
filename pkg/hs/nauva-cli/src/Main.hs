@@ -3,18 +3,20 @@
 module Main where
 
 
-import Data.Text (Text, replace, isSuffixOf, toTitle, pack, strip)
-import Data.String (IsString, fromString)
-import Data.Monoid ((<>), mconcat)
+import           Data.Text (Text, replace, isSuffixOf, toTitle, pack, strip)
+import qualified Data.Text as T
 
-import Control.Monad (join)
+import           Data.String (fromString)
+import           Data.Monoid ((<>), mconcat)
 
-import Filesystem.Path.CurrentOS as FS hiding (hasExtension)
+import           Control.Monad (join, forM_)
 
-import Options.Applicative (Parser, execParser, helper)
-import Options.Applicative.Builder (auto, progDesc, argument, command, subparser, info, str, metavar, command)
+import           Filesystem.Path.CurrentOS as FS hiding (hasExtension)
 
-import Shelly hiding (command)
+import           Options.Applicative (Parser, execParser, helper)
+import           Options.Applicative.Builder (auto, progDesc, argument, command, subparser, info, str, metavar, command)
+
+import           Shelly hiding (command)
 
 
 
@@ -25,6 +27,7 @@ main = do
         (NCCreate n)  -> createNewProject n
         (NCStart n)   -> start n
         (NCHaddock n) -> haddock n
+        (NCNative n)  -> native n
 
 
 
@@ -32,6 +35,7 @@ data NvCommand
     = NCCreate Text
     | NCStart Text
     | NCHaddock Text
+    | NCNative Text
 
 nvCommand :: Parser NvCommand
 nvCommand = subparser
@@ -40,7 +44,9 @@ nvCommand = subparser
    <> command "start" (info (
         NCStart <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
    <> command "haddock" (info (
-        NCHaddock <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
+        NCHaddock <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Build the haddock documentation for the project"))
+   <> command "native" (info (
+        NCNative <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Compile the project to native JavaScript code"))
     )
 
 
@@ -150,10 +156,45 @@ haddock projectName = shelly $ do
         , "haddock"
         ]
 
-    path <- strip <$> run "stack"
+    localDocRoot <- strip <$> run "stack"
         [ "--stack-yaml", "product/" <> projectName <> "/shared/stack.yaml"
         , "path"
         , "--local-doc-root"
         ]
 
-    run_ "open" [path <> "/index.html"]
+    run_ "open" [localDocRoot <> "/index.html"]
+
+
+
+-------------------------------------------------------------------------------
+-- native – build the project into native JavaScript code
+
+native :: Text -> IO ()
+native projectName = shelly $ do
+    currentWorkingDirectory <- pwd
+    let projectNativeNameFP = fromText ("product/" <> projectName <> "/native")
+
+    projectExists <- test_e projectNativeNameFP
+    unless projectExists $
+        errorExit $ mconcat ["Project ", projectName, " does not exist"]
+
+    run_ "stack"
+        [ "--install-ghc"
+        , "--stack-yaml", "product/" <> projectName <> "/native/stack.yaml"
+        , "build"
+        ]
+
+    localInstallRoot <- strip <$> run "stack"
+        [ "--stack-yaml", "product/" <> projectName <> "/native/stack.yaml"
+        , "path"
+        , "--local-install-root"
+        ]
+
+    rm_rf "build"
+    mkdir_p "build"
+
+    let binDir = localInstallRoot <> "/bin/nauva-product-" <> replace "/" "-" projectName <> "-native.jsexe/"
+    filesToCopy <- ls (fromText binDir)
+    forM_ filesToCopy $ \fp -> cp fp "build"
+
+    echo "Files copied to 'build/' folder"
