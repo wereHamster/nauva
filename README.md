@@ -40,6 +40,9 @@ save and observe how the UI instantly reloads to reflect your changes.
 Haddock documentation of the core packages is available [here][nvdocs].
 It is automatically built from the current source (`master` branch).
 
+A book for end-users is available at https://book.nauva.xyz. Its source
+is inside this repository (under product/nauva/book).
+
 
 ## Focus and Goals
 
