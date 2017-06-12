@@ -62,16 +62,22 @@ pageRoot c = div_ [style_ outerStyle] [div_ [style_ innerStyle] c]
 
 
 
+h2Typeface :: Typeface
+h2Typeface = Typeface
+    { tfName       = "h2"
+    , tfFontFamily = "'Roboto', sans-serif"
+    , tfFontWeight = "400"
+    , tfFontSize   = "27.648px"
+    , tfLineHeight = "1.2"
+    }
+
 pageH2 :: [Element] -> Element
 pageH2 = h2_ [style_ style]
   where
     style = mkStyle $ do
+        typeface h2Typeface
         fontStyle "normal"
-        fontWeight "400"
         color "#003B5C"
-        fontFamily "'Roboto', sans-serif"
-        fontSize "27.648px"
-        lineHeight "1.2"
         flexBasis "100%"
         margin "48px 0 0 0"
         paddingLeft "16px"
@@ -81,17 +87,23 @@ pageH2 = h2_ [style_ style]
         lastChild $
             marginBottom "0"
 
+
+h3Typeface :: Typeface
+h3Typeface = Typeface
+    { tfName       = "h3"
+    , tfFontFamily = "'Roboto', sans-serif"
+    , tfFontWeight = "400"
+    , tfFontSize   = "23.04px"
+    , tfLineHeight = "1.2"
+    }
 
 pageH3 :: [Element] -> Element
 pageH3 = h3_ [style_ style]
   where
     style = mkStyle $ do
+        typeface h3Typeface
         fontStyle "normal"
-        fontWeight "400"
         color "#003B5C"
-        fontFamily "'Roboto', sans-serif"
-        fontSize "23.04px"
-        lineHeight "1.2"
         flexBasis "100%"
         margin "48px 0 0 0"
         paddingLeft "16px"
@@ -102,16 +114,22 @@ pageH3 = h3_ [style_ style]
             marginBottom "0"
 
 
+h4Typeface :: Typeface
+h4Typeface = Typeface
+    { tfName       = "h4"
+    , tfFontFamily = "'Roboto', sans-serif"
+    , tfFontWeight = "400"
+    , tfFontSize   = "19.2px"
+    , tfLineHeight = "1.2"
+    }
+
 pageH4 :: [Element] -> Element
 pageH4 = h4_ [style_ style]
   where
     style = mkStyle $ do
+        typeface h4Typeface
         fontStyle "normal"
-        fontWeight "400"
         color "#003B5C"
-        fontFamily "'Roboto', sans-serif"
-        fontSize "19.2px"
-        lineHeight "1.2"
         flexBasis "100%"
         margin "16px 0 0 0"
         paddingLeft "16px"
@@ -122,16 +140,22 @@ pageH4 = h4_ [style_ style]
             marginBottom "0"
 
 
+paragraphTypeface :: Typeface
+paragraphTypeface = Typeface
+    { tfName       = "paragraph"
+    , tfFontFamily = "'Roboto', sans-serif"
+    , tfFontWeight = "400"
+    , tfFontSize   = "16px"
+    , tfLineHeight = "1.44"
+    }
+
 pageParagraph :: Bool -> [Element] -> Element
 pageParagraph isTopLevel = p_ [style_ style]
   where
     style = mkStyle $ do
+        typeface paragraphTypeface
         fontStyle "normal"
-        fontWeight "400"
         color "#333333"
-        fontFamily "'Roboto', sans-serif"
-        fontSize "16px"
-        lineHeight "1.44"
         flexBasis "100%"
         margin "8px 0"
 
@@ -294,21 +318,13 @@ pageUL :: [Element] -> Element
 pageUL = ul_ [style_ style]
   where
     style = mkStyle $ do
+        typeface paragraphTypeface
         width "100%"
-        marginLeft "0"
         paddingLeft "2rem"
         fontStyle "normal"
-        fontWeight "400"
-        -- textRendering "optimizeLegibility"
-        -- -webkit-font-smoothing "antialiased"
-        -- -moz-osx-font-smoothing "grayscale"
         color "#333333"
-        fontFamily "'Roboto', sans-serif"
-        fontSize "16px"
-        lineHeight "1.44"
         listStyle "disc"
-        marginTop "16px"
-        marginBottom "0"
+        margin "16px 0"
         maxWidth "64em"
 
 pageOL :: [Element] -> Element
