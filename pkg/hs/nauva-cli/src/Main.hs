@@ -3,7 +3,7 @@
 module Main where
 
 
-import Data.Text (Text, replace, isSuffixOf, toTitle, pack)
+import Data.Text (Text, replace, isSuffixOf, toTitle, pack, strip)
 import Data.String (IsString, fromString)
 import Data.Monoid ((<>), mconcat)
 
@@ -22,14 +22,16 @@ main :: IO ()
 main = do
     nvc <- execParser (info (helper <*> nvCommand) mempty)
     case nvc of
-        (NCCreate n) -> createNewProject n
-        (NCStart n)  -> start n
+        (NCCreate n)  -> createNewProject n
+        (NCStart n)   -> start n
+        (NCHaddock n) -> haddock n
 
 
 
 data NvCommand
     = NCCreate Text
     | NCStart Text
+    | NCHaddock Text
 
 nvCommand :: Parser NvCommand
 nvCommand = subparser
@@ -37,6 +39,8 @@ nvCommand = subparser
         NCCreate <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Creates new project"))
    <> command "start" (info (
         NCStart <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
+   <> command "haddock" (info (
+        NCHaddock <$> fmap fromString (argument str (metavar "PROJECT NAME"))) (progDesc "Starts the project in development mode"))
     )
 
 
@@ -125,3 +129,31 @@ start projectName = shelly $ do
         , "--test=:main"
         , "--warnings"
         ]
+
+
+
+-------------------------------------------------------------------------------
+-- haddock – build haddock for the 'shared' part of a product
+
+haddock :: Text -> IO ()
+haddock projectName = shelly $ do
+    currentWorkingDirectory <- pwd
+    let projectSharedNameFP = fromText ("product/" <> projectName <> "/shared")
+
+    projectExists <- test_e projectSharedNameFP
+    unless projectExists $
+        errorExit $ mconcat ["Project ", projectName, " does not exist"]
+
+    run_ "stack"
+        [ "--install-ghc"
+        , "--stack-yaml", "product/" <> projectName <> "/shared/stack.yaml"
+        , "haddock"
+        ]
+
+    path <- strip <$> run "stack"
+        [ "--stack-yaml", "product/" <> projectName <> "/shared/stack.yaml"
+        , "path"
+        , "--local-doc-root"
+        ]
+
+    run_ "open" [path <> "/index.html"]
