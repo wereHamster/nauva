@@ -36,9 +36,6 @@ import qualified Snap.Core           as Snap
 import           Snap.Http.Server    (ConfigLog(..), httpServe, setPort, setAccessLog, setErrorLog)
 import           Snap.Blaze          (blaze)
 
-import           Nauva.Service.Head
-import           Nauva.Service.Router
-
 import           Prelude
 
 

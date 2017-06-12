@@ -51,7 +51,7 @@ import           Nauva.View
 pageRoot :: [Element] -> Element
 pageRoot c = div_ [style_ outerStyle] [div_ [style_ innerStyle] c]
   where
-    outerStyle = mkStyle $ do
+    outerStyle = mkStyle $
         margin "0 30px"
 
     innerStyle = mkStyle $ do
@@ -171,10 +171,20 @@ pageParagraph isTopLevel = p_ [style_ style]
             marginBottom "0"
 
 
+blockquoteTypeface :: Typeface
+blockquoteTypeface = Typeface
+    { tfName       = "blockquote"
+    , tfFontFamily = "'Roboto', sans-serif"
+    , tfFontWeight = "400"
+    , tfFontSize   = "19.2px"
+    , tfLineHeight = "1.44"
+    }
+
 pageBlockquote :: [Element] -> Element
 pageBlockquote = blockquote_ [style_ style]
   where
     style = mkStyle $ do
+        typeface blockquoteTypeface
         quotes none
         margin "48px 0 32px -20px"
         padding "0 0 0 20px"
@@ -182,11 +192,7 @@ pageBlockquote = blockquote_ [style_ style]
 
         -- blockquote > p
         fontStyle "normal"
-        fontWeight "400"
         color "#333333"
-        fontFamily "'Roboto', sans-serif"
-        fontSize "19.2px"
-        lineHeight "1.44"
         flexBasis "100%"
         -- margin "16px 0 0 0"
 
@@ -196,7 +202,7 @@ codeBlock lang s = div_ [style_ rootStyle]
     , pre_ [style_ preStyle] [code_ [style_ codeStyle] [str_ s]]
     ]
   where
-    rootStyle = mkStyle $ do
+    rootStyle = mkStyle $
         position "relative"
 
     langStyle = mkStyle $ do
@@ -281,7 +287,7 @@ pageHint c = div_ [style_ pageHintContainerStyle] [div_ [style_ pageHintDefaultS
     pageHintDefaultStyle = pageHintStyle "rgb(255, 180, 0)" "rgb(255, 246, 221)" "rgb(255, 239, 170)"
     -- pageHintDirectiveStyle = pageHintStyle "rgb(47, 191, 98)" "rgb(234, 250, 234)" "rgb(187, 235, 200)"
 
-    pageHintContainerStyle = mkStyle $ do
+    pageHintContainerStyle = mkStyle $
         paddingLeft "16px"
 
     pageHintStyle fg bg b = mkStyle $ do
@@ -362,7 +368,7 @@ instance FromJSON PageElementProps where
     parseJSON _ = fail "PageElementProps"
 
 pageElement :: PageElementProps -> [Element] -> Element
-pageElement (PageElementProps {..}) c = case pepTitle of
+pageElement PageElementProps{..} c = case pepTitle of
     Nothing -> div_ [style_ style] c
     Just title -> div_ [style_ style] ([div_ [style_ titleStyle] [pageH4 [str_ (T.pack title)]]] <> c)
   where
@@ -374,7 +380,7 @@ pageElement (PageElementProps {..}) c = case pepTitle of
         flexBasis $ cssTerm $ T.pack $ "calc((100% / 6 * " <> show pepSpan <> "))"
         overflow "hidden"
 
-    titleStyle = mkStyle $ do
+    titleStyle = mkStyle $
         margin "0 0 8px -16px"
 
 
@@ -393,7 +399,7 @@ instance FromJSON CodeSpecimenProps where
 
 
 codeSpecimen :: CodeSpecimenProps -> Element -> Text -> Text -> Element
-codeSpecimen (CodeSpecimenProps {..}) c lang s = if cspNoSource
+codeSpecimen CodeSpecimenProps{..} c lang s = if cspNoSource
     then div_ [style_ rootStyle] [pageElementContainer [c]]
     else div_ [style_ rootStyle] [pageElementContainer [c], codeBlock lang s]
   where
@@ -413,9 +419,9 @@ codeSpecimen (CodeSpecimenProps {..}) c lang s = if cspNoSource
 
 typefaceSpecimen :: Text -> Typeface -> Element
 typefaceSpecimen t tf = pageElement
-    (PageElementProps {pepTitle = Nothing, pepSpan = 6})
+    PageElementProps{pepTitle = Nothing, pepSpan = 6}
     [div_ [style_ rootStyle]
-    [ div_ [style_ metaStyle] [str_ $ (tfName tf) <> " – " <> metaString]
+    [ div_ [style_ metaStyle] [str_ $ tfName tf <> " – " <> metaString]
     , div_ [style_ previewStyle] [str_ t]
     ]]
   where

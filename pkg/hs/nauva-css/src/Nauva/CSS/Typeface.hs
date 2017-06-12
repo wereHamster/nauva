@@ -49,7 +49,7 @@ data Typeface = Typeface
 -- >     color "black"
 
 typeface :: Typeface -> Writer [Statement] ()
-typeface (Typeface {..}) = do
+typeface Typeface{..} = do
     fontFamily tfFontFamily
     fontWeight tfFontWeight
     fontSize tfFontSize
