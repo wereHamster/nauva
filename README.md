@@ -25,7 +25,7 @@ First install [stack], then:
 
     git clone https://github.com/wereHamster/nauva.git
     cd nauva
-    ./bin/dev template/app
+    ./bin/nauva start template/app
 
 A browser should automatically open. If not then open [http://localhost:8000](http://localhost:8000)
 manually. Note: if port 8000 is already occupied the server will pick the next
@@ -82,7 +82,7 @@ one specific purpose, contains one Cabal file which defines a single executable.
 
 In the following example we have a product which consists of an application (**app**)
 and a website (**website**) which share common code. Furthermore, both **app** and
-**website** have a **dev** variant which is what you can run with **bin/dev**
+**website** have a **dev** variant which is what you can run with **bin/nauva start**
 (to work on the code locally). The **app** can be compiled into **native**
 (JavaScript) code, while the **website** can produce a **static** version which
 you can upload to your HTTP server.

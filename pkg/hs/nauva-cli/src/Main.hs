@@ -64,7 +64,7 @@ createNewProject projectName = shelly $ do
   let echoA = echo . mconcat
   echoA ["Project ", projectName, " created"]
   echo "To run use command:"
-  echoA [" ./bin/dev ", projectName, "/app"]
+  echoA [" ./bin/nauva start ", projectName, "/app"]
 
 modifyTextFile :: (Text -> Text) -> FS.FilePath -> Sh ()
 modifyTextFile u f = readfile f >>= pure . u >>= writefile f
