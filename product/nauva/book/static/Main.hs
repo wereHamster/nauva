@@ -22,6 +22,7 @@ import           Nauva.Static (elementToMarkup)
 import           Nauva.Product.Nauva.Book.App (catalogPages)
 
 import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
 import           Text.Blaze.Html.Renderer.String
 
 
@@ -80,7 +81,8 @@ main = do
             pure html
 
         let html = H.docTypeHtml $ do
-                H.head $
+                H.head $ do
+                    H.meta H.! A.charset "utf-8"
                     mconcat headElementsHtml
 
                 H.style $ H.text $ mconcat $ intersperse "\n" $
