@@ -18,7 +18,6 @@ import           Data.Conduit
 import qualified Data.Conduit.List     as CL
 import           Data.Functor.Identity (runIdentity)
 import           Data.Yaml
-import           Data.Foldable
 import           Data.Monoid
 
 import           Text.Markdown         (def)
@@ -47,12 +46,8 @@ markdownBlocksT = map (fmap $ toInline mempty) . parseMarkdown
 data MState = NoState | InList ListType [Exp]
 
 renderBlocks :: Bool -> [Block [Inline]] -> Q Exp -- Q [Element]
-renderBlocks isTopLevel bs = ListE <$> go NoState bs
+renderBlocks isTopLevel = fmap ListE . go NoState
   where
-    lt :: ListType -> [Element] -> Element
-    lt Ordered   = pageOL
-    lt Unordered = pageUL
-
     go :: MState -> [Block [Inline]] -> Q [Exp]
     go s [] = case s of
         NoState              -> pure []
