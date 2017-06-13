@@ -1,6 +1,7 @@
 resolver: nightly-2017-03-20
 packages:
 - .
+- ../color
 - ../nauva
 - ../nauva-css
 - ../nauva-catalog

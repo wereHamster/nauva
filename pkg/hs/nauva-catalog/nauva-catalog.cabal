@@ -43,19 +43,22 @@ library
    , Nauva.Catalog.Elements
    , Nauva.Catalog.Types
    , Nauva.Catalog.TH
+   , Nauva.Catalog.Theme.Color
    , Nauva.Catalog.Theme.Typeface
 
   build-depends:
      base >= 4.7 && < 5
    , aeson
    , bytestring
-   , text
-   , stm
+   , color
+   , conduit
+   , haskell-src-meta
+   , lens
+   , markdown
    , nauva
    , nauva-css
+   , stm
    , template-haskell
-   , haskell-src-meta
-   , markdown
-   , conduit
+   , text
    , th-lift-instances
    , yaml

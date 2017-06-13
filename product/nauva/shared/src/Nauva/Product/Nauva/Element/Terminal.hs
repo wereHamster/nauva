@@ -17,6 +17,7 @@ import           Nauva.Internal.Types
 import           Nauva.View
 
 import           Nauva.Catalog.TH (nauvaCatalogPage)
+import           Nauva.Catalog.Theme.Color
 import           Nauva.Catalog.Theme.Typeface
 
 import           Prelude hiding (rem)
@@ -31,7 +32,7 @@ terminalEl props = div_ [style_ rootStyle] els
   where
     rootStyle = mkStyle $ do
         typeface mono12Typeface
-        backgroundColor "#050f14"
+        backgroundColor black
         color "white"
         overflow "auto"
         padding "2rem"

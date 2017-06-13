@@ -55,7 +55,7 @@ main = hspec $ parallel $ do
                 CIELAB 50 0 0 ^.re (toCIELAB d65) ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (119,119,119)
 
     describe "sRGB" $
-        describe "toSRGB" $
+        describe "toSRGB" $ do
             it "should convert D65 at 0% luminance to (0,0,0)" $
                 whiteD65_0 ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (0,0,0)
             it "should convert D65 at 100% luminance to (255,255,255)" $
@@ -70,8 +70,12 @@ main = hspec $ parallel $ do
                     sRGB_b ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (0,0,255)
 
 
-    describe "regressions" $
+    describe "regressions" $ do
         it "roundtrip from sRGB to CIE LAB and back" $
             let rgb = (44,9,103)
                 ColorV (l, a, b) = mkSRGB8 rgb ^.re toSRGB ^. toCIELAB d65 ^. cvCIELAB
             in CIELAB l a b ^.re (toCIELAB d65) ^. toSRGB ^. cvSRGB8 ^. _unColorV `shouldBe` rgb
+
+        it "xyY 0.238 0.281 0.00424 == rgb 5 15 20" $
+            let color = mkColor (Chromaticity 0.238 0.281) 0.00424
+            in color ^. toSRGB ^. cvSRGB8 `shouldBe` ColorV (5, 15, 20)
