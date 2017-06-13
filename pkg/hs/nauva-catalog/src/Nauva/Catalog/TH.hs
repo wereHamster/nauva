@@ -189,8 +189,8 @@ renderInline i = case i of
     (InlineHtml _) ->
         [| [str_ "TODO: InlineHtml"] |]
 
-    (InlineImage _ _ _) ->
-        [| [str_ "TODO: InlineImage"] |]
+    (InlineImage url _ _) ->
+        [| [img_ [src_ url]] |]
 
     (InlineFootnoteRef _) ->
         [| [str_ "TODO: InlineFootnoteRef"] |]
