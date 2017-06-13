@@ -2,6 +2,9 @@
 
 module Nauva.Catalog.Theme.Color
     ( black
+    , red
+    , gray
+    , lightGray
     ) where
 
 
@@ -14,11 +17,22 @@ import           Control.Lens
 import           Nauva.View
 
 
-blackColor :: Color
-blackColor = mkColor (Chromaticity 0.238 0.281) 0.00424
+
+colorCSSValue :: Color -> CSSValue
+colorCSSValue c = CSSValue $ "rgb(" <> ts r <> "," <> ts g <> "," <> ts b <> ")"
+  where
+    (r, g, b) = c ^. toSRGB ^. cvSRGB8 ^. to unColorV
+    ts = T.pack . show
+
 
 black :: CSSValue
-black = CSSValue $ "rgb(" <> ts r <> "," <> ts g <> "," <> ts b <> ")"
-  where
-    (r, g, b) = blackColor ^. toSRGB ^. cvSRGB8 ^. to unColorV
-    ts = T.pack . show
+black = colorCSSValue $ mkColor (Chromaticity 0.238 0.281) 0.00424
+
+red :: CSSValue
+red = colorCSSValue $ mkColor (Chromaticity 0.603 0.322) 0.22649
+
+gray :: CSSValue
+gray = colorCSSValue $ mkColor (Chromaticity 0.313 0.329) 0.05781
+
+lightGray :: CSSValue
+lightGray = colorCSSValue $ mkColor (Chromaticity 0.313 0.329) 0.87962

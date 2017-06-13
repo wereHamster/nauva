@@ -18,6 +18,7 @@ import qualified Data.Text as T
 import           Nauva.View
 
 import           Nauva.Catalog.TH (nauvaCatalogPage)
+import           Nauva.Catalog.Theme.Color
 import           Nauva.Catalog.Theme.Typeface
 
 import           Prelude hiding (rem)
@@ -50,10 +51,10 @@ messageEl props = div_ [style_ rootStyle]
     filePathStyle = mkStyle $ do
         typeface system14Typeface
         padding (px 8) (px 12)
-        case severity props of
-            MSError -> backgroundColor "#f23"
-            MSWarning -> backgroundColor "#444"
-        color "white"
+        backgroundColor $ case severity props of
+            MSError   -> red
+            MSWarning -> gray
+        color "rgba(255,255,255,0.95)"
         overflow "hidden"
 
     messageStyle :: Style
@@ -61,7 +62,7 @@ messageEl props = div_ [style_ rootStyle]
         typeface mono12Typeface
         padding (px 12) (px 12)
         whiteSpace "pre"
-        backgroundColor "#f1f1f1"
+        backgroundColor lightGray
         overflowX "auto"
 
     strippedMessages = stripLeadingSpaces (messages props)
