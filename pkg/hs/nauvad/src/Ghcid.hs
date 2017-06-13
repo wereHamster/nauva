@@ -383,7 +383,7 @@ runGhcid session waiter opts@Options{..} = do
             appendLine stateVar (T.pack s)
             strs <- _sessionOutput <$> atomically (readTVar stateVar)
             spine <- atomically $ do
-                (inst, _effects) <- instantiate (Path []) (div_ [style_ $ mkStyle (backgroundColor "black" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] [terminalEl $ TerminalProps { terminalLines = strs }])
+                (inst, _effects) <- instantiate (Path []) (div_ [style_ $ mkStyle (backgroundColor "#050f14" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")] [terminalEl $ TerminalProps { terminalLines = strs }])
                 toSpine inst
             sendToClient stateVar $ NVDMSpine spine
 

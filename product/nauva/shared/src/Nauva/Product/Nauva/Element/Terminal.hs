@@ -31,7 +31,7 @@ terminalEl props = div_ [style_ rootStyle] els
   where
     rootStyle = mkStyle $ do
         typeface mono12Typeface
-        backgroundColor "#00222f"
+        backgroundColor "#050f14"
         color "white"
         overflow "auto"
         padding "2rem"
@@ -40,6 +40,7 @@ terminalEl props = div_ [style_ rootStyle] els
         whiteSpace "nowrap"
         overflow "hidden"
         cssTerm "text-overflow" "ellipsis"
+        opacity "0.9"
 
     els = (flip map) (terminalLines props) $ \str -> div_ [style_ lineStyle] [str_ str]
 
