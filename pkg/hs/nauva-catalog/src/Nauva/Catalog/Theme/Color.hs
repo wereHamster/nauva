@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Nauva.Catalog.Theme.Color
-    ( black
+    ( blackColor
+    , black
+
     , red
     , gray
     , lightGray
@@ -25,8 +27,11 @@ colorCSSValue c = CSSValue $ "rgb(" <> ts r <> "," <> ts g <> "," <> ts b <> ")"
     ts = T.pack . show
 
 
+blackColor :: Color
+blackColor = mkColor (Chromaticity 0.238 0.281) 0.00424
+
 black :: CSSValue
-black = colorCSSValue $ mkColor (Chromaticity 0.238 0.281) 0.00424
+black = colorCSSValue blackColor
 
 red :: CSSValue
 red = colorCSSValue $ mkColor (Chromaticity 0.603 0.322) 0.22649
