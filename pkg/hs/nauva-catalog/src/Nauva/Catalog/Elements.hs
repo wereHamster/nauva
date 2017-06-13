@@ -46,6 +46,7 @@ import           Control.Monad
 import           Language.Haskell.TH.Syntax
 
 import           Nauva.View
+import           Nauva.Catalog.Theme.Typeface
 
 
 pageRoot :: [Element] -> Element
@@ -61,15 +62,6 @@ pageRoot c = div_ [style_ outerStyle] [div_ [style_ innerStyle] c]
         padding "48px 0px"
 
 
-
-h2Typeface :: Typeface
-h2Typeface = Typeface
-    { tfName       = "h2"
-    , tfFontFamily = "'Roboto', sans-serif"
-    , tfFontWeight = "400"
-    , tfFontSize   = "27.648px"
-    , tfLineHeight = "1.2"
-    }
 
 pageH2 :: [Element] -> Element
 pageH2 = h2_ [style_ style]
@@ -88,14 +80,6 @@ pageH2 = h2_ [style_ style]
             marginBottom "0"
 
 
-h3Typeface :: Typeface
-h3Typeface = Typeface
-    { tfName       = "h3"
-    , tfFontFamily = "'Roboto', sans-serif"
-    , tfFontWeight = "400"
-    , tfFontSize   = "23.04px"
-    , tfLineHeight = "1.2"
-    }
 
 pageH3 :: [Element] -> Element
 pageH3 = h3_ [style_ style]
@@ -114,15 +98,6 @@ pageH3 = h3_ [style_ style]
             marginBottom "0"
 
 
-h4Typeface :: Typeface
-h4Typeface = Typeface
-    { tfName       = "h4"
-    , tfFontFamily = "'Roboto', sans-serif"
-    , tfFontWeight = "400"
-    , tfFontSize   = "19.2px"
-    , tfLineHeight = "1.2"
-    }
-
 pageH4 :: [Element] -> Element
 pageH4 = h4_ [style_ style]
   where
@@ -139,15 +114,6 @@ pageH4 = h4_ [style_ style]
         lastChild $
             marginBottom "0"
 
-
-paragraphTypeface :: Typeface
-paragraphTypeface = Typeface
-    { tfName       = "paragraph"
-    , tfFontFamily = "'Roboto', sans-serif"
-    , tfFontWeight = "400"
-    , tfFontSize   = "16px"
-    , tfLineHeight = "1.44"
-    }
 
 pageParagraph :: Bool -> [Element] -> Element
 pageParagraph isTopLevel = p_ [style_ style]
@@ -170,15 +136,6 @@ pageParagraph isTopLevel = p_ [style_ style]
         lastChild $
             marginBottom "0"
 
-
-blockquoteTypeface :: Typeface
-blockquoteTypeface = Typeface
-    { tfName       = "blockquote"
-    , tfFontFamily = "'Roboto', sans-serif"
-    , tfFontWeight = "400"
-    , tfFontSize   = "19.2px"
-    , tfLineHeight = "1.44"
-    }
 
 pageBlockquote :: [Element] -> Element
 pageBlockquote = blockquote_ [style_ style]
@@ -219,16 +176,10 @@ codeBlock lang s = div_ [style_ rootStyle]
         borderTop "1px solid rgb(238, 238, 238)"
 
     codeStyle = mkStyle $ do
-        fontFamily "'Source Code Pro', monospace"
-        fontWeight "400"
+        typeface mono12Typeface
 
     preStyle = mkStyle $ do
-        fontStyle "normal"
-        fontWeight "400"
         color "rgb(0, 38, 62)"
-        fontFamily "Roboto, sans-serif"
-        fontSize "14.6059px"
-        lineHeight "1.44"
         background "rgb(255, 255, 255)"
         border "none"
         display "block"
@@ -256,12 +207,9 @@ pageCodeBlock s = div_ [style_ pageCodeBlockStyle]
         position "relative"
 
     sectionStyle = mkStyle $ do
+        typeface mono12Typeface
         fontStyle "normal"
-        fontWeight "400"
         color "rgb(51, 51, 51)"
-        fontFamily "'Source Code Pro', monospace"
-        fontSize "14.6059px"
-        lineHeight "1.44"
         display "block"
         width "100%"
         background "rgb(255, 255, 255)"
@@ -292,11 +240,7 @@ pageHint c = div_ [style_ pageHintContainerStyle] [div_ [style_ pageHintDefaultS
 
     pageHintStyle fg bg b = mkStyle $ do
         fontStyle "normal"
-        fontWeight "400"
         color fg
-        fontFamily "Roboto, sans-serif"
-        fontSize "16px"
-        lineHeight "1.44"
         background bg
         border $ CSSValue $ "1px solid " <> b
         borderRadius "2px"
@@ -310,12 +254,11 @@ pageCode :: [Element] -> Element
 pageCode = code_ [style_ style]
   where
     style = mkStyle $ do
+        typeface mono12Typeface
         background "#F2F2F2"
         border "1px solid #eee"
         borderRadius "1px"
         display inlineBlock
-        fontFamily "'Source Code Pro', monospace"
-        lineHeight "1"
         padding "0.12em 0.2em"
         textIndent "0"
 
@@ -374,7 +317,7 @@ pageElement PageElementProps{..} c = case pepTitle of
   where
     style = mkStyle $ do
         maxWidth "100%"
-        margin "24px 0"
+        margin "12px 0"
         position "relative"
         paddingLeft "16px"
         flexBasis $ cssTerm $ T.pack $ "calc((100% / 6 * " <> show pepSpan <> "))"
@@ -404,12 +347,10 @@ codeSpecimen CodeSpecimenProps{..} c lang s = if cspNoSource
     else div_ [style_ rootStyle] [pageElementContainer [c], codeBlock lang s]
   where
     rootStyle = mkStyle $ do
+        typeface mono12Typeface
         fontStyle "normal"
         fontWeight "400"
         color "rgb(51, 51, 51)"
-        fontFamily "'Source Code Pro', monospace"
-        fontSize "14.6059px"
-        lineHeight "1.44"
         display "block"
         width "100%"
         background "rgb(255, 255, 255)"
@@ -430,11 +371,10 @@ typefaceSpecimen t tf = pageElement
         flexDirection column
 
     metaStyle = mkStyle $ do
+        typeface meta14Typeface
         color "black"
         marginBottom "4px"
-        color "#666"
-        fontFamily "Roboto"
-        fontSize "16px"
+        color "#333"
 
     metaString = mconcat $ intersperse ", "
         [ unCSSValue (tfFontFamily tf)

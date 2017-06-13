@@ -15,10 +15,10 @@ module Nauva.Product.Nauva.Element.Message
 import           Data.Text (Text)
 import qualified Data.Text as T
 
-import           Nauva.Internal.Types
 import           Nauva.View
 
 import           Nauva.Catalog.TH (nauvaCatalogPage)
+import           Nauva.Catalog.Theme.Typeface
 
 import           Prelude hiding (rem)
 
@@ -48,8 +48,7 @@ messageEl props = div_ [style_ rootStyle]
 
     filePathStyle :: Style
     filePathStyle = mkStyle $ do
-        fontFamily "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\""
-        fontSize "14px"
+        typeface system14Typeface
         padding (px 8) (px 12)
         case severity props of
             MSError -> backgroundColor "#f23"
@@ -59,9 +58,7 @@ messageEl props = div_ [style_ rootStyle]
 
     messageStyle :: Style
     messageStyle = mkStyle $ do
-        fontFamily "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace"
-        fontSize "12px"
-        lineHeight "16px"
+        typeface mono12Typeface
         padding (px 12) (px 12)
         whiteSpace "pre"
         backgroundColor "#f1f1f1"

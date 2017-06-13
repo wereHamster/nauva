@@ -9,6 +9,8 @@ import           Nauva.App
 
 import           Nauva.Catalog
 import           Nauva.Catalog.TH
+import           Nauva.Catalog.Elements
+import           Nauva.Catalog.Theme.Typeface
 
 import           Nauva.Product.Nauva.Element.Terminal as Terminal
 import           Nauva.Product.Nauva.Element.Message  as Message
@@ -39,7 +41,7 @@ catalogPages =
             , Leaf
                 { leafHref = "/theme/typefaces"
                 , leafTitle = "Typefaces"
-                , leafElement = Message.catalogPage
+                , leafElement = typefacesPage
                 }
             ]
         }
@@ -64,4 +66,55 @@ catalogPages =
 introductionPage :: Element
 introductionPage = [nauvaCatalogPage|
 # Welcome to the Nauva catalog
+|]
+
+typefacesPage :: Element
+typefacesPage = [nauvaCatalogPage|
+# Headings
+
+The heading typefaces are used in the catalog for for the main page header (h1)
+and headings inside the page content (h2 – h4).
+
+```element
+typefaceSpecimen' h2Typeface
+```
+
+```element
+typefaceSpecimen' h3Typeface
+```
+
+```element
+typefaceSpecimen' h4Typeface
+```
+
+# Copy
+
+```element
+typefaceSpecimen "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." paragraphTypeface
+```
+
+```element
+typefaceSpecimen "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." blockquoteTypeface
+```
+
+# System
+
+The system typefaces are used in some elements rendered by nauvad.
+
+```element
+typefaceSpecimen "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." system14Typeface
+```
+
+# Monospace
+
+Monospace fonts are used to show terminal output and code blocks.
+
+```element
+typefaceSpecimen "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." mono12Typeface
+```
+
+```element
+typefaceSpecimen "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." mono14Typeface
+```
+
 |]

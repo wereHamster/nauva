@@ -17,6 +17,7 @@ import           Nauva.Internal.Types
 import           Nauva.View
 
 import           Nauva.Catalog.TH (nauvaCatalogPage)
+import           Nauva.Catalog.Theme.Typeface
 
 import           Prelude hiding (rem)
 
@@ -29,10 +30,8 @@ terminalEl :: TerminalProps -> Element
 terminalEl props = div_ [style_ rootStyle] els
   where
     rootStyle = mkStyle $ do
-        fontSize "12px"
-        lineHeight "16px"
-        fontFamily "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace"
-        backgroundColor "black"
+        typeface mono12Typeface
+        backgroundColor "#00222f"
         color "white"
         overflow "auto"
         padding "2rem"
