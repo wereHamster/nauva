@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+find . -name stack.yaml | while read path; do
+    dir=$(dirname $path)
+    echo $dir
+    pushd $dir >/dev/null
+    stack --install-ghc build
+    popd >/dev/null
+done

@@ -1,0 +1,5 @@
+language: nix
+
+matrix:
+  include:
+    - script: nix-shell --pure -p stack --run ./script/ci/buildall
