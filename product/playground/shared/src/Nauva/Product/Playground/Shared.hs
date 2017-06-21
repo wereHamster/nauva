@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 
 module Nauva.Product.Playground.Shared
-    ( rootElement
+    ( playgroundApp
     ) where
 
 
@@ -17,15 +17,23 @@ import           System.Random
 
 import           GHC.Generics (Generic)
 
+import           Nauva.App
 import           Nauva.View
+
+
+
+playgroundApp :: App
+playgroundApp = App
+    { rootElement = \_ -> playgroundRootElement 1
+    }
 
 
 
 -- | The root element of the application. It takes one input (an 'Int'), and
 -- contains both 'Thunk's and 'Component's, to demonstrate that they all work
 -- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
-rootElement :: Int -> Element
-rootElement i = div_ [style_ rootStyle :: Attribute] $
+playgroundRootElement :: Int -> Element
+playgroundRootElement i = div_ [style_ rootStyle :: Attribute] $
     [ str_ $ "App Generation " <> (T.pack $ show i)
     , br_ []
     , thunk_ thunk (i `div` 2)

@@ -10,4 +10,4 @@ import           Nauva.Product.Playground.Shared
 
 
 main :: IO ()
-main = devServer $ App (\_ -> rootElement 1)
+main = devServer playgroundApp

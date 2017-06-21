@@ -12,6 +12,7 @@ setup-info:
 packages:
 - .
 - ../../shared
+- ../../../../pkg/hs/color
 - ../../../../pkg/hs/nauva
 - ../../../../pkg/hs/nauva-css
 - ../../../../pkg/hs/nauva-catalog

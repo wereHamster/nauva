@@ -5,11 +5,7 @@
 module Nauva.Product.Varna.Catalog (catalogApp) where
 
 import           Nauva.App
-
-import           Nauva.Internal.Types
-
 import           Nauva.Catalog
-import           Nauva.Catalog.Types
 import           Nauva.Catalog.TH
 
 import           Nauva.Product.Varna.Element.Card as Card
@@ -18,17 +14,17 @@ import           Nauva.Product.Varna.Element.Card as Card
 
 catalogApp :: App
 catalogApp = App
-    { rootElement = \appH -> catalog $ CatalogProps (headH appH) (routerH appH) catalogPages
+    { rootElement = catalog . CatalogProps catalogPages
     }
 
 catalogPages :: [Page]
 catalogPages =
-    [ PLeaf $ Leaf
+    [ PLeaf Leaf
         { leafHref = "/"
         , leafTitle = "Introduction"
         , leafElement = introductionPage
         }
-    , PDirectory $ Directory
+    , PDirectory Directory
         { directoryTitle = "Elements"
         , directoryChildren =
             [ Leaf

@@ -1,6 +1,7 @@
 module Main (main) where
 
 
+import  Nauva.App
 import  Nauva.Client
 import  Nauva.Product.Varna.Shared
 
@@ -9,6 +10,4 @@ import  Nauva.Product.Varna.Shared
 main :: IO ()
 main = do
     putStrLn "Native App"
-    runClient $ Config
-        { cElement = \_ -> root
-        }
+    runClient $ App (root . headH)

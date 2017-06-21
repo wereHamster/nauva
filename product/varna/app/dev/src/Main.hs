@@ -6,4 +6,4 @@ import           Nauva.Product.Varna.Shared
 
 
 main :: IO ()
-main = devServer $ App (\appH -> root (headH appH))
+main = devServer $ App (root . headH)
