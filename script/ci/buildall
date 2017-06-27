@@ -6,6 +6,6 @@ find . -name stack.yaml | while read path; do
     dir=$(dirname $path)
     echo $dir
     pushd $dir >/dev/null
-    stack --nix-pure --nix-packages zlib build
+    stack --install-ghc build
     popd >/dev/null
 done
