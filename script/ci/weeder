@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e
+
+stack install weeder --resolver=nightly
+
+PATH=$HOME/.local/bin:$PATH
+export PATH
+
+find . -name stack.yaml | while read path; do
+    dir=$(dirname $path)
+    echo $dir
+    pushd $dir >/dev/null
+    weeder . --build
+    popd >/dev/null
+done
