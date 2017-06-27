@@ -4,7 +4,7 @@
 
 
 -- | The application entry point
-module Ghcid (main) where
+module Nauvad (main) where
 
 import Control.Exception
 import System.IO.Error
