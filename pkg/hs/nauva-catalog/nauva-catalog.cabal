@@ -62,3 +62,4 @@ library
    , text
    , th-lift-instances
    , yaml
+   , filepath

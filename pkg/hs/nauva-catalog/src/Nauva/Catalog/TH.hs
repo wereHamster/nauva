@@ -3,6 +3,7 @@
 
 module Nauva.Catalog.TH
     ( catalogPage
+    , catalogPageFromFile
     , nauvaCatalogPage
 
     , renderInline
@@ -11,6 +12,7 @@ module Nauva.Catalog.TH
 
 
 import           Data.ByteString      (ByteString)
+import qualified Data.ByteString      as BS
 import           Data.Text            (Text)
 import qualified Data.Text             as T
 import qualified Data.Text.Encoding    as T
@@ -27,7 +29,10 @@ import           Text.Markdown.Inline
 import           Language.Haskell.TH         hiding (Inline)
 import           Language.Haskell.TH.Quote
 import           Language.Haskell.Meta.Parse (parseExp)
+
 import           Instances.TH.Lift ()
+
+import           System.FilePath
 
 import           Nauva.View hiding (Exp)
 import           Nauva.Catalog.Elements
@@ -207,3 +212,11 @@ nauvaCatalogPage = QuasiQuoter
     , quoteType = error "nauvaCatalogPage: quoteType"
     , quoteDec  = error "nauvaCatalogPage: quoteDec"
     }
+
+
+catalogPageFromFile :: String -> Q Exp -- Element
+catalogPageFromFile relativePath = do
+    loc <- location
+    let path = takeDirectory (loc_filename loc) </> relativePath
+    contents <- runIO $ BS.readFile path
+    catalogPage contents

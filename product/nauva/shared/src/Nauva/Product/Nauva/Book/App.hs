@@ -1,6 +1,7 @@
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Nauva.Product.Nauva.Book.App
     ( bookApp
@@ -28,6 +29,11 @@ catalogPages =
         { leafHref = "/"
         , leafTitle = "Introduction"
         , leafElement = introductionPage
+        }
+    , PLeaf Leaf
+        { leafHref = "/readme"
+        , leafTitle = "README"
+        , leafElement = $(catalogPageFromFile "../../../../../../../../README.md")
         }
     , PDirectory Directory
         { directoryTitle = "Getting Started"
