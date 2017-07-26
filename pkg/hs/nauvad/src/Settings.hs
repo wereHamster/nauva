@@ -26,7 +26,7 @@ import           Snap.Util.FileServe (serveDirectory)
 embeddedPublicDir :: [(FilePath, ByteString)]
 embeddedPublicDir = $(do
     loc <- location
-    embedDir $ (takeDirectory $ loc_filename loc) <> "/../public")
+    embedDir (takeDirectory (loc_filename loc) <> "/../public"))
 
 
 mkStaticSettings :: IO (Snap ())
@@ -34,7 +34,7 @@ mkStaticSettings = do
     mbPublicPath <- lookupEnv "NAUVAD_PUBLIC_PATH"
     case mbPublicPath of
         Nothing -> do
-            putStrLn $ "NauvaD: serving embedded files"
+            putStrLn "NauvaD: serving embedded files"
             pure $ route $ map toRoute embeddedPublicDir
         Just publicPath -> do
             putStrLn $ "NauvaD: serving files from " <> publicPath

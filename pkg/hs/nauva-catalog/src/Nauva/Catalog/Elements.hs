@@ -468,7 +468,7 @@ colorCell cc@ColorCell{..} = div_ [style_ rootStyle]
         position relative
 
         let mapTuple f (a, b, c) = (f a, f b, f c)
-        let v = T.pack (show (floor $ ((100 - ccLuminance) / 100) * 255.0))
+        -- let v = T.pack (show (floor $ ((100 - ccLuminance) / 100) * 255.0))
         let (r,g,b) = mapTuple (T.pack . show) (luminanceToRGB ccLuminance)
 
         color $ if ccLuminance > 50 then "rgba(0,0,0,.9)" else "rgba(255,255,255,.9)"

@@ -74,7 +74,8 @@ executable nauvad
         process,
         portfinder,
         file-embed,
-        template-haskell
+        template-haskell,
+        async
     other-modules:
         Language.Haskell.Ghcid.Types
         Language.Haskell.Ghcid.Parser

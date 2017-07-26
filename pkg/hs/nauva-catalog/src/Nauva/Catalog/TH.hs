@@ -197,7 +197,6 @@ renderInline i = case i of
 catalogPage :: ByteString -> Q Exp -- Element
 catalogPage bs = do
     children <- renderBlocks True (markdownBlocks bs)
-
     appE [| pageRoot . mconcat |] (pure children)
 
 
