@@ -48,7 +48,7 @@ headerThunk = createThunk $ \thunkId -> Thunk
     headerStyle = mkStyle $ do
         height (px 200)
         backgroundColor "#373f52"
-        padding (px 20) (px 40)
+        padding (px 20) (px 30)
 
         display flex
         flexDirection column

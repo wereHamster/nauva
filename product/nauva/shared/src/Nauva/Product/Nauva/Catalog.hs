@@ -22,7 +22,7 @@ import           Nauva.Product.Nauva.Element.Message  as Message
 
 catalogApp :: App
 catalogApp = App
-    { rootElement = catalog . CatalogProps catalogPages
+    { rootElement = catalog . CatalogProps "Nauva" catalogPages
     }
 
 

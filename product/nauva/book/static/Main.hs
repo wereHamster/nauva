@@ -19,7 +19,7 @@ import           Nauva.App
 import           Nauva.Catalog
 import           Nauva.Static (elementToMarkup)
 
-import           Nauva.Product.Nauva.Book.App (catalogPages)
+import           Nauva.Product.Nauva.Book.App (bookApp, catalogPages)
 
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -52,7 +52,7 @@ renderCSSRule (CSSFontFaceRule _ styleDeclaration) = mconcat
 
 main :: IO ()
 main = do
-    putStrLn "Haddock Catalog"
+    putStrLn "Nauva Book"
 
     forM_ (onlyLeaves catalogPages) $ \leaf -> do
         putStrLn $ T.unpack $ leafHref leaf
@@ -71,7 +71,7 @@ main = do
             pure $ RouterH (locVar, locChan) (\_ -> pure ())
 
         (bodyHtml, styles, actions) <- atomically $ elementToMarkup $
-            catalog $ CatalogProps catalogPages (AppH headH routerH)
+            rootElement bookApp (AppH headH routerH)
 
         sequence_ actions
 

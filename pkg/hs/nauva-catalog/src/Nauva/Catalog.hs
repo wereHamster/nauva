@@ -34,7 +34,8 @@ import           Nauva.Catalog.Types
 -- on the current location.
 
 data CatalogProps = CatalogProps
-    { p_pages :: ![Page]
+    { p_title :: !Text
+    , p_pages :: ![Page]
     , p_appH :: !AppH
     }
 
@@ -54,18 +55,18 @@ catalogComponent = createComponent $ \componentId -> Component
     { componentId = componentId
     , componentDisplayName = "Catalog"
 
-    , initialComponentState = \props -> do
-        loc <- readTVar $ fst $ hLocation $ routerH $ p_appH (props :: CatalogProps)
+    , initialComponentState = \props@CatalogProps{..} -> do
+        loc <- readTVar $ fst $ hLocation $ routerH $ p_appH
         pure
             ( State (locPathname loc)
-            , [ Signal (snd $ hLocation $ routerH $ p_appH (props :: CatalogProps)) (\(Location p) props' s -> (s { path = p }, [updateHead props' p])) ]
+            , [ Signal (snd $ hLocation $ routerH $ p_appH) (\(Location p) props' s -> (s { path = p }, [updateHead props' p])) ]
             , [ updateHead props (locPathname loc) ]
             )
 
     , componentEventListeners = const []
     , componentHooks = emptyHooks
     , processLifecycleEvent = \() _ s -> (s, [])
-    , receiveProps = \props s -> pure (s, [Signal (snd $ hLocation $ routerH $ p_appH (props :: CatalogProps)) (\(Location p) props' s' -> (s' { path = p }, [updateHead props' p]))], [])
+    , receiveProps = \CatalogProps{..} s -> pure (s, [Signal (snd $ hLocation $ routerH $ p_appH) (\(Location p) props' s' -> (s' { path = p }, [updateHead props' p]))], [])
     , update = update
     , renderComponent = render
     , componentSnapshot = \_ -> A.object []
@@ -73,10 +74,10 @@ catalogComponent = createComponent $ \componentId -> Component
     }
   where
     updateHead :: CatalogProps -> Text -> IO (Maybe ())
-    updateHead props path = do
-        hReplace (headH $ p_appH props)
+    updateHead CatalogProps{..} path = do
+        hReplace (headH p_appH)
             [ style_ [str_ "*,*::before,*::after{box-sizing:inherit}body{margin:0;box-sizing:border-box}"]
-            , title_ [str_ $ title (p_pages (props :: CatalogProps)) path]
+            , title_ [str_ $ title p_pages path]
 
             , link_ [rel_ ("stylesheet" :: Text), type_ ("text/css" :: Text), href_ ("https://fonts.googleapis.com/css?family=Roboto:400,700,400italic" :: Text)]
             , link_ [rel_ ("stylesheet" :: Text), type_ ("text/css" :: Text), href_ ("https://fonts.googleapis.com/css?family=Source+Code+Pro:400,700" :: Text)]
@@ -100,57 +101,57 @@ catalogComponent = createComponent $ \componentId -> Component
 
     flattenedPages pages = concat $ map flattenPage pages
 
-    render props (State {..}) = div_ [style_ rootStyle]
+    render CatalogProps{..} State{..} = div_ [style_ rootStyle]
         [ div_ [style_ mainStyle]
-            [ header (HeaderProps { section, title = title (p_pages (props :: CatalogProps)) path })
+            [ header (HeaderProps { section, title = title p_pages path })
             , div_ [style_ pageStyle] [page]
             ]
 
         , sidebar $ SidebarProps
-            { p_routerH = routerH $ p_appH (props :: CatalogProps)
+            { p_routerH = routerH p_appH
             , p_logoUrl
-            , p_pages = p_pages (props :: CatalogProps)
+            , p_pages = p_pages
             }
         ]
       where
         p_logoUrl = "/"
 
-        page = case lookup path (flattenedPages $ p_pages (props :: CatalogProps)) of
+        page = case lookup path (flattenedPages $ p_pages) of
             Nothing   -> div_ [style_ pageInnerStyle] [str_ "page not found"]
             Just leaf -> leafElement leaf
 
         section :: Text
-        section = findSection Nothing $ p_pages (props :: CatalogProps)
+        section = findSection Nothing $ p_pages
           where
-            findSection mbTitle []                               = fromMaybe "Catalog" mbTitle
+            findSection mbTitle []                               = fromMaybe p_title mbTitle
             findSection _       (PDirectory (Directory {..}):xs) = findSection (Just directoryTitle) xs
             findSection mbTitle (PLeaf (Leaf {..}):xs)           = if leafHref == path
-                then fromMaybe "Catalog" mbTitle
+                then fromMaybe p_title mbTitle
                 else findSection mbTitle xs
 
-        rootStyle = mkStyle $ do
-            position relative
-            background "rgb(249, 249, 249)"
-            margin "0px"
-            padding "0px"
-            width "100%"
-            height "100%"
+    rootStyle = mkStyle $ do
+        position relative
+        background "rgb(249, 249, 249)"
+        margin "0px"
+        padding "0px"
+        width "100%"
+        height "100%"
 
-        mainStyle = mkStyle $ do
-            display flex
-            flexDirection column
-            minHeight (vh 100)
-            position relative
+    mainStyle = mkStyle $ do
+        display flex
+        flexDirection column
+        minHeight (vh 100)
+        position relative
 
-            -- media "(min-width: 1000px)" $ do
-            marginLeft (px 251)
+        -- media "(min-width: 1000px)" $ do
+        marginLeft (px 251)
 
-        pageStyle = mkStyle $ do
-            flex "1 1 0%"
+    pageStyle = mkStyle $ do
+        flex "1 1 0%"
 
-        pageInnerStyle = mkStyle $ do
-            margin "0 30px 0 40px"
-            maxWidth "64em"
-            display flex
-            flexFlow row wrap
-            padding "48px 0px"
+    pageInnerStyle = mkStyle $ do
+        margin "0 30px 0 40px"
+        maxWidth "64em"
+        display flex
+        flexFlow row wrap
+        padding "48px 0px"
