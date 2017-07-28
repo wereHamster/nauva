@@ -4,6 +4,6 @@ timeout: 120m
 
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/haskell:nightly-2017-03-20', 'docs/haddock']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/haskell:nightly-2017-07-25', 'docs/haddock']
 
-images: ['gcr.io/$PROJECT_ID/haskell:nightly-2017-03-20']
+images: ['gcr.io/$PROJECT_ID/haskell:nightly-2017-07-25']

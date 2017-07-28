@@ -1,4 +1,4 @@
-resolver: nightly-2017-06-11
+resolver: nightly-2017-07-25
 packages:
 - .
 - ../../shared

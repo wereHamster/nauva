@@ -3,7 +3,7 @@ MAINTAINER Tomas Carnecky <tomas.carnecky@gmail.com>
 
 # Keep this same as the resolver in the stack config files. Otherwise
 # builds will take forever.
-ENV RESOLVER nightly-2017-03-20
+ENV RESOLVER nightly-2017-07-25
 
 RUN stack --no-terminal --color=never --resolver=$RESOLVER --install-ghc install --haddock \
     text aeson snap-core blaze-markup blaze-html mtl tagged haskell-src-meta \
