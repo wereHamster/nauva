@@ -13,7 +13,6 @@ import           Data.Function
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable
-import           Data.Tagged
 import           Data.String
 
 import           Control.Monad.Writer.Lazy
@@ -394,14 +393,6 @@ newtype ComponentId = ComponentId { unComponentId :: Int }
 componentIdCounter :: IORef Int
 componentIdCounter = unsafePerformIO $ newIORef 1
 {-# NOINLINE componentIdCounter #-}
-
-
-
-taggedWithAction :: Component p h s a -> A.Value -> Tagged a A.Value
-taggedWithAction _ = Tagged
-
-taggedWithHook :: Component p h s a -> A.Value -> Tagged h A.Value
-taggedWithHook _ = Tagged
 
 
 

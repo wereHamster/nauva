@@ -21,6 +21,5 @@ library
    , text
    , containers
    , nauva
-   , tagged
    , random
    , nauva

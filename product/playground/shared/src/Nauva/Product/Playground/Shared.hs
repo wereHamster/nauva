@@ -11,7 +11,6 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Aeson as A
 import           Data.Monoid
-import           Data.Tagged
 
 import           System.Random
 
@@ -70,7 +69,7 @@ data Action = DoThis | DoThat | DoClick Text | DoChange Text
 
 instance Value Action where
     parseValue v = do
-        list <- A.parseJSON $ unTagged v
+        list <- A.parseJSON v
         case list of
             (t:xs) -> do
                 ctag <- A.parseJSON t
@@ -176,7 +175,7 @@ instance A.ToJSON CanvasA
 
 instance Value CanvasA where
     parseValue v = do
-        list <- A.parseJSON $ unTagged v
+        list <- A.parseJSON v
         case list of
             (t:xs) -> do
                 ctag <- A.parseJSON t

@@ -50,7 +50,6 @@ library
    , mtl
    , stm
    , containers
-   , tagged
    , scientific
    , data-default
    , ghcjs-base

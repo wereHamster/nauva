@@ -24,7 +24,6 @@ import           Data.IORef
 import qualified Data.Aeson       as A
 import qualified Data.Aeson.Types as A
 import           Data.Text        (Text)
-import           Data.Tagged
 
 import           System.IO.Unsafe
 
@@ -96,25 +95,25 @@ type FRD c a = F1 () (RefHandler a)
 --------------------------------------------------------------------------------
 
 class Value a where
-    parseValue :: Tagged a A.Value -> A.Parser a
+    parseValue :: A.Value -> A.Parser a
 
 instance Value () where
-    parseValue _ = pure () -- A.parseJSON . unTagged
+    parseValue _ = pure () -- A.parseJSON
 
 instance Value Int where
-    parseValue = A.parseJSON . unTagged
+    parseValue = A.parseJSON
 
 instance Value Float where
-    parseValue = A.parseJSON . unTagged
+    parseValue = A.parseJSON
 
 instance Value Text where
-    parseValue = A.parseJSON . unTagged
+    parseValue = A.parseJSON
 
 instance (Value a, Value b) => Value (a,b) where
     parseValue v = do
-      list <- A.parseJSON (unTagged v)
+      list <- A.parseJSON v
       case list of
-        [a,b] -> (,) <$> parseValue (Tagged a) <*> parseValue (Tagged b)
+        [a,b] -> (,) <$> parseValue a <*> parseValue b
         _     -> fail "(,)"
 
 

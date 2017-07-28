@@ -63,5 +63,4 @@ library
    , containers
    , blaze-markup
    , blaze-html
-   , tagged
    , nauva-css

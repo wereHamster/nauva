@@ -16,7 +16,6 @@ import qualified Data.Aeson              as A
 import qualified Data.Aeson.Types        as A
 import           Data.Map                (Map)
 import qualified Data.Map                as M
-import           Data.Tagged
 import qualified Data.ByteString.Lazy    as LBS
 import           Data.Monoid
 import           Data.Maybe
@@ -169,7 +168,7 @@ hookHandler accessor h path = do
                 let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty M.empty) (f1Fn f UnitE) of
                         Left _ -> Nothing; Right (x, ioa) -> (\v -> (v, ioa)) <$> unsafePerformIO (fromJSVal x)) fs
                 forM rawHookActions $ \(rawValue, ioAction) -> do
-                    case A.parseEither parseValue (taggedWithHook component rawValue) of
+                    case A.parseEither parseValue rawValue of
                         Left e -> throwError e
                         Right value -> do
                             actions <- lift $ do
@@ -226,7 +225,7 @@ attachRefHandler h refsVar path jsVal = do
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
-                            Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
+                            Just rawValue -> case A.parseEither parseValue rawValue of
                                 Left e -> Prelude.error $ show e
                                 Right action -> do
                                     eff <- applyAction h action ci
@@ -263,7 +262,7 @@ detachRefHandler h refsVar path = do
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "detachRefHandler: fromJSVal"
-                            Just rawValue -> case A.parseEither parseValue (taggedWithAction component rawValue) of
+                            Just rawValue -> case A.parseEither parseValue rawValue of
                                 Left e -> Prelude.error $ show e
                                 Right action -> do
                                     eff <- applyAction h action ci
@@ -314,7 +313,7 @@ dispatchNodeEventHandler h refsVar path fid ev = do
             Nothing -> throwError "dispatchNodeEventHandler: fromJSVal"
             Just x  -> pure x
 
-        action <- case A.parseEither parseValue (taggedWithAction component rawValue) of
+        action <- case A.parseEither parseValue rawValue of
             Left e  -> throwError $ "dispatchNodeEventHandler: " ++ show e
             Right x -> pure x
 
@@ -356,7 +355,7 @@ dispatchComponentEventHandler h refsVar path fid ev = do
             Nothing -> throwError "dispatchComponentEventHandler: fromJSVal"
             Just x  -> pure x
 
-        action <- case A.parseEither parseValue (taggedWithAction component rawValue) of
+        action <- case A.parseEither parseValue rawValue of
             Left e  -> throwError $ "dispatchComponentEventHandler: " ++ show e
             Right x -> pure x
 

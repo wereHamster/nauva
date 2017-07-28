@@ -208,7 +208,7 @@ dispatchEvent h path rawEvent = do
         (mbSCI, inst) <- contextForPath h path
         case (mbSCI, inst) of
             (Just (SomeComponentInstance ci), _) -> do
-                lift $ case A.parseEither parseValue (taggedWithAction (ciComponent ci) rawEvent) of
+                lift $ case A.parseEither parseValue rawEvent of
                     Left e -> error $ show e
                     Right action -> applyAction h action ci
             _ -> throwError $ "dispatchEvent: no context for path " ++ show path
@@ -250,7 +250,7 @@ dispatchHook h path rawValue = do
             go (Path []) childI
 
         (IComponent p component stateRef) -> do
-            case A.parseEither parseValue (taggedWithHook component rawValue) of
+            case A.parseEither parseValue rawValue of
                 Left e -> throwError e
                 Right value -> lift $ do
                     state <- takeTMVar stateRef
@@ -310,7 +310,7 @@ dispatchRef h path rawValue = do
             (IText _ _) -> throwError $ "No App is ancestor of " ++ show path
             (INode _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
             (IThunk _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
-            (IComponent _ component stateRef) -> lift $ case A.parseEither parseValue (taggedWithAction component rawValue) of
+            (IComponent _ component stateRef) -> lift $ case A.parseEither parseValue rawValue of
                 Left e -> error $ show e
                 Right action -> applyAction h action (ComponentInstance (Path appPath) component stateRef)
 
