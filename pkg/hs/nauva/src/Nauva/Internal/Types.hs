@@ -52,7 +52,7 @@ data Element where
     -- Called @Stateless Functional Component@ (SFC) in React and @Thunk@ in
     -- the virtual-dom documentation.
 
-    EComponent :: (Typeable p, FromJSON a, Value h, Value a) => Component p h s a -> p -> Element
+    EComponent :: (Typeable p, Value h, Value a) => Component p h s a -> p -> Element
     -- A stateful component that can be embededd into a larger Element. The
     -- component maintains its own, local state which is opaque to its parents.
 
@@ -75,7 +75,7 @@ data Instance where
     -- In the instance for 'EThunk', we remember the forced and instantiated
     -- result of the thunk.
 
-    IComponent :: (Typeable p, FromJSON a, Value h, Value a) => Path -> Component p h s a -> TMVar (State p s a) -> Instance
+    IComponent :: (Typeable p, Value h, Value a) => Path -> Component p h s a -> TMVar (State p s a) -> Instance
 
 
 -------------------------------------------------------------------------------
@@ -427,7 +427,7 @@ data Signal p s a where
     Signal :: TChan i -> (i -> p -> s -> (s, [IO (Maybe a)])) -> Signal p s a
 
 data SomeSignal where
-    SomeSignal :: (Typeable p, A.FromJSON a, Value h, Value a) => ComponentInstance p h s a -> Signal p s a -> SomeSignal
+    SomeSignal :: (Typeable p, Value h, Value a) => ComponentInstance p h s a -> Signal p s a -> SomeSignal
 
 
 
@@ -440,7 +440,7 @@ data SomeSignal where
 -- Each 'IO' action is executed in its own thread.
 
 data Effect where
-    Effect :: (Typeable p, FromJSON a, Value h, Value a) =>
+    Effect :: (Typeable p, Value h, Value a) =>
         ComponentInstance p h s a -> [IO (Maybe a)] -> Effect
 
 
@@ -455,7 +455,7 @@ data ComponentInstance p h s a = ComponentInstance
     }
 
 data SomeComponentInstance where
-    SomeComponentInstance :: (Typeable p, FromJSON a, Value h, Value a) =>
+    SomeComponentInstance :: (Typeable p, Value h, Value a) =>
         ComponentInstance p h s a -> SomeComponentInstance
 
 

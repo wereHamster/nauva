@@ -374,7 +374,7 @@ toSpine inst = case inst of
 
 
 
-sendProps :: (Typeable p, A.FromJSON a, Value h, Value a) => Path -> Component p h s a -> TMVar (State p s a) -> p -> STM [Effect]
+sendProps :: (Typeable p, Value h, Value a) => Path -> Component p h s a -> TMVar (State p s a) -> p -> STM [Effect]
 sendProps path component stateRef newProps = do
     state <- takeTMVar stateRef
     (newState, signals, actions) <- receiveProps component newProps (componentState state)
@@ -384,7 +384,7 @@ sendProps path component stateRef newProps = do
 
 
 
-applyAction :: (Typeable p, A.FromJSON a, Value h, Value a) => Handle -> a -> ComponentInstance p h s a -> STM [Effect]
+applyAction :: (Typeable p, Value h, Value a) => Handle -> a -> ComponentInstance p h s a -> STM [Effect]
 applyAction h action (ComponentInstance path component stateRef) = do
     state <- takeTMVar stateRef
     let (newState, actions) = update component action (componentProps state) (componentState state)

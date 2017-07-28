@@ -11,7 +11,7 @@ import           Nauva.Catalog.TH
 
 catalogApp :: App
 catalogApp = App
-    { rootElement = catalog . CatalogProps catalogPages
+    { rootElement = catalog . CatalogProps "Nauva Product Template" catalogPages
     }
 
 

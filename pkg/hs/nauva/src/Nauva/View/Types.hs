@@ -48,7 +48,7 @@ instance Term [Element] Element where
 instance (Typeable p) => Term (Thunk p) (p -> Element) where
     term _ = EThunk
 
-instance (Typeable p, A.FromJSON a, Value h, Value a) => Term (Component p h s a) (p -> Element) where
+instance (Typeable p, Value h, Value a) => Term (Component p h s a) (p -> Element) where
     term _ = EComponent
 
 

@@ -72,7 +72,7 @@ eventHandler f = createF $ \fId -> F1 fId $ \ev ->
 -- which it produces.
 
 data EventListener where
-    EventListener :: (A.ToJSON a, Value a) => Text -> FE ev a -> EventListener
+    EventListener :: (Value a) => Text -> FE ev a -> EventListener
 
 instance Eq EventListener where
     (EventListener nA fA) == (EventListener nB fB) = nA == nB && f1Id fA == f1Id fB
@@ -85,17 +85,17 @@ instance A.ToJSON EventListener where
         ]
 
 
-onClick :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> EventListener
+onClick :: (Value r) => F1 MouseEvent (EventHandler r) -> EventListener
 onClick = EventListener "click"
 
-onChange :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> EventListener
+onChange :: (Value r) => F1 MouseEvent (EventHandler r) -> EventListener
 onChange = EventListener "change"
 
-onWheel :: (A.ToJSON r, Value r) => F1 WheelEvent (EventHandler r) -> EventListener
+onWheel :: (Value r) => F1 WheelEvent (EventHandler r) -> EventListener
 onWheel = EventListener "wheel"
 
-onMouseMove :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> EventListener
+onMouseMove :: (Value r) => F1 MouseEvent (EventHandler r) -> EventListener
 onMouseMove = EventListener "mouseMove"
 
-onResize :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> EventListener
+onResize :: (Value r) => F1 MouseEvent (EventHandler r) -> EventListener
 onResize = EventListener "resize"

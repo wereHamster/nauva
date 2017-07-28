@@ -30,13 +30,13 @@ import           Nauva.View.Terms
 
 
 
-onMouseMove_ :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> Attribute
+onMouseMove_ :: (Value r) => F1 MouseEvent (EventHandler r) -> Attribute
 onMouseMove_ = AEVL . EventListener "mouseMove"
 
-onClick_ :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> Attribute
+onClick_ :: (Value r) => F1 MouseEvent (EventHandler r) -> Attribute
 onClick_ = AEVL . EventListener "click"
 
-onChange_ :: (A.ToJSON r, Value r) => F1 MouseEvent (EventHandler r) -> Attribute
+onChange_ :: (Value r) => F1 MouseEvent (EventHandler r) -> Attribute
 onChange_ = AEVL . EventListener "change"
 
 
