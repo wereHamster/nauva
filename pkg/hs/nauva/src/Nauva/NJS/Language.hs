@@ -8,13 +8,6 @@ module Nauva.NJS.Language
     ( Exp(..)
     , SomeExp(..)
 
-    , CTag(..)
-
-    , Con0(..), njsCon0
-    , Con1(..), njsCon1
-    , Con2(..), njsCon2
-    , Con3(..), njsCon3
-
     , Lit(..)
     , litE
 
@@ -26,7 +19,6 @@ module Nauva.NJS.Language
     , value0E
     , value1E
     , value2E
-
 
     , EventHandler
     , eventHandlerE
@@ -183,31 +175,7 @@ instance Lift Text where
 
 --------------------------------------------------------------------------------
 
-newtype CTag = CTag Text
-instance A.ToJSON CTag where
-    toJSON (CTag t) = A.String t
-
-data Con0 r = Con0 CTag r
-njsCon0 :: Text -> r -> Con0 r
-njsCon0 tag v = Con0 (CTag tag) v
-
-data Con1 a r = Con1 CTag (a -> r)
-njsCon1 :: Text -> (a -> r) -> Con1 a r
-njsCon1 tag f = Con1 (CTag tag) f
-
-data Con2 a b r = Con2 CTag (a -> b -> r)
-njsCon2 :: Text -> (a -> b -> r) -> Con2 a b r
-njsCon2 tag f = Con2 (CTag tag) f
-
-data Con3 a b c r = Con3 CTag (a -> b -> c -> r)
-njsCon3 :: Text -> (a -> b -> c -> r) -> Con3 a b c r
-njsCon3 tag f = Con3 (CTag tag) f
-
-
-data EventHandler a
 data RefHandler a
-
-
 
 refHandlerE :: Exp (Maybe a) -> Exp (RefHandler a)
 refHandlerE = RefHandlerE
@@ -242,16 +210,19 @@ invokeE :: Exp Text -> Exp v -> [SomeExp] -> Exp r
 invokeE = InvokeE
 
 
-value0E :: Con0 r -> Exp r
-value0E (Con0 (CTag ctag) _) = ValueE ctag []
+value0E :: Text -> Exp r
+value0E ctag = ValueE ctag []
 
-value1E :: Con1 a r -> Exp a -> Exp r
-value1E (Con1 (CTag ctag) _) a = ValueE ctag [SomeExp a]
+value1E :: Text -> Exp a -> Exp r
+value1E ctag a = ValueE ctag [SomeExp a]
 
-value2E :: Con2 a b r -> Exp a -> Exp b -> Exp r
-value2E (Con2 (CTag ctag) _) a b = ValueE ctag [SomeExp a, SomeExp b]
+value2E :: Text -> Exp a -> Exp b -> Exp r
+value2E ctag a b = ValueE ctag [SomeExp a, SomeExp b]
 
 
+--------------------------------------------------------------------------------
+
+data EventHandler a
 
 eventHandlerE :: Exp Bool -> Exp Bool -> Exp Bool -> Exp (Maybe a) -> Exp (EventHandler a)
 eventHandlerE = EventHandlerE

@@ -139,13 +139,6 @@ component = createComponent $ \componentId -> Component
             color "red"
 
 
-conDoClick :: Con1 Text Action
-conDoClick = njsCon1 "DoClick" DoClick
-
-conDoChange :: Con1 Text Action
-conDoChange = njsCon1 "DoChange" DoChange
-
-
 targetE :: Exp MouseEvent -> Exp t
 targetE = getE (litE ("target" :: Text))
 
@@ -155,11 +148,11 @@ targetValueE = getE (litE ("value" :: Text)) . targetE
 onClickHandler :: F1 MouseEvent (EventHandler Action)
 onClickHandler = eventHandler $ \ev -> do
     stopPropagation
-    action $ value1E conDoClick (targetValueE ev)
+    action $ value1E "DoClick" (targetValueE ev)
 
 onChangeHandler :: FE MouseEvent Action
 onChangeHandler = eventHandler $ \ev -> do
-    action $ value1E conDoChange (targetValueE ev)
+    action $ value1E "DoChange" (targetValueE ev)
 
 
 data CanvasA
@@ -239,9 +232,11 @@ canvas = createComponent $ \componentId -> Component
     --     storeRef componentH (litE "svg") element
     --     action $ ....
 
+    attach :: FRA el Action
     attach = createF $ \fId -> F1 fId $ \element ->
-        refHandlerE (justE $ value2E conSetSize (elementWidth element) (elementHeight element))
+        refHandlerE (justE $ value2E "SetSize" (elementWidth element) (elementHeight element))
 
+    detach :: FRD Action
     detach = createF $ \fId -> F0 fId $ refHandlerE nothingE
 
     view :: () -> CanvasS -> Element
@@ -267,22 +262,15 @@ canvas = createComponent $ \componentId -> Component
         display block
 
 
-conMouse :: Con2 Float Float CanvasA
-conMouse = njsCon2 "Mouse" Mouse
-
-conSetSize :: Con2 Float Float CanvasA
-conSetSize = njsCon2 "SetSize" SetSize
-
-
 onResizeHandler :: RefKey -> FE MouseEvent CanvasA
 onResizeHandler (RefKey refKey) = eventHandler $ \_ -> do
-    action $ value2E conSetSize (elementWidth element) (elementHeight element)
+    action $ value2E "SetSize" (elementWidth element) (elementHeight element)
   where
     element = derefE refKey
 
 onMouseMoveHandler :: FE MouseEvent CanvasA
 onMouseMoveHandler = eventHandler $ \ev -> do
-    action $ value2E conMouse (clientXE ev) (clientYE ev)
+    action $ value2E "Mouse" (clientXE ev) (clientYE ev)
 
 clientXE :: Exp MouseEvent -> Exp Float
 clientXE = getE (litE "clientX" :: Exp Text)

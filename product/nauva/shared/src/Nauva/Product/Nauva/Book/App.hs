@@ -97,7 +97,7 @@ renderCounter State{..} = div_
     onClickHandler :: F1 MouseEvent (EventHandler Action)
     onClickHandler = eventHandler $ \ev -> do
         stopPropagation
-        action $ value0E $ njsCon0 "Clicked" Clicked
+        action $ value0E "Clicked"
 
 
 counterComponent :: Component () () State Action

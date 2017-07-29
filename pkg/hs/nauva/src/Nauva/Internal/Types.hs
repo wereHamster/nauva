@@ -24,7 +24,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, F0(..), F1(..), F2(..), FRA, FRD, createF, njsCon0, holeE, value0E)
+import           Nauva.NJS (Value, FID, F0(..), F1(..), F2(..), FRA, FRD, createF, holeE, value0E)
 import           Nauva.CSS.Types
 
 
@@ -179,7 +179,7 @@ instance FromJSON Path where
 -- (such as event handlers) can use that key to refer to the native DOM node.
 
 data Ref where
-    Ref :: (Typeable r, Value r) => Maybe RefKey -> FRA a r -> FRD r -> Ref
+    Ref :: (Value r) => Maybe RefKey -> FRA a r -> FRD r -> Ref
 
 instance ToJSON Ref where
     toJSON (Ref key attach detach) = object
@@ -321,7 +321,7 @@ constHooks = Hooks
     , componentWillUnmount = [ createF $ \fId -> F0 fId (value0E unitC) ]
     }
   where
-    unitC = njsCon0 "()" ()
+    unitC = "()"
 
 
 --------------------------------------------------------------------------------
