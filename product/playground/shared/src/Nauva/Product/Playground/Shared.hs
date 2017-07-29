@@ -85,9 +85,6 @@ instance Value Action where
                     _ -> fail "Action"
             _      -> fail "Action"
 
-instance A.FromJSON Action
-instance A.ToJSON Action
-
 component :: Component Int () (Int, Text) Action
 component = createComponent $ \componentId -> Component
     { componentId = componentId
