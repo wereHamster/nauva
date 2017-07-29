@@ -155,7 +155,7 @@ runClient app = do
 foreign import javascript unsafe "console.log($1)" js_log :: JSVal -> IO ()
 
 
-hookHandler :: (forall h. Hooks h -> [F1 () h]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
+hookHandler :: (forall h. Hooks h -> [F0 h]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
 hookHandler accessor h path = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
@@ -165,7 +165,7 @@ hookHandler accessor h path = do
                 state <- lift $ readTMVar stateRef
                 let fs = accessor $ componentHooks component
 
-                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty M.empty) (f1Fn f UnitE) of
+                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty M.empty) (f0Fn f) of
                         Left _ -> Nothing; Right (x, ioa) -> (\v -> (v, ioa)) <$> unsafePerformIO (fromJSVal x)) fs
                 forM rawHookActions $ \(rawValue, ioAction) -> do
                     case A.parseEither parseValue rawValue of

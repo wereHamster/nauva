@@ -291,17 +291,17 @@ shouldThunkUpdate' ta a tb b = case cast a of
 -- Each hook generates a list of NJS expression which are execued in sequence.
 
 data Hooks h = Hooks
-    { componentDidMount :: [ F1 () h ]
-    , componentWillUnmount :: [ F1 () h ]
+    { componentDidMount :: [ F0 h ]
+    , componentWillUnmount :: [ F0 h ]
     }
 
 instance ToJSON (Hooks h) where
     toJSON hooks = object
         [ "componentDidMount"
-            .= fmap (\f -> toJSON (f1Fn f $ holeE 0))
+            .= fmap (\f -> toJSON (f0Fn f))
                 (componentDidMount hooks)
         , "componentWillUnmount"
-            .= fmap (\f -> toJSON (f1Fn f $ holeE 0))
+            .= fmap (\f -> toJSON (f0Fn f))
                 (componentWillUnmount hooks)
         ]
 
@@ -317,8 +317,8 @@ emptyHooks = Hooks
 -- lifecycle hooks is invoked.
 constHooks :: Hooks ()
 constHooks = Hooks
-    { componentDidMount    = [ createF $ \fId -> F1 fId (\_ -> value0E unitC) ]
-    , componentWillUnmount = [ createF $ \fId -> F1 fId (\_ -> value0E unitC) ]
+    { componentDidMount    = [ createF $ \fId -> F0 fId (value0E unitC) ]
+    , componentWillUnmount = [ createF $ \fId -> F0 fId (value0E unitC) ]
     }
   where
     unitC = njsCon0 "()" ()
