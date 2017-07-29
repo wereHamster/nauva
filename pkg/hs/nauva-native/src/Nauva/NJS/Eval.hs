@@ -59,8 +59,6 @@ evalExpVal exp = do
 
 evalExp :: Exp a -> Eval JSVal
 
-evalExp UnitE = throwError ()
-
 evalExp (HoleE i) = do
     ctx <- ask
     maybe (throwError ()) pure (M.lookup i (ctxArgs ctx))

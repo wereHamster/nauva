@@ -50,9 +50,6 @@ import           Data.Monoid
 
 data Exp a where
 
-    UnitE :: Exp ()
-
-
     -- A hole which is filled in by whoever is evaluating the expression. If an
     -- expression has a 'HoleE' whose filling is not provided during evaluation,
     -- then that's an error.
@@ -106,9 +103,6 @@ data Exp a where
     NothingE :: Exp (Maybe a)
 
 instance A.ToJSON (Exp a) where
-    toJSON (UnitE)
-        = A.toJSON ()
-
     toJSON (HoleE i)
         = A.toJSON [A.String "HoleE", A.toJSON i]
 
