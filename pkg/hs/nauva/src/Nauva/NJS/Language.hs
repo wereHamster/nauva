@@ -93,13 +93,10 @@ data Exp a where
     InvokeE :: Exp Text -> Exp v -> [SomeExp] -> Exp a
 
 
-    -- Construct a value with zero or more arguments. The corresponding 'Value'
-    -- instance must match the number and type of arguments.
+    -- Construct a value with zero or more arguments.
 
-    Value0E :: Con0 a -> Exp a
-    Value1E :: Con1 x a -> Exp x -> Exp a
-    Value2E :: Con2 x y a -> Exp x -> Exp y -> Exp a
-    Value3E :: Con3 x y z a -> Exp x -> Exp y -> Exp z -> Exp a
+    ValueE :: Text -> [SomeExp] -> Exp a
+
 
     EventHandlerE :: Exp Bool -> Exp Bool -> Exp Bool -> Exp (Maybe a) -> Exp (EventHandler a)
     RefHandlerE :: Exp (Maybe a) -> Exp (RefHandler a)
@@ -127,14 +124,8 @@ instance A.ToJSON (Exp a) where
     toJSON (InvokeE v k args)
         = A.toJSON $ [A.String "InvokeE", A.toJSON v, A.toJSON k] <> map A.toJSON args
 
-    toJSON (Value0E (Con0 ctag _))
-        = A.toJSON $ [A.String "Value0E", A.toJSON ctag]
-    toJSON (Value1E (Con1 ctag _) a)
-        = A.toJSON $ [A.String "Value1E", A.toJSON ctag, A.toJSON a]
-    toJSON (Value2E (Con2 ctag _) a b)
-        = A.toJSON $ [A.String "Value2E", A.toJSON ctag, A.toJSON a, A.toJSON b]
-    toJSON (Value3E (Con3 ctag _) a b c)
-        = A.toJSON $ [A.String "Value3E", A.toJSON ctag, A.toJSON a, A.toJSON b, A.toJSON c]
+    toJSON (ValueE ctag args)
+        = A.toJSON $ [A.String "ValueE", A.toJSON ctag] <> map A.toJSON args
 
     toJSON (EventHandlerE a b c d)
         = A.toJSON $ [A.String "EventHandlerE", A.toJSON a, A.toJSON b, A.toJSON c, A.toJSON d]
@@ -258,13 +249,13 @@ invokeE = InvokeE
 
 
 value0E :: Con0 r -> Exp r
-value0E = Value0E
+value0E (Con0 (CTag ctag) _) = ValueE ctag []
 
 value1E :: Con1 a r -> Exp a -> Exp r
-value1E = Value1E
+value1E (Con1 (CTag ctag) _) a = ValueE ctag [SomeExp a]
 
 value2E :: Con2 a b r -> Exp a -> Exp b -> Exp r
-value2E = Value2E
+value2E (Con2 (CTag ctag) _) a b = ValueE ctag [SomeExp a, SomeExp b]
 
 
 

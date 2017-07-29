@@ -89,25 +89,13 @@ evalExp (InvokeE prop obj args) = do
     let val = unsafePerformIO $ js_invokeE (textToJSString prop') obj' ( JSA.fromList args')
     maybe (throwError ()) pure (cast val)
 
-evalExp (Value0E (Con0 (CTag tag) _)) =
+evalExp (ValueE tag args) = do
+    args' <- forM args $ \(SomeExp arg) ->
+        evalExpVal arg
+
     pure $ unsafePerformIO $ do
         t <- toJSVal tag
-        toJSVal [t]
-
-evalExp (Value1E (Con1 (CTag tag) _) a) = do
-    a' <- evalExpVal a
-    pure $ unsafePerformIO $ do
-        t <- toJSVal tag
-        toJSVal [t, a']
-
-evalExp (Value2E (Con2 (CTag tag) _) a b) = do
-    a' <- evalExpVal a
-    b' <- evalExpVal b
-    pure $ unsafePerformIO $ do
-        t <- toJSVal tag
-        toJSVal [t, a', b']
-
-evalExp (Value3E _ _ _ _) = error "Value3E"
+        toJSVal ([t] <> args')
 
 evalExp NothingE = pure js_null
 evalExp (JustE exp) = evalExp exp

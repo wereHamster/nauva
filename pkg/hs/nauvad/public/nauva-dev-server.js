@@ -243,12 +243,8 @@ function evalExp(expr, holes, ctx) {
             return window;
         case 'HoleE':
             return holes[expr[1]];
-        case 'Value0E':
-            return [expr[1]];
-        case 'Value1E':
-            return [expr[1], evalExp(expr[2], holes, ctx)];
-        case 'Value2E':
-            return [expr[1], evalExp(expr[2], holes, ctx), evalExp(expr[3], holes, ctx)];
+        case 'ValueE':
+            return [expr[1]].concat(expr.slice(2).map(x => evalExp(x, holes, ctx)));
         case 'LitE':
             return expr[1];
         case 'GetE':
