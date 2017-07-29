@@ -539,7 +539,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
                                 ctx.refs.delete(a.key);
                             }
 
-                            const r = evalExp(a.detach, { ['1']: ref }, this.ctx);
+                            const r = evalExp(a.detach, { ['0']: ref }, this.ctx);
                             if (r.action) {
                                 sendRef(path, r.action)
                             }
@@ -548,7 +548,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
                                 ctx.refs.set(a.key, ref);
                             }
 
-                            const r = evalExp(a.attach, { ['1']: ref }, this.ctx);
+                            const r = evalExp(a.attach, { ['0']: ref }, this.ctx);
                             if (r.action) {
                                 sendRef(path, r.action)
                             }

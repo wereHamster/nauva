@@ -221,7 +221,7 @@ attachRefHandler h refsVar path jsVal = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
-                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 1 jsVal)) (f2Fn fra UnitE (holeE 1)) of
+                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 0 jsVal)) (f1Fn fra (holeE 0)) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
@@ -258,7 +258,7 @@ detachRefHandler h refsVar path = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
-                    Just (Ref _ _ frd) -> case eval (Context M.empty M.empty) (f1Fn frd UnitE) of
+                    Just (Ref _ _ frd) -> case eval (Context M.empty M.empty) (f0Fn frd) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "detachRefHandler: fromJSVal"

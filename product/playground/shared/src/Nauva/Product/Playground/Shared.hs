@@ -242,10 +242,10 @@ canvas = createComponent $ \componentId -> Component
     --     storeRef componentH (litE "svg") element
     --     action $ ....
 
-    attach = createF $ \fId -> F2 fId $ \_ element ->
+    attach = createF $ \fId -> F1 fId $ \element ->
         refHandlerE (justE $ value2E conSetSize (elementWidth element) (elementHeight element))
 
-    detach = createF $ \fId -> F1 fId $ \_ -> refHandlerE nothingE
+    detach = createF $ \fId -> F0 fId $ refHandlerE nothingE
 
     view :: () -> CanvasS -> Element
     view _ (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $

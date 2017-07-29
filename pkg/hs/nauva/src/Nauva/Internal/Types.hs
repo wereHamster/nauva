@@ -24,7 +24,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, F1(..), F2(..), FRA, FRD, createF, njsCon0, holeE, value0E)
+import           Nauva.NJS (Value, FID, F0(..), F1(..), F2(..), FRA, FRD, createF, njsCon0, holeE, value0E)
 import           Nauva.CSS.Types
 
 
@@ -184,8 +184,8 @@ data Ref where
 instance ToJSON Ref where
     toJSON (Ref key attach detach) = object
         [ "key"    .= key
-        , "attach" .= f2Fn attach (holeE 0) (holeE 1)
-        , "detach" .= f1Fn detach (holeE 0)
+        , "attach" .= f1Fn attach (holeE 0)
+        , "detach" .= f0Fn detach
         ]
 
 

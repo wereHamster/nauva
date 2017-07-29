@@ -6,7 +6,7 @@ module Nauva.NJS
 
     , FID(..), unFID
 
-    , F1(..), F2(..), F3(..)
+    , F0(..), F1(..), F2(..), F3(..)
     , createF
 
     , FE
@@ -59,6 +59,10 @@ unFID (FID x) = x
 --------------------------------------------------------------------------------
 -- Function expressions with fixed arity.
 
+data F0 r = F0 { f0Id :: !FID, f0Fn :: !(Exp r) }
+instance Eq (F0 r) where
+    (==) = (==) `on` f0Id
+
 data F1 a r = F1 { f1Id :: !FID, f1Fn :: !(Exp a -> Exp r) }
 instance Eq (F1 a r) where
     (==) = (==) `on` f1Id
@@ -83,12 +87,12 @@ type FE ev a = F1 ev (EventHandler a)
 
 
 -- | A function which is called whenever a ref is attached to a component.
-type FRA c el a = F2 () el (RefHandler a)
+type FRA c el a = F1 el (RefHandler a)
 
 -- | Function (when) Ref (is) Detach(ed). You don't get the element which was
 -- detached. This means you can't really add the same ref handler to multiple
 -- components.
-type FRD c a = F1 () (RefHandler a)
+type FRD c a = F0 (RefHandler a)
 
 
 

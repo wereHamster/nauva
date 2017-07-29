@@ -17,7 +17,7 @@ module Nauva.NJS.Language
 
     , Lit(..)
     , litE
-    
+
     , holeE
     , getE
     , invokeE
@@ -52,6 +52,7 @@ data Exp a where
 
     UnitE :: Exp ()
 
+
     -- A hole which is filled in by whoever is evaluating the expression. If an
     -- expression has a 'HoleE' whose filling is not provided during evaluation,
     -- then that's an error.
@@ -67,7 +68,7 @@ data Exp a where
     -- lift Haskell values into 'Exp'. In fact, never use this constructor
     -- directly!
 
-    LitE :: Lit -> Exp a
+    LitE :: Lit a -> Exp a
 
 
     -- The global object of the JavaScript execution context. If you want to
@@ -81,7 +82,7 @@ data Exp a where
     --
     -- https://tc39.github.io/ecma262/2016/#sec-get
 
-    GetE :: Exp Text -> Exp o -> Exp r
+    GetE :: Exp Text -> Exp o -> Exp a
 
 
     -- Invoke a function with an arbitrary number of arguments.
@@ -89,16 +90,16 @@ data Exp a where
     --
     -- https://tc39.github.io/ecma262/2016/#sec-invoke
 
-    InvokeE :: Exp Text -> Exp v -> [SomeExp] -> Exp r
+    InvokeE :: Exp Text -> Exp v -> [SomeExp] -> Exp a
 
 
     -- Construct a value with zero or more arguments. The corresponding 'Value'
     -- instance must match the number and type of arguments.
 
-    Value0E :: Con0 r -> Exp r
-    Value1E :: Con1 a r -> Exp a -> Exp r
-    Value2E :: Con2 a b r -> Exp a -> Exp b -> Exp r
-    Value3E :: Con3 a b c r -> Exp a -> Exp b -> Exp c -> Exp r
+    Value0E :: Con0 a -> Exp a
+    Value1E :: Con1 x a -> Exp x -> Exp a
+    Value2E :: Con2 x y a -> Exp x -> Exp y -> Exp a
+    Value3E :: Con3 x y z a -> Exp x -> Exp y -> Exp z -> Exp a
 
     EventHandlerE :: Exp Bool -> Exp Bool -> Exp Bool -> Exp (Maybe a) -> Exp (EventHandler a)
     RefHandlerE :: Exp (Maybe a) -> Exp (RefHandler a)
@@ -164,12 +165,12 @@ instance A.ToJSON SomeExp where
 
 --------------------------------------------------------------------------------
 
-data Lit
-    = StringL Text
-    | IntL Int
-    | BoolL Bool
+data Lit a where
+    StringL :: Text -> Lit Text
+    IntL :: Int -> Lit Int
+    BoolL :: Bool -> Lit Bool
 
-instance A.ToJSON Lit where
+instance A.ToJSON (Lit a) where
     toJSON (StringL t) = A.String t
     toJSON (IntL s) = A.Number $ fromIntegral s
     toJSON (BoolL b) = A.Bool b
@@ -179,7 +180,7 @@ instance A.ToJSON Lit where
 --------------------------------------------------------------------------------
 -- | Class of values which can be lifted into 'Exp'. All primitive types which
 -- exist in both GHC and JavaScript have an instance. This typeclass is used
--- by 'litE'. 
+-- by 'litE'.
 
 class Lift e where
     lift :: e -> Exp e
