@@ -179,7 +179,7 @@ instance FromJSON Path where
 -- (such as event handlers) can use that key to refer to the native DOM node.
 
 data Ref where
-    Ref :: (Typeable r, Value r) => Maybe RefKey -> FRA a b r -> FRD a r -> Ref
+    Ref :: (Typeable r, Value r) => Maybe RefKey -> FRA a r -> FRD r -> Ref
 
 instance ToJSON Ref where
     toJSON (Ref key attach detach) = object

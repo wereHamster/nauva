@@ -87,12 +87,12 @@ type FE ev a = F1 ev (EventHandler a)
 
 
 -- | A function which is called whenever a ref is attached to a component.
-type FRA c el a = F1 el (RefHandler a)
+type FRA el a = F1 el (RefHandler a)
 
 -- | Function (when) Ref (is) Detach(ed). You don't get the element which was
 -- detached. This means you can't really add the same ref handler to multiple
 -- components.
-type FRD c a = F0 (RefHandler a)
+type FRD a = F0 (RefHandler a)
 
 
 
