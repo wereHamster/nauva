@@ -101,7 +101,7 @@ when an event is dispatched to the `Element`.
 let onClickHandler :: F1 MouseEvent (EventHandler Int)
     onClickHandler = eventHandler $ \_ -> do
         stopPropagation
-        action $ value0E $ njsCon0 "1" 1
+        action $ value0E "1"
 
 in button_ [onClick_ onClickHandler] [str_ "Click Me!"]
 ```

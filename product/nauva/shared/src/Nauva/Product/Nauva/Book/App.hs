@@ -95,7 +95,7 @@ renderCounter State{..} = div_
     ]
   where
     onClickHandler :: F1 MouseEvent (EventHandler Action)
-    onClickHandler = eventHandler $ \ev -> do
+    onClickHandler = eventHandler $ \_ -> do
         stopPropagation
         action $ value0E "Clicked"
 

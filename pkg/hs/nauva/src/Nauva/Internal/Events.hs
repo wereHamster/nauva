@@ -56,7 +56,7 @@ action a = do
     SL.modify $ \s -> s { ehsAction = justE a }
 
 eventHandler :: (Exp ev -> EventHandlerM a ()) -> FE ev a
-eventHandler f = createF $ \fId -> F1 fId $ \ev ->
+eventHandler f = mkF1 $ \ev ->
     let (EventHandlerS a b c d) = SL.execState (f ev) emptyEventHandlerS
     in eventHandlerE a b c d
   where
@@ -81,7 +81,7 @@ instance A.ToJSON EventListener where
     toJSON (EventListener ev f) = A.toJSON
         [ A.toJSON (f1Id f)
         , A.String ev
-        , A.toJSON (f1Fn f $ holeE 0)
+        , A.toJSON (f1Fn f)
         ]
 
 

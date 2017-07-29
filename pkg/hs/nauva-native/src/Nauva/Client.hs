@@ -221,7 +221,7 @@ attachRefHandler h refsVar path jsVal = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
-                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 0 jsVal)) (f1Fn fra (holeE 0)) of
+                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 0 jsVal)) (f1Fn fra) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
@@ -307,7 +307,7 @@ dispatchNodeEventHandler h refsVar path fid ev = do
         let ctx = (Context ctxRefs (M.singleton 1 ev))
 
         (jsVal, ioAction) <- withExceptT (const "dispatchNodeEventHandler: eval") $
-            ExceptT $ pure $ eval ctx (f1Fn fe (holeE 1))
+            ExceptT $ pure $ eval ctx (f1Fn fe)
 
         rawValue <- case unsafePerformIO (fromJSVal jsVal) of
             Nothing -> throwError "dispatchNodeEventHandler: fromJSVal"
@@ -349,7 +349,7 @@ dispatchComponentEventHandler h refsVar path fid ev = do
             Just x  -> pure x
 
         (jsVal, ioAction) <- withExceptT (const "dispatchComponentEventHandler: eval") $
-            ExceptT $ pure $ eval ctx (f1Fn fe (holeE 1))
+            ExceptT $ pure $ eval ctx (f1Fn fe)
 
         rawValue <- case unsafePerformIO (fromJSVal jsVal) of
             Nothing -> throwError "dispatchComponentEventHandler: fromJSVal"

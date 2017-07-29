@@ -233,11 +233,11 @@ canvas = createComponent $ \componentId -> Component
     --     action $ ....
 
     attach :: FRA el Action
-    attach = createF $ \fId -> F1 fId $ \element ->
+    attach = mkF1 $ \element ->
         refHandlerE (justE $ value2E "SetSize" (elementWidth element) (elementHeight element))
 
     detach :: FRD Action
-    detach = createF $ \fId -> F0 fId $ refHandlerE nothingE
+    detach = mkF0 $ refHandlerE nothingE
 
     view :: () -> CanvasS -> Element
     view _ (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
