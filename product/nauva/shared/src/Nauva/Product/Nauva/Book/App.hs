@@ -15,8 +15,6 @@ import Data.Text
 import Data.Monoid
 import qualified Data.Aeson as A
 
-import GHC.Generics (Generic)
-
 import Nauva.App
 import Nauva.Catalog
 import Nauva.Catalog.TH
@@ -76,10 +74,6 @@ data State = State
 
 data Action
     = Clicked
-    deriving (Generic)
-
-instance A.FromJSON Action
-instance A.ToJSON Action
 
 instance Value Action where
     parseValue _ = pure Clicked
