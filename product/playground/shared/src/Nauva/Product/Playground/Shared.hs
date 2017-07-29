@@ -210,10 +210,7 @@ canvas = createComponent $ \componentId -> Component
         in pure (CanvasS (0,0) refKey (onResizeHandler refKey) Nothing, [], [])
     , componentEventListeners = \(CanvasS _ _ onResizeH _) ->
         [onResize onResizeH]
-    , componentHooks = Hooks
-        { componentDidMount    = []
-        , componentWillUnmount = []
-        }
+    , componentHooks = emptyHooks
     , receiveProps = receiveProps'
     , renderComponent = view
     , update = update'
