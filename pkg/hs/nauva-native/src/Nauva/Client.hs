@@ -453,8 +453,8 @@ instanceToJSVal = go []
                             Nothing -> pure ()
                             Just (RefKey k) -> O.setProp "key" (js_intJSVal $ k) o
 
-                        O.setProp "attach" (js_intJSVal $ unFID $ f2Id fra) o
-                        O.setProp "detach" (js_intJSVal $ unFID $ f1Id frd) o
+                        O.setProp "attach" (js_intJSVal $ unFID $ f1Id fra) o
+                        O.setProp "detach" (js_intJSVal $ unFID $ f0Id frd) o
 
                         pure $ jsval $ fromList [jsval $ textToJSString "AREF", jsval o]
 
