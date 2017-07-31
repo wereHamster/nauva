@@ -75,13 +75,13 @@ data EventListener where
     EventListener :: (Value a) => Text -> FE ev a -> EventListener
 
 instance Eq EventListener where
-    (EventListener nA fA) == (EventListener nB fB) = nA == nB && f1Id fA == f1Id fB
+    (EventListener nA fA) == (EventListener nB fB) = nA == nB && fId fA == fId fB
 
 instance A.ToJSON EventListener where
     toJSON (EventListener ev f) = A.toJSON
-        [ A.toJSON (f1Id f)
+        [ A.toJSON (fId f)
         , A.String ev
-        , A.toJSON (f1Fn f)
+        , A.toJSON (fFn f)
         ]
 
 

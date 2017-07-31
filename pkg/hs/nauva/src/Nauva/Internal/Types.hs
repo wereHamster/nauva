@@ -24,7 +24,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, F0(..), mkF0, F1(..), F2(..), FRA, FRD, holeE, value0E)
+import           Nauva.NJS (Value, FID, F(..), mkF, F1(..), F2(..), FRA, FRD, holeE, value0E)
 import           Nauva.CSS.Types
 
 
@@ -184,8 +184,8 @@ data Ref where
 instance ToJSON Ref where
     toJSON (Ref key attach detach) = object
         [ "key"    .= key
-        , "attach" .= f1Fn attach
-        , "detach" .= f0Fn detach
+        , "attach" .= fFn attach
+        , "detach" .= fFn detach
         ]
 
 
@@ -291,17 +291,17 @@ shouldThunkUpdate' ta a tb b = case cast a of
 -- Each hook generates a list of NJS expression which are execued in sequence.
 
 data Hooks h = Hooks
-    { componentDidMount :: [ F0 h ]
-    , componentWillUnmount :: [ F0 h ]
+    { componentDidMount :: [ F h ]
+    , componentWillUnmount :: [ F h ]
     }
 
 instance ToJSON (Hooks h) where
     toJSON hooks = object
         [ "componentDidMount"
-            .= fmap (\f -> toJSON (f0Fn f))
+            .= fmap (\f -> toJSON (fFn f))
                 (componentDidMount hooks)
         , "componentWillUnmount"
-            .= fmap (\f -> toJSON (f0Fn f))
+            .= fmap (\f -> toJSON (fFn f))
                 (componentWillUnmount hooks)
         ]
 
@@ -317,8 +317,8 @@ emptyHooks = Hooks
 -- lifecycle hooks is invoked.
 constHooks :: Hooks ()
 constHooks = Hooks
-    { componentDidMount    = [ mkF0 (value0E unitC) ]
-    , componentWillUnmount = [ mkF0 (value0E unitC) ]
+    { componentDidMount    = [ mkF (value0E unitC) ]
+    , componentWillUnmount = [ mkF (value0E unitC) ]
     }
   where
     unitC = "()"
@@ -381,7 +381,7 @@ createComponent f = unsafePerformIO $ do
 
 lookupComponentEventListener :: FID -> Component p h s a -> s -> Maybe EventListener
 lookupComponentEventListener fid component state = find
-    (\(EventListener _ f) -> f1Id f == fid)
+    (\(EventListener _ f) -> fId f == fid)
     (componentEventListeners component state)
 
 
@@ -483,7 +483,7 @@ instance FromJSON Attribute where
 lookupEventListener :: FID -> [Attribute] -> Maybe EventListener
 lookupEventListener fid attrs = case attrs of
     [] -> Nothing
-    (AEVL el@(EventListener _ fe):xs) -> if f1Id fe == fid
+    (AEVL el@(EventListener _ fe):xs) -> if fId fe == fid
         then Just el
         else lookupEventListener fid xs
     (_:xs) -> lookupEventListener fid xs

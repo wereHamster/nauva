@@ -6,10 +6,10 @@ module Nauva.NJS
 
     , FID(..), unFID
 
-    , F0(..), mkF0
-    , F1(..), mkF1
-    , F2(..), mkF2
-    , F3(..), mkF3
+    , F(..), mkF
+    , F1, mkF1
+    , F2, mkF2
+    , F3, mkF3
 
     , FE
     , FRA, FRD
@@ -61,34 +61,24 @@ unFID (FID x) = x
 --------------------------------------------------------------------------------
 -- Function expressions with fixed arity.
 
-data F0 r = F0 { f0Id :: !FID, f0Fn :: !(Exp r) }
-instance Eq (F0 r) where
-    (==) = (==) `on` f0Id
+data F r = F { fId :: !FID, fFn :: !(Exp r) }
+instance Eq (F r) where
+    (==) = (==) `on` fId
 
-mkF0 :: Exp r -> F0 r
-mkF0 exp = createF $ \fId -> F0 fId exp
+mkF :: Exp r -> F r
+mkF exp = createF $ \fId -> F fId exp
 
-data F1 a r = F1 { f1Id :: !FID, f1Fn :: !(Exp r) }
-instance Eq (F1 a r) where
-    (==) = (==) `on` f1Id
-
+type F1 a r = F r
 mkF1 :: (Exp a -> Exp r) -> F1 a r
-mkF1 exp = createF $ \fId -> F1 fId (exp (holeE 0))
+mkF1 exp = mkF (exp (holeE 0))
 
-data F2 a b r = F2 { f2Id :: !FID, f2Fn :: !(Exp r) }
-instance Eq (F2 a b r) where
-    (==) = (==) `on` f2Id
-
+type F2 a b r = F r
 mkF2 :: (Exp a -> Exp b -> Exp r) -> F2 a b r
-mkF2 exp = createF $ \fId -> F2 fId (exp (holeE 0) (holeE 1))
+mkF2 exp = mkF (exp (holeE 0) (holeE 1))
 
-data F3 a b c r = F3 { f3Id :: !FID, f3Fn :: !(Exp r) }
-instance Eq (F3 a b c r) where
-    (==) = (==) `on` f3Id
-
+type F3 a b c r = F r
 mkF3 :: (Exp a -> Exp b -> Exp c -> Exp r) -> F3 a b c r
-mkF3 exp = createF $ \fId -> F3 fId (exp (holeE 0) (holeE 1) (holeE 2))
-
+mkF3 exp = mkF (exp (holeE 0) (holeE 1) (holeE 2))
 
 createF :: (FID -> a) -> a
 createF f = unsafePerformIO $ do
@@ -106,7 +96,7 @@ type FRA el a = F1 el (RefHandler a)
 -- | Function (when) Ref (is) Detach(ed). You don't get the element which was
 -- detached. This means you can't really add the same ref handler to multiple
 -- components.
-type FRD a = F0 (RefHandler a)
+type FRD a = F (RefHandler a)
 
 
 

@@ -155,7 +155,7 @@ runClient app = do
 foreign import javascript unsafe "console.log($1)" js_log :: JSVal -> IO ()
 
 
-hookHandler :: (forall h. Hooks h -> [F0 h]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
+hookHandler :: (forall h. Hooks h -> [F h]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
 hookHandler accessor h path = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
@@ -165,7 +165,7 @@ hookHandler accessor h path = do
                 state <- lift $ readTMVar stateRef
                 let fs = accessor $ componentHooks component
 
-                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty M.empty) (f0Fn f) of
+                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty M.empty) (fFn f) of
                         Left _ -> Nothing; Right (x, ioa) -> (\v -> (v, ioa)) <$> unsafePerformIO (fromJSVal x)) fs
                 forM rawHookActions $ \(rawValue, ioAction) -> do
                     case A.parseEither parseValue rawValue of
@@ -221,7 +221,7 @@ attachRefHandler h refsVar path jsVal = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
-                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 0 jsVal)) (f1Fn fra) of
+                    Just (Ref _ fra _) -> case eval (Context M.empty (M.singleton 0 jsVal)) (fFn fra) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
@@ -258,7 +258,7 @@ detachRefHandler h refsVar path = do
 
                 lift $ case mbRef of
                     Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
-                    Just (Ref _ _ frd) -> case eval (Context M.empty M.empty) (f0Fn frd) of
+                    Just (Ref _ _ frd) -> case eval (Context M.empty M.empty) (fFn frd) of
                         Left e -> Prelude.error $ show e
                         Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "detachRefHandler: fromJSVal"
@@ -307,7 +307,7 @@ dispatchNodeEventHandler h refsVar path fid ev = do
         let ctx = (Context ctxRefs (M.singleton 1 ev))
 
         (jsVal, ioAction) <- withExceptT (const "dispatchNodeEventHandler: eval") $
-            ExceptT $ pure $ eval ctx (f1Fn fe)
+            ExceptT $ pure $ eval ctx (fFn fe)
 
         rawValue <- case unsafePerformIO (fromJSVal jsVal) of
             Nothing -> throwError "dispatchNodeEventHandler: fromJSVal"
@@ -349,7 +349,7 @@ dispatchComponentEventHandler h refsVar path fid ev = do
             Just x  -> pure x
 
         (jsVal, ioAction) <- withExceptT (const "dispatchComponentEventHandler: eval") $
-            ExceptT $ pure $ eval ctx (f1Fn fe)
+            ExceptT $ pure $ eval ctx (fFn fe)
 
         rawValue <- case unsafePerformIO (fromJSVal jsVal) of
             Nothing -> throwError "dispatchComponentEventHandler: fromJSVal"
@@ -439,7 +439,7 @@ instanceToJSVal = go []
                     AVAL an (AVString s)      -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, jsval $ textToJSString s]
                     AVAL an (AVInt i)         -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, js_intJSVal i]
 
-                    AEVL (EventListener n fe) -> jsval $ fromList [jsval $ textToJSString "AEVL", js_intJSVal $ unFID $ f1Id fe, jsval $ textToJSString n]
+                    AEVL (EventListener n fe) -> jsval $ fromList [jsval $ textToJSString "AEVL", js_intJSVal $ unFID $ fId fe, jsval $ textToJSString n]
 
                     ASTY style                -> jsval $ fromList
                         [ jsval $ textToJSString "ASTY"
@@ -453,8 +453,8 @@ instanceToJSVal = go []
                             Nothing -> pure ()
                             Just (RefKey k) -> O.setProp "key" (js_intJSVal $ k) o
 
-                        O.setProp "attach" (js_intJSVal $ unFID $ f1Id fra) o
-                        O.setProp "detach" (js_intJSVal $ unFID $ f0Id frd) o
+                        O.setProp "attach" (js_intJSVal $ unFID $ fId fra) o
+                        O.setProp "detach" (js_intJSVal $ unFID $ fId frd) o
 
                         pure $ jsval $ fromList [jsval $ textToJSString "AREF", jsval o]
 
@@ -473,7 +473,7 @@ instanceToJSVal = go []
             spine <- instanceToJSVal $ componentInstance state
 
             eventListeners' <- pure $ jsval $ fromList $ flip map (componentEventListeners component (componentState state)) $ \el -> case el of
-                (EventListener n fe) -> jsval $ fromList [js_intJSVal $ unFID $ f1Id fe, jsval $ textToJSString n]
+                (EventListener n fe) -> jsval $ fromList [js_intJSVal $ unFID $ fId fe, jsval $ textToJSString n]
 
             pure $ unsafePerformIO $ do
                 o <- O.create
