@@ -17,10 +17,14 @@ module Nauva.NJS
 
 
 import           Data.Function
-import           Data.IORef
 import qualified Data.Aeson       as A
 import qualified Data.Aeson.Types as A
 import           Data.Text        (Text)
+import qualified Data.Text        as T
+import           Data.ByteString.Lazy (toStrict)
+
+import           Crypto.MAC.SipHash (SipHash(..), SipKey(..))
+import qualified Crypto.MAC.SipHash as SH
 
 import           System.IO.Unsafe
 
@@ -33,18 +37,14 @@ import           System.IO.Unsafe
 -- constructor is private, only a smart constructor ('mkFID') is exported.
 -- 'mkFID' ensures that the 'FID' is globally unique.
 
-newtype FID = FID Int
+newtype FID = FID Text
     deriving (Eq)
 
 instance A.ToJSON FID where
     toJSON = A.toJSON . unFID
 
-fIdCounter :: IORef Int
-fIdCounter = unsafePerformIO $ newIORef 1
-{-# NOINLINE fIdCounter #-}
-
 -- Q: Why is this exported? A: So we can implement the ToJSVal instance.
-unFID :: FID -> Int
+unFID :: FID -> Text
 unFID (FID x) = x
 
 
@@ -78,12 +78,7 @@ instance A.ToJSON (F r) where
 
 
 mkF :: [(Text,Text)] -> Text -> F r
-mkF args body = createF $ \fId -> F
-    { fId = fId
-    , fConstructors = []
-    , fArguments = args
-    , fBody = body
-    }
+mkF args body = createF [] args body
 
 type F1 a r = F r
 mkF1 :: (Text,Text) -> Text -> F1 a r
@@ -97,10 +92,17 @@ type F3 a b c r = F r
 mkF3 :: (Text,Text) -> (Text,Text) -> (Text,Text) -> Text -> F3 a b c r
 mkF3 a b c body = mkF [a, b, c] body
 
-createF :: (FID -> a) -> a
-createF f = unsafePerformIO $ do
-    fId <- atomicModifyIORef' fIdCounter $ \i -> (i + 1, i)
-    pure $ f $ FID fId
+createF :: [(Text,[Text])] -> [(Text,Text)] -> Text -> F r
+createF constructors arguments body = F
+    { fId           = hash $ A.toJSON [A.toJSON constructors, A.toJSON arguments, A.toJSON body]
+    , fConstructors = constructors
+    , fArguments    = arguments
+    , fBody         = body
+    }
+  where
+    hash = FID . T.pack . show . unSipHash . SH.hash sipKey . toStrict . A.encode
+    sipKey = SipKey 0 1
+    unSipHash (SipHash x) = x
 
 
 -- | Type synonym for a function which implements an event handler.

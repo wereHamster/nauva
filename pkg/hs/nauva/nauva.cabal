@@ -56,10 +56,12 @@ library
   build-depends:
      base >= 4.7 && < 5
    , aeson
-   , text
-   , mtl
-   , stm
-   , containers
-   , blaze-markup
    , blaze-html
+   , blaze-markup
+   , bytestring
+   , containers
+   , mtl
    , nauva-css
+   , siphash
+   , stm
+   , text
