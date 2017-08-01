@@ -61,12 +61,31 @@ unFID (FID x) = x
 --------------------------------------------------------------------------------
 -- Function expressions with fixed arity.
 
-data F r = F { fId :: !FID, fFn :: !(Exp r) }
+data F r = F
+    { fId :: !FID
+    , fFn :: !(Exp r)
+    , fConstructors :: ![(Text,[Text])]
+      -- ^ Action constructors which are used by the function body.
+      -- (constructor name, [argument types])
+    , fArguments :: ![(Text,Text)]
+      -- ^ Arguments which the function body requires.
+      -- (binding name, W3C DOM type)
+    , fBody :: !Text
+      -- ^ JavaScript code of the function body. This string is passed to
+      -- @new Function(…)@.
+    }
+
 instance Eq (F r) where
     (==) = (==) `on` fId
 
 mkF :: Exp r -> F r
-mkF exp = createF $ \fId -> F fId exp
+mkF exp = createF $ \fId -> F
+    { fId = fId
+    , fFn = exp
+    , fConstructors = []
+    , fArguments = []
+    , fBody = ""
+    }
 
 type F1 a r = F r
 mkF1 :: (Exp a -> Exp r) -> F1 a r
