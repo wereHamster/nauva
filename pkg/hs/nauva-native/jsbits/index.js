@@ -299,3 +299,9 @@ function spineToReact(clientH, path, ctx, spine, key) {
 function newBridge(appE, callbacks) {
     return new ClientH(appE, callbacks.sendLocation, callbacks.componentEvent, callbacks.nodeEvent, callbacks.attachRef, callbacks.detachRef, callbacks.componentDidMount, callbacks.componentWillUnmount);
 }
+function evalF(refs, args, { constructors, arguments, body }) {
+    const f = new Function('nv$ref', ...constructors.map(x => "nv$" + x), ...arguments, body);
+    const constructorFunctions = constructors.map(x => (...args) => ([x, ...args]));
+    const nv$ref = (k) => refs[k];
+    return f(nv$ref, ...constructorFunctions, ...args);
+}

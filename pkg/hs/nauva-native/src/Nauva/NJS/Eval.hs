@@ -9,10 +9,11 @@ module Nauva.NJS.Eval
     ) where
 
 
-import           Nauva.NJS.Language
+import           Nauva.NJS
 
 import           Data.Either
 import           Data.JSString.Text
+import qualified Data.JSString    as JSS
 import           Data.Typeable
 import           Data.Monoid
 import           Data.Traversable
@@ -31,7 +32,10 @@ import           GHCJS.Types
 import           GHCJS.Foreign.Export
 import           GHCJS.Marshal
 
-import           JavaScript.Array as JSA
+import           JavaScript.Array           as JSA
+import           JavaScript.Array.Internal  (fromList)
+import qualified JavaScript.Object          as O
+import qualified JavaScript.Object.Internal as O
 
 import           Nauva.Internal.Types
 
@@ -39,113 +43,29 @@ import           Nauva.Internal.Types
 
 data Context = Context
     { ctxRefs :: Map RefKey JSVal
-    , ctxArgs :: Map Int JSVal
+    , ctxArgs :: [JSVal]
     }
 
-newtype Eval a = Eval { runEval :: ReaderT Context (WriterT [IO ()] (Except ())) a }
-    deriving (Functor, Applicative, Monad, MonadError (), MonadWriter [IO ()], MonadReader Context)
+eval :: Context -> F a -> Either () (JSVal, IO ())
+eval ctx f = do
+    let refs = unsafePerformIO $ do
+            o <- O.create
+            forM_ (M.toList (ctxRefs ctx)) $ \((RefKey k), val) -> do
+                O.setProp (JSS.pack $ show k) val o
+            pure $ jsval o
 
-eval :: Context -> Exp a -> Either () (JSVal, IO ())
-eval ctx e = do
-    (a, io) <- runExcept $ runWriterT $ runReaderT (runEval (evalExp e)) ctx
-    pure (a, sequence_ io)
+    let args = jsval $ fromList $ ctxArgs ctx
 
+    let jsf = unsafePerformIO $ do
+            o <- O.create
+            O.setProp "constructors" (jsval $ fromList $ map (jsval . textToJSString) $ fConstructors f) o
+            O.setProp "arguments" (jsval $ fromList $ map (jsval . textToJSString) $ fArguments f) o
+            O.setProp "body" (jsval $ textToJSString $ fBody f) o
+            pure $ jsval o
 
-evalExpVal :: (FromJSVal r) => Exp a -> Eval r
-evalExpVal exp = do
-    r <- evalExp exp
-    maybe (throwError ()) pure (unsafePerformIO (fromJSVal r))
-
-
-evalExp :: Exp a -> Eval JSVal
-
-evalExp (HoleE i) = do
-    ctx <- ask
-    maybe (throwError ()) pure (M.lookup i (ctxArgs ctx))
-
-evalExp (LitE (StringL x)) = pure $ unsafePerformIO $ toJSVal x
-evalExp (LitE (IntL x)) = pure $ unsafePerformIO $ toJSVal x
-evalExp (LitE (BoolL x)) = pure $ unsafePerformIO $ toJSVal x
-
-evalExp GlobalE = pure $ unsafePerformIO js_globalE
-
-evalExp (GetE prop obj) = do
-    prop' <- evalExpVal prop
-    obj' <- evalExpVal obj
-
-    let val = unsafePerformIO $ js_getE (textToJSString prop') obj'
-    maybe (throwError ()) pure (cast val)
+    let r = unsafePerformIO $ js_evalF refs args jsf
+    Right (r, pure ())
 
 
-evalExp (InvokeE prop obj args) = do
-    prop' <- evalExpVal prop
-    obj' <- evalExpVal obj
-
-    args' <- forM args $ \(SomeExp arg) ->
-        evalExpVal arg
-
-    let val = unsafePerformIO $ js_invokeE (textToJSString prop') obj' ( JSA.fromList args')
-    maybe (throwError ()) pure (cast val)
-
-evalExp (ValueE tag args) = do
-    args' <- forM args $ \(SomeExp arg) ->
-        evalExpVal arg
-
-    pure $ unsafePerformIO $ do
-        t <- toJSVal tag
-        toJSVal ([t] <> args')
-
-evalExp NothingE = pure js_null
-evalExp (JustE exp) = evalExp exp
-
-evalExp (RefHandlerE exp) = evalExp exp
-
-evalExp (EventHandlerE a b c d) = do
-    preventDefault <- evalExpVal a
-    stopPropagation <- evalExpVal b
-    stopImmediatePropagation <- evalExpVal c
-    action <- evalExpVal d
-
-    ev <- evalExp (HoleE 1)
-
-    tell
-        [ do
-            when preventDefault $ do
-                js_preventDefault ev
-            when stopPropagation $ do
-                js_stopPropagation ev
-            when stopImmediatePropagation $ do
-                js_stopImmediatePropagation ev
-        ]
-
-    pure action
-
-
-evalExp (DerefE i) = do
-    ctx <- ask
-    case M.lookup (RefKey i) (ctxRefs ctx) of
-        Nothing -> error "DerefE"
-        Just x  -> pure x
-
-
-
-foreign import javascript unsafe "$2[$1]" js_getE
-    :: JSString -> JSVal -> IO JSVal
-
-foreign import javascript unsafe "$2[$1].apply($2, $3)" js_invokeE
-    :: JSString -> JSVal -> JSArray -> IO JSVal
-
-foreign import javascript unsafe "$r = window" js_globalE
-    :: IO JSVal
-
-foreign import javascript unsafe "$r = null" js_null
-    :: JSVal
-
-foreign import javascript unsafe "$1.preventDefault()" js_preventDefault
-    :: JSVal -> IO ()
-
-foreign import javascript unsafe "$1.stopPropagation()" js_stopPropagation
-    :: JSVal -> IO ()
-
-foreign import javascript unsafe "$1.stopImmediatePropagation()" js_stopImmediatePropagation
-    :: JSVal -> IO ()
+foreign import javascript unsafe "evalF($1, $2, $3)" js_evalF
+    :: JSVal -> JSVal -> JSVal -> IO JSVal
