@@ -197,17 +197,22 @@ function getComponent(componentId, displayName) {
             componentDidMount() {
                 const { path, spine: { eventListeners, hooks: { componentDidMount } } } = this.props;
                 componentDidMount.forEach(exp => {
-                    sendHook(path, evalExp(exp, {}, this.ctx));
+                    const f = new Function(exp.body);
+                    const a = f();
+                    if (a) {
+                        sendHook(path, a);
+                    }
                 });
-                eventListeners.forEach(([fid, name, expr]) => {
-                    window.addEventListener(name, getFn(this.ctx, path, fid, () => {
+                eventListeners.forEach(([name, expr]) => {
+                    const nv$deref = (k) => {
+                        return this.ctx.refs.get(k);
+                    };
+                    const f = new Function('nv$deref', expr.arguments[0][0], expr.body);
+                    window.addEventListener(name, getFn(this.ctx, path, expr.id, () => {
                         return ev => {
-                            const eh = evalExp(expr, { '0': ev }, this.ctx);
-                            eh.preventDefault && ev.preventDefault();
-                            eh.stopPropagation && ev.stopPropagation();
-                            eh.stopImmediatePropagation && ev.stopImmediatePropagation();
-                            if (eh.action) {
-                                sendAction(path, name, eh.action);
+                            const a = f(nv$deref, ev);
+                            if (a) {
+                                sendAction(path, name, a);
                             }
                         };
                     }));
@@ -216,10 +221,14 @@ function getComponent(componentId, displayName) {
             componentWillUnmount() {
                 const { path, spine: { eventListeners, hooks: { componentWillUnmount } } } = this.props;
                 componentWillUnmount.forEach(exp => {
-                    sendHook(path, evalExp(exp, {}, this.ctx));
+                    const f = new Function(exp.body);
+                    const a = f();
+                    if (a) {
+                        sendHook(path, a);
+                    }
                 });
-                eventListeners.forEach(([fid, name, expr]) => {
-                    window.removeEventListener(name, getFn(this.ctx, path, fid, () => {
+                eventListeners.forEach(([name, expr]) => {
+                    window.removeEventListener(name, getFn(this.ctx, path, expr.id, () => {
                         return () => undefined;
                     }));
                 });
@@ -236,40 +245,6 @@ function getComponent(componentId, displayName) {
 }
 function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
-}
-function evalExp(expr, holes, ctx) {
-    switch (expr[0]) {
-        case 'GlobalE':
-            return window;
-        case 'HoleE':
-            return holes[expr[1]];
-        case 'ValueE':
-            return [expr[1]].concat(expr.slice(2).map(x => evalExp(x, holes, ctx)));
-        case 'LitE':
-            return expr[1];
-        case 'GetE':
-            return evalExp(expr[2], holes, ctx)[evalExp(expr[1], holes, ctx)];
-        case 'InvokeE':
-            return evalExp(expr[2], holes, ctx)[evalExp(expr[1], holes, ctx)](...expr.splice(3).map(e => evalExp(e, holes, ctx)));
-        case 'EventHandlerE':
-            return {
-                preventDefault: evalExp(expr[1], holes, ctx),
-                stopPropagation: evalExp(expr[2], holes, ctx),
-                stopImmediatePropagation: evalExp(expr[3], holes, ctx),
-                action: evalExp(expr[4], holes, ctx),
-            };
-        case 'JustE':
-            return evalExp(expr[1], holes, ctx);
-        case 'NothingE':
-            return undefined;
-        case 'RefHandlerE':
-            return {
-                action: evalExp(expr[1], holes, ctx),
-            };
-        case 'DerefE':
-            return ctx.refs.get(expr[1]);
-    }
-    throw new Error(`evalExp: unknown expression type ${expr[0]}`);
 }
 class ControlledInput extends React.Component {
     constructor(props) {
@@ -354,15 +329,13 @@ const spineToReact = (ws, path, ctx, spine, key) => {
     else if (spine.type === 'Node') {
         const children = spine.children.map(([index, child]) => spineToReact(ws, [].concat(path, index), ctx, child, index));
         const props = { key };
-        const installEventListener = ([fid, name, expr]) => {
-            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
+        const installEventListener = ([name, expr]) => {
+            const f = new Function(expr.arguments[0][0], expr.body);
+            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, expr.id, () => {
                 return ev => {
-                    const eh = evalExp(expr, { '0': ev }, ctx);
-                    eh.preventDefault && ev.preventDefault();
-                    eh.stopPropagation && ev.stopPropagation();
-                    eh.stopImmediatePropagation && ev.stopImmediatePropagation();
-                    if (eh.action) {
-                        sendAction(path, name, eh.action);
+                    const a = f(ev);
+                    if (a) {
+                        sendAction(path, name, a);
                     }
                 };
             });
@@ -390,18 +363,20 @@ const spineToReact = (ws, path, ctx, spine, key) => {
                             if (a.key) {
                                 ctx.refs.delete(a.key);
                             }
-                            const r = evalExp(a.detach, { ['0']: ref }, this.ctx);
-                            if (r.action) {
-                                sendRef(path, r.action);
+                            const f = new Function(a.detach.body);
+                            const r = f();
+                            if (r) {
+                                sendRef(path, r);
                             }
                         }
                         else {
                             if (a.key) {
                                 ctx.refs.set(a.key, ref);
                             }
-                            const r = evalExp(a.attach, { ['0']: ref }, this.ctx);
-                            if (r.action) {
-                                sendRef(path, r.action);
+                            const f = new Function(a.attach.arguments[0][0], a.attach.body);
+                            const r = f(ref);
+                            if (r) {
+                                sendRef(path, r);
                             }
                         }
                     };

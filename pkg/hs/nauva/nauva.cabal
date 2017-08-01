@@ -41,7 +41,6 @@ library
      Nauva.Handle
    , Nauva.Static
    , Nauva.NJS
-   , Nauva.NJS.Language
    , Nauva.Internal.Types
    , Nauva.DOM
    , Nauva.Internal.Events

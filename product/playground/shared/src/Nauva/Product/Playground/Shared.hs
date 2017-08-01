@@ -139,20 +139,13 @@ component = createComponent $ \componentId -> Component
             color "red"
 
 
-targetE :: Exp MouseEvent -> Exp t
-targetE = getE (litE ("target" :: Text))
-
-targetValueE :: Exp MouseEvent -> Exp Text
-targetValueE = getE (litE ("value" :: Text)) . targetE
-
-onClickHandler :: F1 MouseEvent (EventHandler Action)
-onClickHandler = eventHandler $ \ev -> do
-    stopPropagation
-    action $ value1E "DoClick" (targetValueE ev)
+onClickHandler :: F1 MouseEvent Action
+onClickHandler = mkF1 ("ev", "MouseEvent")
+    "ev.stopPropagation(); return ['DoClick', ev.target.value]"
 
 onChangeHandler :: FE MouseEvent Action
-onChangeHandler = eventHandler $ \ev -> do
-    action $ value1E "DoChange" (targetValueE ev)
+onChangeHandler = mkF1 ("ev", "MouseEvent")
+    "return ['DoChange', ev.target.value]"
 
 
 data CanvasA
@@ -233,11 +226,11 @@ canvas = createComponent $ \componentId -> Component
     --     action $ ....
 
     attach :: FRA el Action
-    attach = mkF1 $ \element ->
-        refHandlerE (justE $ value2E "SetSize" (elementWidth element) (elementHeight element))
+    attach = mkF1 ("el", "Element")
+        "return ['SetSize', el.getBoundingClientRect().width, el.getBoundingClientRect().height]"
 
     detach :: FRD Action
-    detach = mkF $ refHandlerE nothingE
+    detach = mkF [] ""
 
     view :: () -> CanvasS -> Element
     view _ (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
@@ -263,24 +256,9 @@ canvas = createComponent $ \componentId -> Component
 
 
 onResizeHandler :: RefKey -> FE MouseEvent CanvasA
-onResizeHandler (RefKey refKey) = eventHandler $ \_ -> do
-    action $ value2E "SetSize" (elementWidth element) (elementHeight element)
-  where
-    element = derefE refKey
+onResizeHandler (RefKey refKey) = mkF1 ("ev", "MouseEvent") $
+    "const {width,height} = nv$deref(" <> T.pack (show refKey) <> ").getBoundingClientRect();return ['SetSize', width, height]"
 
 onMouseMoveHandler :: FE MouseEvent CanvasA
-onMouseMoveHandler = eventHandler $ \ev -> do
-    action $ value2E "Mouse" (clientXE ev) (clientYE ev)
-
-clientXE :: Exp MouseEvent -> Exp Float
-clientXE = getE (litE "clientX" :: Exp Text)
-
-clientYE :: Exp MouseEvent -> Exp Float
-clientYE = getE (litE "clientY" :: Exp Text)
-
-
-elementWidth :: Exp a -> Exp Float
-elementWidth element = domRectWidth $ getBoundingClientRect element
-
-elementHeight :: Exp a -> Exp Float
-elementHeight element = domRectHeight $ getBoundingClientRect element
+onMouseMoveHandler = mkF1 ("ev", "MouseEvent")
+    "return ['Mouse', ev.clientX, ev.clientY]"

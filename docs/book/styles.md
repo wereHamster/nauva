@@ -98,10 +98,9 @@ Event handlers are `NJS` expressions that are attached to `Elements` and execute
 when an event is dispatched to the `Element`.
 
 ```nauva
-let onClickHandler :: F1 MouseEvent (EventHandler Int)
-    onClickHandler = eventHandler $ \_ -> do
-        stopPropagation
-        action $ value0E "1"
+let onClickHandler :: F1 MouseEvent Int
+    onClickHandler = mkF1 ("ev", "MouseEvent")
+        "ev.stopPropagation(); return [1]"
 
 in button_ [onClick_ onClickHandler] [str_ "Click Me!"]
 ```

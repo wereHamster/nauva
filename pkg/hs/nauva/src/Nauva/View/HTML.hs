@@ -19,7 +19,6 @@ module Nauva.View.HTML
 
 
 import           Data.Text (Text)
-import qualified Data.Aeson as A
 
 import           Nauva.Internal.Types
 import           Nauva.Internal.Events
@@ -30,13 +29,13 @@ import           Nauva.View.Terms
 
 
 
-onMouseMove_ :: (Value r) => F1 MouseEvent (EventHandler r) -> Attribute
+onMouseMove_ :: (Value r) => F1 MouseEvent r -> Attribute
 onMouseMove_ = AEVL . EventListener "mouseMove"
 
-onClick_ :: (Value r) => F1 MouseEvent (EventHandler r) -> Attribute
+onClick_ :: (Value r) => F1 MouseEvent r -> Attribute
 onClick_ = AEVL . EventListener "click"
 
-onChange_ :: (Value r) => F1 MouseEvent (EventHandler r) -> Attribute
+onChange_ :: (Value r) => F1 MouseEvent r -> Attribute
 onChange_ = AEVL . EventListener "change"
 
 

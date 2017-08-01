@@ -69,10 +69,9 @@ linkComponent = createComponent $ \componentId -> Component
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
-    onClickHandler :: F1 MouseEvent (EventHandler ())
-    onClickHandler = eventHandler $ \_ -> do
-        preventDefault
-        action $ value0E "()"
+    onClickHandler :: F1 MouseEvent ()
+    onClickHandler = mkF1 ("ev", "MouseEvent")
+        "ev.preventDefault(); return []"
 
     clickEffect :: LinkProps -> IO (Maybe ())
     clickEffect (LinkProps {..}) = do

@@ -24,7 +24,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, F(..), mkF, F1(..), F2(..), FRA, FRD, holeE, value0E)
+import           Nauva.NJS (Value, FID, F(..), mkF, F1(..), F2(..), FRA, FRD)
 import           Nauva.CSS.Types
 
 
@@ -184,8 +184,8 @@ data Ref where
 instance ToJSON Ref where
     toJSON (Ref key attach detach) = object
         [ "key"    .= key
-        , "attach" .= fFn attach
-        , "detach" .= fFn detach
+        , "attach" .= attach
+        , "detach" .= detach
         ]
 
 
@@ -298,10 +298,10 @@ data Hooks h = Hooks
 instance ToJSON (Hooks h) where
     toJSON hooks = object
         [ "componentDidMount"
-            .= fmap (\f -> toJSON (fFn f))
+            .= fmap (\f -> toJSON f)
                 (componentDidMount hooks)
         , "componentWillUnmount"
-            .= fmap (\f -> toJSON (fFn f))
+            .= fmap (\f -> toJSON f)
                 (componentWillUnmount hooks)
         ]
 
@@ -317,11 +317,10 @@ emptyHooks = Hooks
 -- lifecycle hooks is invoked.
 constHooks :: Hooks ()
 constHooks = Hooks
-    { componentDidMount    = [ mkF (value0E unitC) ]
-    , componentWillUnmount = [ mkF (value0E unitC) ]
+    { componentDidMount    = [ mkF [] "return []" ]
+    , componentWillUnmount = [ mkF [] "return []" ]
     }
-  where
-    unitC = "()"
+
 
 
 --------------------------------------------------------------------------------

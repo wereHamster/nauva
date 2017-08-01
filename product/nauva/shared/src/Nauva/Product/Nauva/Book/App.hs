@@ -94,10 +94,9 @@ renderCounter State{..} = div_
     , span_ [str_ ("Clicked " <> pack (show numberOfClicks) <> " times" :: Text)]
     ]
   where
-    onClickHandler :: F1 MouseEvent (EventHandler Action)
-    onClickHandler = eventHandler $ \_ -> do
-        stopPropagation
-        action $ value0E "Clicked"
+    onClickHandler :: F1 MouseEvent Action
+    onClickHandler = mkF1 ("ev", "MouseEvent")
+        "ev.stopPropagation(); return ['Clicked']"
 
 
 counterComponent :: Component () () State Action

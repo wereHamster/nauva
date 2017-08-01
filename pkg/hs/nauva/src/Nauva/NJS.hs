@@ -2,9 +2,7 @@
 {-# LANGUAGE CPP               #-}
 
 module Nauva.NJS
-    ( module Language
-
-    , FID(..), unFID
+    ( FID(..), unFID
 
     , F(..), mkF
     , F1, mkF1
@@ -15,9 +13,6 @@ module Nauva.NJS
     , FRA, FRD
 
     , Value(..)
-
-    , getBoundingClientRect
-    , domRectWidth, domRectHeight
     ) where
 
 
@@ -28,10 +23,6 @@ import qualified Data.Aeson.Types as A
 import           Data.Text        (Text)
 
 import           System.IO.Unsafe
-
-
-import qualified Nauva.NJS.Language as Language
-import           Nauva.NJS.Language
 
 
 
@@ -63,7 +54,6 @@ unFID (FID x) = x
 
 data F r = F
     { fId :: !FID
-    , fFn :: !(Exp r)
     , fConstructors :: ![(Text,[Text])]
       -- ^ Action constructors which are used by the function body.
       -- (constructor name, [argument types])
@@ -78,26 +68,34 @@ data F r = F
 instance Eq (F r) where
     (==) = (==) `on` fId
 
-mkF :: Exp r -> F r
-mkF exp = createF $ \fId -> F
+instance A.ToJSON (F r) where
+    toJSON f = A.object
+        [ "id"           A..= fId f
+        , "constructors" A..= fConstructors f
+        , "arguments"    A..= fArguments f
+        , "body"         A..= fBody f
+        ]
+
+
+mkF :: [(Text,Text)] -> Text -> F r
+mkF args body = createF $ \fId -> F
     { fId = fId
-    , fFn = exp
     , fConstructors = []
-    , fArguments = []
-    , fBody = ""
+    , fArguments = args
+    , fBody = body
     }
 
 type F1 a r = F r
-mkF1 :: (Exp a -> Exp r) -> F1 a r
-mkF1 exp = mkF (exp (holeE 0))
+mkF1 :: (Text,Text) -> Text -> F1 a r
+mkF1 a body = mkF [a] body
 
 type F2 a b r = F r
-mkF2 :: (Exp a -> Exp b -> Exp r) -> F2 a b r
-mkF2 exp = mkF (exp (holeE 0) (holeE 1))
+mkF2 :: (Text,Text) -> (Text,Text) -> Text -> F2 a b r
+mkF2 a b body = mkF [a, b] body
 
 type F3 a b c r = F r
-mkF3 :: (Exp a -> Exp b -> Exp c -> Exp r) -> F3 a b c r
-mkF3 exp = mkF (exp (holeE 0) (holeE 1) (holeE 2))
+mkF3 :: (Text,Text) -> (Text,Text) -> (Text,Text) -> Text -> F3 a b c r
+mkF3 a b c body = mkF [a, b, c] body
 
 createF :: (FID -> a) -> a
 createF f = unsafePerformIO $ do
@@ -106,16 +104,16 @@ createF f = unsafePerformIO $ do
 
 
 -- | Type synonym for a function which implements an event handler.
-type FE ev a = F1 ev (EventHandler a)
+type FE ev a = F1 ev a
 
 
 -- | A function which is called whenever a ref is attached to a component.
-type FRA el a = F1 el (RefHandler a)
+type FRA el a = F1 el a
 
 -- | Function (when) Ref (is) Detach(ed). You don't get the element which was
 -- detached. This means you can't really add the same ref handler to multiple
 -- components.
-type FRD a = F (RefHandler a)
+type FRD a = F a
 
 
 
@@ -142,16 +140,3 @@ instance (Value a, Value b) => Value (a,b) where
       case list of
         [a,b] -> (,) <$> parseValue a <*> parseValue b
         _     -> fail "(,)"
-
-
-
-data DOMRect
-
-getBoundingClientRect :: Exp a -> Exp DOMRect
-getBoundingClientRect element = invokeE (litE "getBoundingClientRect") element []
-
-domRectWidth :: Exp DOMRect -> Exp Float
-domRectWidth rect = getE (litE "width") rect
-
-domRectHeight :: Exp DOMRect -> Exp Float
-domRectHeight rect = getE (litE "height") rect
