@@ -97,10 +97,12 @@ The [next](/thunks) chapter explains how to use thunks to optimize performance.
 Event handlers are `NJS` expressions that are attached to `Elements` and executed
 when an event is dispatched to the `Element`.
 
-```nauva
+```
 let onClickHandler :: F1 MouseEvent Int
-    onClickHandler = mkF1 "ev"
-        "ev.stopPropagation(); return [1]"
+    onClickHandler = [njs| ev => {
+        ev.stopPropagation()
+        return 1
+    }|]
 
 in button_ [onClick_ onClickHandler] [str_ "Click Me!"]
 ```

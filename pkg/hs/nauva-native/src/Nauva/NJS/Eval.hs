@@ -46,7 +46,7 @@ data Context = Context
     , ctxArgs :: [JSVal]
     }
 
-eval :: Context -> F a -> Either () (JSVal, IO ())
+eval :: Context -> F -> Either () (JSVal, IO ())
 eval ctx f = do
     let refs = unsafePerformIO $ do
             o <- O.create

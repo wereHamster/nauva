@@ -16,7 +16,6 @@ import Data.Monoid
 import qualified Data.Aeson as A
 
 import Nauva.App
-import Nauva.NJS.TH
 import Nauva.Catalog
 import Nauva.Catalog.TH
 
@@ -50,7 +49,7 @@ renderCounter State{..} = div_
     , span_ [str_ ("Clicked " <> pack (show numberOfClicks) <> " times" :: Text)]
     ]
   where
-    onClickHandler :: F1 MouseEvent Action
+    onClickHandler :: FE MouseEvent Action
     onClickHandler = [njs| ev => {
         ev.stopPropagation()
         return $Clicked()

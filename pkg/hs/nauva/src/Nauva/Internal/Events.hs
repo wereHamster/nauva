@@ -42,17 +42,17 @@ instance A.ToJSON EventListener where
         ]
 
 
-onClick :: F1 MouseEvent r -> EventListener
+onClick :: FE MouseEvent r -> EventListener
 onClick = EventListener "click"
 
-onChange :: F1 MouseEvent r -> EventListener
+onChange :: FE MouseEvent r -> EventListener
 onChange = EventListener "change"
 
-onWheel :: F1 WheelEvent r -> EventListener
+onWheel :: FE WheelEvent r -> EventListener
 onWheel = EventListener "wheel"
 
-onMouseMove :: F1 MouseEvent r -> EventListener
+onMouseMove :: FE MouseEvent r -> EventListener
 onMouseMove = EventListener "mouseMove"
 
-onResize :: F1 MouseEvent r -> EventListener
+onResize :: FE MouseEvent r -> EventListener
 onResize = EventListener "resize"

@@ -94,11 +94,27 @@ argumentsParser = do
     pure args
 
   where
+    arg = do
+        AP.skipSpace
+        n <- AP.takeWhile1 isAlpha
+        AP.skipSpace
+        ch <- AP.peekChar'
+        case ch of
+            ':' -> do
+                AP.char ':'
+                AP.skipSpace
+                t <- AP.takeWhile1 isAlpha
+                AP.skipSpace
+                pure (n, Just t)
+
+            _ -> do
+                pure (n, Nothing)
+
     multipleArguments = do
         AP.string "("
-        args <- AP.takeWhile1 isAlpha `AP.sepBy` (AP.char ',')
+        args <- arg `AP.sepBy` (AP.char ',')
         AP.string ")"
-        pure $ map (\x -> (x, Nothing)) args
+        pure args
 
     singleArgument = do
         text <- AP.takeWhile1 isAlpha

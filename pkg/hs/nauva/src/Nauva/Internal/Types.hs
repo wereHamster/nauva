@@ -24,7 +24,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, createF, F(..), F1(..), F2(..), FRA, FRD)
+import           Nauva.NJS (Value, FID, createF, F(..), FRA, FRD)
 import           Nauva.CSS.Types
 
 

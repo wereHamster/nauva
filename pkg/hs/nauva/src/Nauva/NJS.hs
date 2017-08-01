@@ -6,9 +6,6 @@ module Nauva.NJS
 
     , createF
     , F(..)
-    , F1
-    , F2
-    , F3
 
     , FE
     , FRA, FRD
@@ -61,10 +58,6 @@ instance A.ToJSON F where
         , "body"         A..= fBody f
         ]
 
-type F1 a r = F
-type F2 a b r = F
-type F3 a b c r = F
-
 createF :: [Text] -> [Text] -> Text -> F
 createF constructors arguments body = F
     { fId           = hash $ A.toJSON [A.toJSON constructors, A.toJSON arguments, A.toJSON body]
@@ -100,11 +93,11 @@ unFID (FID x) = x
 
 
 -- | Type synonym for a function which implements an event handler.
-type FE ev a = F1 ev a
+type FE ev a = F
 
 
 -- | A function which is called whenever a ref is attached to a component.
-type FRA el a = F1 el a
+type FRA el a = F
 
 -- | Function (when) Ref (is) Detach(ed). You don't get the element which was
 -- detached. This means you can't really add the same ref handler to multiple

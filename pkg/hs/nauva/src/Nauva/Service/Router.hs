@@ -17,7 +17,6 @@ import qualified Data.Aeson as A
 import           Control.Concurrent.STM
 
 import           Nauva.View
-import           Nauva.NJS.TH
 
 
 
@@ -71,7 +70,7 @@ linkComponent = createComponent $ \componentId -> Component
     , restoreComponent = \_ s -> Right (s, [])
     }
   where
-    onClickHandler :: F1 MouseEvent ()
+    onClickHandler :: FE MouseEvent ()
     onClickHandler = [njs| ev => { ev.preventDefault(); return [] } |]
 
     clickEffect :: LinkProps -> IO (Maybe ())

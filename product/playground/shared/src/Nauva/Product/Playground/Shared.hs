@@ -20,7 +20,6 @@ import           GHC.Generics (Generic)
 
 import           Nauva.App
 import           Nauva.View
-import           Nauva.NJS.TH
 
 
 
@@ -106,7 +105,7 @@ component = createComponent $ \componentId -> Component
             color "red"
 
 
-onClickHandler :: F1 MouseEvent Action
+onClickHandler :: FE MouseEvent Action
 onClickHandler = [njs| ev => {
     ev.stopPropagation();
     return $DoClick(ev.target.value)
@@ -221,13 +220,13 @@ canvas = createComponent $ \componentId -> Component
 
 
 onResizeHandler :: RefKey -> FE MouseEvent CanvasA
-onResizeHandler refKey = [njs| ev => {
+onResizeHandler refKey = [njs| (ev: MouseEvent) => {
     const {width,height} = @refKey.getBoundingClientRect()
     return $SetSize(width, height)
 }|]
 
 onMouseMoveHandler :: FE MouseEvent CanvasA
-onMouseMoveHandler = [njs| ev => { return $Mouse(ev.clientX, ev.clientY); } |]
+onMouseMoveHandler = [njs| (ev: MouseEvent) => $Mouse(ev.clientX, ev.clientY) |]
 
 
 

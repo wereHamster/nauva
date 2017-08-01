@@ -155,7 +155,7 @@ runClient app = do
 foreign import javascript unsafe "console.log($1)" js_log :: JSVal -> IO ()
 
 
-hookHandler :: (forall h. Hooks h -> [F h]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
+hookHandler :: (forall h. Hooks h -> [F]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
 hookHandler accessor h path = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path

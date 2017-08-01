@@ -29,13 +29,13 @@ import           Nauva.View.Terms
 
 
 
-onMouseMove_ :: F1 MouseEvent r -> Attribute
+onMouseMove_ :: FE MouseEvent r -> Attribute
 onMouseMove_ = AEVL . EventListener "mouseMove"
 
-onClick_ :: F1 MouseEvent r -> Attribute
+onClick_ :: FE MouseEvent r -> Attribute
 onClick_ = AEVL . EventListener "click"
 
-onChange_ :: F1 MouseEvent r -> Attribute
+onChange_ :: FE MouseEvent r -> Attribute
 onChange_ = AEVL . EventListener "change"
 
 
