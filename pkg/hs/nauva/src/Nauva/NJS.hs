@@ -5,10 +5,10 @@ module Nauva.NJS
     ( FID(..), unFID
 
     , createF
-    , F(..), mkF
-    , F1, mkF1
-    , F2, mkF2
-    , F3, mkF3
+    , F(..)
+    , F1
+    , F2
+    , F3
 
     , FE
     , FRA, FRD
@@ -61,21 +61,9 @@ instance A.ToJSON F where
         , "body"         A..= fBody f
         ]
 
-
-mkF :: [Text] -> Text -> F
-mkF args body = createF [] args body
-
 type F1 a r = F
-mkF1 :: Text -> Text -> F1 a r
-mkF1 a body = mkF [a] body
-
 type F2 a b r = F
-mkF2 :: Text -> Text -> Text -> F2 a b r
-mkF2 a b body = mkF [a, b] body
-
 type F3 a b c r = F
-mkF3 :: Text -> Text -> Text -> Text -> F3 a b c r
-mkF3 a b c body = mkF [a, b, c] body
 
 createF :: [Text] -> [Text] -> Text -> F
 createF constructors arguments body = F

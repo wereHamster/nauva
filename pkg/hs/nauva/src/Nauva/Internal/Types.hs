@@ -24,7 +24,7 @@ import           Prelude
 
 import           Nauva.DOM
 import           Nauva.Internal.Events
-import           Nauva.NJS (Value, FID, F(..), mkF, F1(..), F2(..), FRA, FRD)
+import           Nauva.NJS (Value, FID, createF, F(..), F1(..), F2(..), FRA, FRD)
 import           Nauva.CSS.Types
 
 
@@ -317,8 +317,8 @@ emptyHooks = Hooks
 -- lifecycle hooks is invoked.
 constHooks :: Hooks ()
 constHooks = Hooks
-    { componentDidMount    = [ mkF [] "return []" ]
-    , componentWillUnmount = [ mkF [] "return []" ]
+    { componentDidMount    = [ createF [] [] "return []" ]
+    , componentWillUnmount = [ createF [] [] "return []" ]
     }
 
 

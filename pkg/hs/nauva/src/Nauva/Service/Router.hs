@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RecordWildCards   #-}
 
 module Nauva.Service.Router
@@ -16,6 +17,7 @@ import qualified Data.Aeson as A
 import           Control.Concurrent.STM
 
 import           Nauva.View
+import           Nauva.NJS.TH
 
 
 
@@ -70,8 +72,7 @@ linkComponent = createComponent $ \componentId -> Component
     }
   where
     onClickHandler :: F1 MouseEvent ()
-    onClickHandler = mkF1 "ev"
-        "ev.preventDefault(); return []"
+    onClickHandler = [njs| ev => { ev.preventDefault(); return [] } |]
 
     clickEffect :: LinkProps -> IO (Maybe ())
     clickEffect (LinkProps {..}) = do

@@ -29,15 +29,11 @@ data Event         = Event
 
 
 --------------------------------------------------------------------------------
--- | The thing which is attached to nodes. Is a GADT because we need to hide
--- the type of events which the listener processes and the type of actions
--- which it produces.
+-- | The thing which is attached to nodes. A tuple of @DOM event name@ and the
+-- function which shall be used to process the event.
 
-data EventListener where
-    EventListener :: Text -> FE ev a -> EventListener
-
-instance Eq EventListener where
-    (EventListener nA fA) == (EventListener nB fB) = nA == nB && fId fA == fId fB
+data EventListener = EventListener Text F
+    deriving (Eq)
 
 instance A.ToJSON EventListener where
     toJSON (EventListener ev f) = A.toJSON

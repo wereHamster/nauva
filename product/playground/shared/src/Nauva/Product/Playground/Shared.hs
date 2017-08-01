@@ -32,6 +32,8 @@ thunk = createThunk $ \thunkId -> Thunk thunkId "thunk" (==) $ \i ->
 data Action = DoThis | DoThat | DoClick Text | DoChange Text
     deriving (Generic)
 
+$( return [] )
+
 instance Value Action where
     parseValue v = do
         list <- A.parseJSON v
@@ -105,12 +107,13 @@ component = createComponent $ \componentId -> Component
 
 
 onClickHandler :: F1 MouseEvent Action
-onClickHandler = mkF1 "ev"
-    "ev.stopPropagation(); return ['DoClick', ev.target.value]"
+onClickHandler = [njs| ev => {
+    ev.stopPropagation();
+    return $DoClick(ev.target.value)
+}|]
 
 onChangeHandler :: FE MouseEvent Action
-onChangeHandler = mkF1 "ev"
-    "return ['DoChange', ev.target.value]"
+onChangeHandler = [njs| ev => $DoChange(ev.target.value) |]
 
 
 data CanvasA
@@ -192,7 +195,7 @@ canvas = createComponent $ \componentId -> Component
     }|]
 
     detach :: FRD Action
-    detach = mkF [] ""
+    detach = [njs| () => {} |]
 
     view :: () -> CanvasS -> Element
     view _ (CanvasS (x,y) refKey _ s) = div_ [style_ style, ref_ (Ref (Just refKey) attach detach)] $
