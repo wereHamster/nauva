@@ -179,7 +179,7 @@ instance FromJSON Path where
 -- (such as event handlers) can use that key to refer to the native DOM node.
 
 data Ref where
-    Ref :: (Value r) => Maybe RefKey -> FRA a r -> FRD r -> Ref
+    Ref :: Maybe RefKey -> FRA a r -> FRD r -> Ref
 
 instance ToJSON Ref where
     toJSON (Ref key attach detach) = object
@@ -291,8 +291,8 @@ shouldThunkUpdate' ta a tb b = case cast a of
 -- Each hook generates a list of NJS expression which are execued in sequence.
 
 data Hooks h = Hooks
-    { componentDidMount :: [ F h ]
-    , componentWillUnmount :: [ F h ]
+    { componentDidMount :: [ F ]
+    , componentWillUnmount :: [ F ]
     }
 
 instance ToJSON (Hooks h) where

@@ -30,6 +30,68 @@ import qualified Crypto.MAC.SipHash as SH
 
 
 --------------------------------------------------------------------------------
+-- | 'NJS' is a JavaScript function which is run in the browser. The function
+-- can take a number of arguments (depending on in which context it runs), and
+-- may construct values which are piped back into the Haskell code.
+--
+-- 'NJS' functions are untyped, meaning that Haskell allows you to construct
+-- arbitrary functions which won't typecheck. For that reason you shouldn't
+-- deal with 'NJS' directly and instaed use the supplied smart consturctors for
+-- the newtype wrappers which are defined further below.
+
+data F = F
+    { fId :: !FID
+    , fConstructors :: ![Text]
+      -- ^ Action constructors which are used by the function body.
+    , fArguments :: ![Text]
+      -- ^ Arguments which the function body requires.
+    , fBody :: !Text
+      -- ^ JavaScript code of the function body. This string is passed to
+      -- @new Function(…)@.
+    }
+
+instance Eq F where
+    (==) = (==) `on` fId
+
+instance A.ToJSON F where
+    toJSON f = A.object
+        [ "id"           A..= fId f
+        , "constructors" A..= fConstructors f
+        , "arguments"    A..= fArguments f
+        , "body"         A..= fBody f
+        ]
+
+
+mkF :: [Text] -> Text -> F
+mkF args body = createF [] args body
+
+type F1 a r = F
+mkF1 :: Text -> Text -> F1 a r
+mkF1 a body = mkF [a] body
+
+type F2 a b r = F
+mkF2 :: Text -> Text -> Text -> F2 a b r
+mkF2 a b body = mkF [a, b] body
+
+type F3 a b c r = F
+mkF3 :: Text -> Text -> Text -> Text -> F3 a b c r
+mkF3 a b c body = mkF [a, b, c] body
+
+createF :: [Text] -> [Text] -> Text -> F
+createF constructors arguments body = F
+    { fId           = hash $ A.toJSON [A.toJSON constructors, A.toJSON arguments, A.toJSON body]
+    , fConstructors = constructors
+    , fArguments    = arguments
+    , fBody         = body
+    }
+  where
+    hash = FID . T.pack . show . unSipHash . SH.hash sipKey . toStrict . A.encode
+    sipKey = SipKey 0 1
+    unSipHash (SipHash x) = x
+
+
+
+--------------------------------------------------------------------------------
 -- | FID - Function ID
 --
 -- The 'FID' is used to uniquely identify NJS function expressions. The
@@ -48,59 +110,6 @@ unFID (FID x) = x
 
 
 
---------------------------------------------------------------------------------
--- Function expressions with fixed arity.
-
-data F r = F
-    { fId :: !FID
-    , fConstructors :: ![Text]
-      -- ^ Action constructors which are used by the function body.
-    , fArguments :: ![Text]
-      -- ^ Arguments which the function body requires.
-    , fBody :: !Text
-      -- ^ JavaScript code of the function body. This string is passed to
-      -- @new Function(…)@.
-    }
-
-instance Eq (F r) where
-    (==) = (==) `on` fId
-
-instance A.ToJSON (F r) where
-    toJSON f = A.object
-        [ "id"           A..= fId f
-        , "constructors" A..= fConstructors f
-        , "arguments"    A..= fArguments f
-        , "body"         A..= fBody f
-        ]
-
-
-mkF :: [Text] -> Text -> F r
-mkF args body = createF [] args body
-
-type F1 a r = F r
-mkF1 :: Text -> Text -> F1 a r
-mkF1 a body = mkF [a] body
-
-type F2 a b r = F r
-mkF2 :: Text -> Text -> Text -> F2 a b r
-mkF2 a b body = mkF [a, b] body
-
-type F3 a b c r = F r
-mkF3 :: Text -> Text -> Text -> Text -> F3 a b c r
-mkF3 a b c body = mkF [a, b, c] body
-
-createF :: [Text] -> [Text] -> Text -> F r
-createF constructors arguments body = F
-    { fId           = hash $ A.toJSON [A.toJSON constructors, A.toJSON arguments, A.toJSON body]
-    , fConstructors = constructors
-    , fArguments    = arguments
-    , fBody         = body
-    }
-  where
-    hash = FID . T.pack . show . unSipHash . SH.hash sipKey . toStrict . A.encode
-    sipKey = SipKey 0 1
-    unSipHash (SipHash x) = x
-
 
 -- | Type synonym for a function which implements an event handler.
 type FE ev a = F1 ev a
@@ -112,7 +121,7 @@ type FRA el a = F1 el a
 -- | Function (when) Ref (is) Detach(ed). You don't get the element which was
 -- detached. This means you can't really add the same ref handler to multiple
 -- components.
-type FRD a = F a
+type FRD a = F
 
 
 

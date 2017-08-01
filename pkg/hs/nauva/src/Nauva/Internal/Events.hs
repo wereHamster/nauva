@@ -34,7 +34,7 @@ data Event         = Event
 -- which it produces.
 
 data EventListener where
-    EventListener :: (Value a) => Text -> FE ev a -> EventListener
+    EventListener :: Text -> FE ev a -> EventListener
 
 instance Eq EventListener where
     (EventListener nA fA) == (EventListener nB fB) = nA == nB && fId fA == fId fB
@@ -46,17 +46,17 @@ instance A.ToJSON EventListener where
         ]
 
 
-onClick :: (Value r) => F1 MouseEvent r -> EventListener
+onClick :: F1 MouseEvent r -> EventListener
 onClick = EventListener "click"
 
-onChange :: (Value r) => F1 MouseEvent r -> EventListener
+onChange :: F1 MouseEvent r -> EventListener
 onChange = EventListener "change"
 
-onWheel :: (Value r) => F1 WheelEvent r -> EventListener
+onWheel :: F1 WheelEvent r -> EventListener
 onWheel = EventListener "wheel"
 
-onMouseMove :: (Value r) => F1 MouseEvent r -> EventListener
+onMouseMove :: F1 MouseEvent r -> EventListener
 onMouseMove = EventListener "mouseMove"
 
-onResize :: (Value r) => F1 MouseEvent r -> EventListener
+onResize :: F1 MouseEvent r -> EventListener
 onResize = EventListener "resize"
