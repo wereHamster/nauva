@@ -23,8 +23,16 @@ class Context {
     fn: { [id: string]: { [path: string]: any } } = {};
     refs: Map<string, any> = new Map;
 
-    nv$deref(k) {
+    nv$ref = (k) => {
         return this.refs.get(k)
+    }
+}
+
+const compileFunction = (ctx, {constructors, arguments, body}) => {
+    const f = new Function('nv$ref', ...constructors.map(x => "nv$" + x), ...arguments, body)
+    const constructorFunctions = constructors.map(x => (...args) => ([x, ...args]))
+    return (...args) => {
+        return f(ctx.nv$ref, ...constructorFunctions, ...args)
     }
 }
 
@@ -295,7 +303,7 @@ function getComponent(componentId: ComponentId, displayName: string) {
             componentDidMount() {
                 const {path, spine: {eventListeners, hooks: {componentDidMount}}} = this.props;
                 componentDidMount.forEach(exp => {
-                    const f = new Function(exp.body)
+                    const f = compileFunction(this.ctx, exp)
                     const a = f();
                     if (a) {
                         sendHook(path, a)
@@ -303,10 +311,10 @@ function getComponent(componentId: ComponentId, displayName: string) {
                 });
 
                 eventListeners.forEach(([name, expr]) => {
-                    const f = new Function('nv$deref', expr.arguments[0], expr.body)
+                    const f = compileFunction(this.ctx, expr)
                     window.addEventListener(name, getFn(this.ctx, path, expr.id, () => {
                         return ev => {
-                            const a = f(this.ctx.nv$deref, ev)
+                            const a = f(ev)
                             if (a) {
                                 sendAction(path, name, a)
                             }
@@ -318,7 +326,7 @@ function getComponent(componentId: ComponentId, displayName: string) {
             componentWillUnmount() {
                 const {path, spine: {eventListeners, hooks: {componentWillUnmount}}} = this.props;
                 componentWillUnmount.forEach(exp => {
-                    const f = new Function(exp.body)
+                    const f = compileFunction(this.ctx, exp)
                     const a = f()
                     if (a) {
                         sendHook(path, a)
@@ -471,7 +479,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
         const props: any = { key };
 
         const installEventListener = ([name, expr]) => {
-            const f = new Function(expr.arguments[0], expr.body)
+            const f = compileFunction(ctx, expr)
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, expr.id, () => {
                 return ev => {
                     const a = f(ev)
@@ -503,7 +511,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
                                 ctx.refs.delete(a.key);
                             }
 
-                            const f = new Function(a.detach.body)
+                            const f = compileFunction(ctx, a.detach)
                             const r = f()
                             if (r) {
                                 sendRef(path, r)
@@ -513,7 +521,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
                                 ctx.refs.set(a.key, ref);
                             }
 
-                            const f = new Function(a.attach.arguments[0], a.attach.body)
+                            const f = compileFunction(ctx, a.attach)
                             const r = f(ref)
                             if (r) {
                                 sendRef(path, r)

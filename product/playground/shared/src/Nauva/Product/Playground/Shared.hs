@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE QuasiQuotes           #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 module Nauva.Product.Playground.Shared
     ( playgroundApp
@@ -18,45 +20,8 @@ import           GHC.Generics (Generic)
 
 import           Nauva.App
 import           Nauva.View
+import           Nauva.NJS.TH
 
-
-
-playgroundApp :: App
-playgroundApp = App
-    { rootElement = \_ -> playgroundRootElement 1
-    }
-
-
-
--- | The root element of the application. It takes one input (an 'Int'), and
--- contains both 'Thunk's and 'Component's, to demonstrate that they all work
--- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
-playgroundRootElement :: Int -> Element
-playgroundRootElement i = div_ [style_ rootStyle :: Attribute] $
-    [ str_ $ "App Generation " <> (T.pack $ show i)
-    , br_ []
-    , thunk_ thunk (i `div` 2)
-    , br_ []
-    , component_ component (i `div` 3)
-    , br_ []
-    , div_ [style_ canvasContainerStyle] $
-        [ component_ canvas ()
-        , component_ canvas ()
-        ]
-    ]
-
-  where
-    rootStyle :: Style
-    rootStyle = mkStyle $ do
-        height (vh 100)
-        display flex
-        flexDirection column
-
-    canvasContainerStyle :: Style
-    canvasContainerStyle = mkStyle $ do
-        flex "1"
-        display flex
-        flexDirection row
 
 
 thunk :: Thunk Int
@@ -153,9 +118,6 @@ data CanvasA
     | SetSize Float Float
     deriving (Generic)
 
-instance A.FromJSON CanvasA
-instance A.ToJSON CanvasA
-
 instance Value CanvasA where
     parseValue v = do
         list <- A.parseJSON v
@@ -183,6 +145,8 @@ data CanvasS = CanvasS
 
 instance A.ToJSON CanvasS where
     toJSON (CanvasS mouse rk _ size) = A.toJSON (mouse, rk, size)
+
+$( return [] )
 
 canvas :: Component () () CanvasS CanvasA
 canvas = createComponent $ \componentId -> Component
@@ -221,13 +185,11 @@ canvas = createComponent $ \componentId -> Component
             , fill_ ("black" :: Text)
             ] []
 
-    -- attach = refHandler $ \componentH element -> do
-    --     storeRef componentH (litE "svg") element
-    --     action $ ....
-
     attach :: FRA el Action
-    attach = mkF1 "el"
-        "return ['SetSize', el.getBoundingClientRect().width, el.getBoundingClientRect().height]"
+    attach = [njs| el => {
+        const {width,height} = el.getBoundingClientRect()
+        return $SetSize(width, height)
+    }|]
 
     detach :: FRD Action
     detach = mkF [] ""
@@ -256,9 +218,50 @@ canvas = createComponent $ \componentId -> Component
 
 
 onResizeHandler :: RefKey -> FE MouseEvent CanvasA
-onResizeHandler (RefKey refKey) = mkF1 "ev" $
-    "const {width,height} = nv$deref(" <> T.pack (show refKey) <> ").getBoundingClientRect();return ['SetSize', width, height]"
+onResizeHandler refKey = [njs| ev => {
+    const {width,height} = @refKey.getBoundingClientRect()
+    return $SetSize(width, height)
+}|]
 
 onMouseMoveHandler :: FE MouseEvent CanvasA
-onMouseMoveHandler = mkF1 "ev"
-    "return ['Mouse', ev.clientX, ev.clientY]"
+onMouseMoveHandler = [njs| ev => { return $Mouse(ev.clientX, ev.clientY); } |]
+
+
+
+
+-- | The root element of the application. It takes one input (an 'Int'), and
+-- contains both 'Thunk's and 'Component's, to demonstrate that they all work
+-- as expected (ie. 'Thunk's are forced and 'Components' retain their state).
+playgroundRootElement :: Int -> Element
+playgroundRootElement i = div_ [style_ rootStyle :: Attribute] $
+    [ str_ $ "App Generation " <> (T.pack $ show i)
+    , br_ []
+    , thunk_ thunk (i `div` 2)
+    , br_ []
+    , component_ component (i `div` 3)
+    , br_ []
+    , div_ [style_ canvasContainerStyle] $
+        [ component_ canvas ()
+        , component_ canvas ()
+        ]
+    ]
+
+  where
+    rootStyle :: Style
+    rootStyle = mkStyle $ do
+        height (vh 100)
+        display flex
+        flexDirection column
+
+    canvasContainerStyle :: Style
+    canvasContainerStyle = mkStyle $ do
+        flex "1"
+        display flex
+        flexDirection row
+
+
+
+playgroundApp :: App
+playgroundApp = App
+    { rootElement = \_ -> playgroundRootElement 1
+    }

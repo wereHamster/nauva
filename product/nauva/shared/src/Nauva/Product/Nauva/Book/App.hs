@@ -16,9 +16,61 @@ import Data.Monoid
 import qualified Data.Aeson as A
 
 import Nauva.App
+import Nauva.NJS.TH
 import Nauva.Catalog
 import Nauva.Catalog.TH
 
+
+
+data State = State
+    { numberOfClicks :: Int
+    }
+
+data Action
+    = Clicked
+
+$( return [] )
+
+instance Value Action where
+    parseValue _ = pure Clicked
+
+
+initialState :: State
+initialState = State
+    { numberOfClicks = 0
+    }
+
+updateState :: Action -> State -> State
+updateState Clicked State{..} = State { numberOfClicks = numberOfClicks + 1 }
+
+
+renderCounter :: State -> Element
+renderCounter State{..} = div_
+    [ button_ [onClick_ onClickHandler] [str_ "Click Me!"]
+    , span_ [str_ ("Clicked " <> pack (show numberOfClicks) <> " times" :: Text)]
+    ]
+  where
+    onClickHandler :: F1 MouseEvent Action
+    onClickHandler = [njs| ev => {
+        ev.stopPropagation()
+        return $Clicked()
+    }|]
+
+
+counterComponent :: Component () () State Action
+counterComponent = createComponent $ \componentId -> Component
+    { componentId = componentId
+    , componentDisplayName = "Counter"
+    , initialComponentState = \_ -> pure (initialState, [], [])
+    , componentEventListeners = const []
+    , componentHooks = emptyHooks
+    , processLifecycleEvent = \() _ s -> (s, [])
+    , receiveProps = \_ s -> pure (s, [], [])
+    , update = \a _ s -> (updateState a s, [])
+    , renderComponent = \_ -> renderCounter
+    , componentSnapshot = \_ -> A.object []
+    , restoreComponent = \_ s -> Right (s, [])
+    }
 
 
 bookApp :: App
@@ -66,50 +118,3 @@ catalogPages =
             "../../../../../../../../docs/book/components.md")
         }
     ]
-
-
-data State = State
-    { numberOfClicks :: Int
-    }
-
-data Action
-    = Clicked
-
-instance Value Action where
-    parseValue _ = pure Clicked
-
-
-initialState :: State
-initialState = State
-    { numberOfClicks = 0
-    }
-
-updateState :: Action -> State -> State
-updateState Clicked State{..} = State { numberOfClicks = numberOfClicks + 1 }
-
-
-renderCounter :: State -> Element
-renderCounter State{..} = div_
-    [ button_ [onClick_ onClickHandler] [str_ "Click Me!"]
-    , span_ [str_ ("Clicked " <> pack (show numberOfClicks) <> " times" :: Text)]
-    ]
-  where
-    onClickHandler :: F1 MouseEvent Action
-    onClickHandler = mkF1 "ev"
-        "ev.stopPropagation(); return ['Clicked']"
-
-
-counterComponent :: Component () () State Action
-counterComponent = createComponent $ \componentId -> Component
-    { componentId = componentId
-    , componentDisplayName = "Counter"
-    , initialComponentState = \_ -> pure (initialState, [], [])
-    , componentEventListeners = const []
-    , componentHooks = emptyHooks
-    , processLifecycleEvent = \() _ s -> (s, [])
-    , receiveProps = \_ s -> pure (s, [], [])
-    , update = \a _ s -> (updateState a s, [])
-    , renderComponent = \_ -> renderCounter
-    , componentSnapshot = \_ -> A.object []
-    , restoreComponent = \_ s -> Right (s, [])
-    }

@@ -41,6 +41,7 @@ library
      Nauva.Handle
    , Nauva.Static
    , Nauva.NJS
+   , Nauva.NJS.TH
    , Nauva.Internal.Types
    , Nauva.DOM
    , Nauva.Internal.Events
@@ -56,6 +57,7 @@ library
   build-depends:
      base >= 4.7 && < 5
    , aeson
+   , attoparsec
    , blaze-html
    , blaze-markup
    , bytestring
@@ -64,4 +66,5 @@ library
    , nauva-css
    , siphash
    , stm
+   , template-haskell
    , text

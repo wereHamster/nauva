@@ -4,6 +4,7 @@
 module Nauva.NJS
     ( FID(..), unFID
 
+    , createF
     , F(..), mkF
     , F1, mkF1
     , F2, mkF2

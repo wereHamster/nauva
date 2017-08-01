@@ -4,11 +4,18 @@ class Context {
     constructor() {
         this.fn = {};
         this.refs = new Map;
-    }
-    nv$deref(k) {
-        return this.refs.get(k);
+        this.nv$ref = (k) => {
+            return this.refs.get(k);
+        };
     }
 }
+const compileFunction = (ctx, { constructors, arguments, body }) => {
+    const f = new Function('nv$ref', ...constructors.map(x => "nv$" + x), ...arguments, body);
+    const constructorFunctions = constructors.map(x => (...args) => ([x, ...args]));
+    return (...args) => {
+        return f(ctx.nv$ref, ...constructorFunctions, ...args);
+    };
+};
 // Initialize the nauvad runtime. Make sure everything is in place
 // and we're ready to connect to the server.
 const nauvadInit = () => {
@@ -200,17 +207,17 @@ function getComponent(componentId, displayName) {
             componentDidMount() {
                 const { path, spine: { eventListeners, hooks: { componentDidMount } } } = this.props;
                 componentDidMount.forEach(exp => {
-                    const f = new Function(exp.body);
+                    const f = compileFunction(this.ctx, exp);
                     const a = f();
                     if (a) {
                         sendHook(path, a);
                     }
                 });
                 eventListeners.forEach(([name, expr]) => {
-                    const f = new Function('nv$deref', expr.arguments[0], expr.body);
+                    const f = compileFunction(this.ctx, expr);
                     window.addEventListener(name, getFn(this.ctx, path, expr.id, () => {
                         return ev => {
-                            const a = f(this.ctx.nv$deref, ev);
+                            const a = f(ev);
                             if (a) {
                                 sendAction(path, name, a);
                             }
@@ -221,7 +228,7 @@ function getComponent(componentId, displayName) {
             componentWillUnmount() {
                 const { path, spine: { eventListeners, hooks: { componentWillUnmount } } } = this.props;
                 componentWillUnmount.forEach(exp => {
-                    const f = new Function(exp.body);
+                    const f = compileFunction(this.ctx, exp);
                     const a = f();
                     if (a) {
                         sendHook(path, a);
@@ -330,7 +337,7 @@ const spineToReact = (ws, path, ctx, spine, key) => {
         const children = spine.children.map(([index, child]) => spineToReact(ws, [].concat(path, index), ctx, child, index));
         const props = { key };
         const installEventListener = ([name, expr]) => {
-            const f = new Function(expr.arguments[0], expr.body);
+            const f = compileFunction(ctx, expr);
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, expr.id, () => {
                 return ev => {
                     const a = f(ev);
@@ -363,7 +370,7 @@ const spineToReact = (ws, path, ctx, spine, key) => {
                             if (a.key) {
                                 ctx.refs.delete(a.key);
                             }
-                            const f = new Function(a.detach.body);
+                            const f = compileFunction(ctx, a.detach);
                             const r = f();
                             if (r) {
                                 sendRef(path, r);
@@ -373,7 +380,7 @@ const spineToReact = (ws, path, ctx, spine, key) => {
                             if (a.key) {
                                 ctx.refs.set(a.key, ref);
                             }
-                            const f = new Function(a.attach.arguments[0], a.attach.body);
+                            const f = compileFunction(ctx, a.attach);
                             const r = f(ref);
                             if (r) {
                                 sendRef(path, r);
