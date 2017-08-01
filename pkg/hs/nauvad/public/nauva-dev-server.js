@@ -5,6 +5,9 @@ class Context {
         this.fn = {};
         this.refs = new Map;
     }
+    nv$deref(k) {
+        return this.refs.get(k);
+    }
 }
 // Initialize the nauvad runtime. Make sure everything is in place
 // and we're ready to connect to the server.
@@ -204,13 +207,10 @@ function getComponent(componentId, displayName) {
                     }
                 });
                 eventListeners.forEach(([name, expr]) => {
-                    const nv$deref = (k) => {
-                        return this.ctx.refs.get(k);
-                    };
-                    const f = new Function('nv$deref', expr.arguments[0][0], expr.body);
+                    const f = new Function('nv$deref', expr.arguments[0], expr.body);
                     window.addEventListener(name, getFn(this.ctx, path, expr.id, () => {
                         return ev => {
-                            const a = f(nv$deref, ev);
+                            const a = f(this.ctx.nv$deref, ev);
                             if (a) {
                                 sendAction(path, name, a);
                             }
@@ -330,7 +330,7 @@ const spineToReact = (ws, path, ctx, spine, key) => {
         const children = spine.children.map(([index, child]) => spineToReact(ws, [].concat(path, index), ctx, child, index));
         const props = { key };
         const installEventListener = ([name, expr]) => {
-            const f = new Function(expr.arguments[0][0], expr.body);
+            const f = new Function(expr.arguments[0], expr.body);
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, expr.id, () => {
                 return ev => {
                     const a = f(ev);
@@ -373,7 +373,7 @@ const spineToReact = (ws, path, ctx, spine, key) => {
                             if (a.key) {
                                 ctx.refs.set(a.key, ref);
                             }
-                            const f = new Function(a.attach.arguments[0][0], a.attach.body);
+                            const f = new Function(a.attach.arguments[0], a.attach.body);
                             const r = f(ref);
                             if (r) {
                                 sendRef(path, r);

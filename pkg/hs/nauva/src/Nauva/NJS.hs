@@ -26,8 +26,6 @@ import           Data.ByteString.Lazy (toStrict)
 import           Crypto.MAC.SipHash (SipHash(..), SipKey(..))
 import qualified Crypto.MAC.SipHash as SH
 
-import           System.IO.Unsafe
-
 
 
 --------------------------------------------------------------------------------
@@ -54,12 +52,10 @@ unFID (FID x) = x
 
 data F r = F
     { fId :: !FID
-    , fConstructors :: ![(Text,[Text])]
+    , fConstructors :: ![Text]
       -- ^ Action constructors which are used by the function body.
-      -- (constructor name, [argument types])
-    , fArguments :: ![(Text,Text)]
+    , fArguments :: ![Text]
       -- ^ Arguments which the function body requires.
-      -- (binding name, W3C DOM type)
     , fBody :: !Text
       -- ^ JavaScript code of the function body. This string is passed to
       -- @new Function(…)@.
@@ -77,22 +73,22 @@ instance A.ToJSON (F r) where
         ]
 
 
-mkF :: [(Text,Text)] -> Text -> F r
+mkF :: [Text] -> Text -> F r
 mkF args body = createF [] args body
 
 type F1 a r = F r
-mkF1 :: (Text,Text) -> Text -> F1 a r
+mkF1 :: Text -> Text -> F1 a r
 mkF1 a body = mkF [a] body
 
 type F2 a b r = F r
-mkF2 :: (Text,Text) -> (Text,Text) -> Text -> F2 a b r
+mkF2 :: Text -> Text -> Text -> F2 a b r
 mkF2 a b body = mkF [a, b] body
 
 type F3 a b c r = F r
-mkF3 :: (Text,Text) -> (Text,Text) -> (Text,Text) -> Text -> F3 a b c r
+mkF3 :: Text -> Text -> Text -> Text -> F3 a b c r
 mkF3 a b c body = mkF [a, b, c] body
 
-createF :: [(Text,[Text])] -> [(Text,Text)] -> Text -> F r
+createF :: [Text] -> [Text] -> Text -> F r
 createF constructors arguments body = F
     { fId           = hash $ A.toJSON [A.toJSON constructors, A.toJSON arguments, A.toJSON body]
     , fConstructors = constructors

@@ -99,7 +99,7 @@ when an event is dispatched to the `Element`.
 
 ```nauva
 let onClickHandler :: F1 MouseEvent Int
-    onClickHandler = mkF1 ("ev", "MouseEvent")
+    onClickHandler = mkF1 "ev"
         "ev.stopPropagation(); return [1]"
 
 in button_ [onClick_ onClickHandler] [str_ "Click Me!"]

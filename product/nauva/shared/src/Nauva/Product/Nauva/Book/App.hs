@@ -95,7 +95,7 @@ renderCounter State{..} = div_
     ]
   where
     onClickHandler :: F1 MouseEvent Action
-    onClickHandler = mkF1 ("ev", "MouseEvent")
+    onClickHandler = mkF1 "ev"
         "ev.stopPropagation(); return ['Clicked']"
 
 

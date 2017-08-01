@@ -22,6 +22,10 @@ const wsURL = 'ws://localhost:' + NAUVA_PORT + '/_nauva';
 class Context {
     fn: { [id: string]: { [path: string]: any } } = {};
     refs: Map<string, any> = new Map;
+
+    nv$deref(k) {
+        return this.refs.get(k)
+    }
 }
 
 type ComponentId = number
@@ -299,13 +303,10 @@ function getComponent(componentId: ComponentId, displayName: string) {
                 });
 
                 eventListeners.forEach(([name, expr]) => {
-                    const nv$deref = (k) => {
-                        return this.ctx.refs.get(k);
-                    }
-                    const f = new Function('nv$deref', expr.arguments[0][0], expr.body)
+                    const f = new Function('nv$deref', expr.arguments[0], expr.body)
                     window.addEventListener(name, getFn(this.ctx, path, expr.id, () => {
                         return ev => {
-                            const a = f(nv$deref, ev)
+                            const a = f(this.ctx.nv$deref, ev)
                             if (a) {
                                 sendAction(path, name, a)
                             }
@@ -470,7 +471,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
         const props: any = { key };
 
         const installEventListener = ([name, expr]) => {
-            const f = new Function(expr.arguments[0][0], expr.body)
+            const f = new Function(expr.arguments[0], expr.body)
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, expr.id, () => {
                 return ev => {
                     const a = f(ev)
@@ -512,7 +513,7 @@ const spineToReact = (ws: WebSocket, path, ctx: Context, spine, key) => {
                                 ctx.refs.set(a.key, ref);
                             }
 
-                            const f = new Function(a.attach.arguments[0][0], a.attach.body)
+                            const f = new Function(a.attach.arguments[0], a.attach.body)
                             const r = f(ref)
                             if (r) {
                                 sendRef(path, r)

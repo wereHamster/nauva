@@ -140,11 +140,11 @@ component = createComponent $ \componentId -> Component
 
 
 onClickHandler :: F1 MouseEvent Action
-onClickHandler = mkF1 ("ev", "MouseEvent")
+onClickHandler = mkF1 "ev"
     "ev.stopPropagation(); return ['DoClick', ev.target.value]"
 
 onChangeHandler :: FE MouseEvent Action
-onChangeHandler = mkF1 ("ev", "MouseEvent")
+onChangeHandler = mkF1 "ev"
     "return ['DoChange', ev.target.value]"
 
 
@@ -226,7 +226,7 @@ canvas = createComponent $ \componentId -> Component
     --     action $ ....
 
     attach :: FRA el Action
-    attach = mkF1 ("el", "Element")
+    attach = mkF1 "el"
         "return ['SetSize', el.getBoundingClientRect().width, el.getBoundingClientRect().height]"
 
     detach :: FRD Action
@@ -256,9 +256,9 @@ canvas = createComponent $ \componentId -> Component
 
 
 onResizeHandler :: RefKey -> FE MouseEvent CanvasA
-onResizeHandler (RefKey refKey) = mkF1 ("ev", "MouseEvent") $
+onResizeHandler (RefKey refKey) = mkF1 "ev" $
     "const {width,height} = nv$deref(" <> T.pack (show refKey) <> ").getBoundingClientRect();return ['SetSize', width, height]"
 
 onMouseMoveHandler :: FE MouseEvent CanvasA
-onMouseMoveHandler = mkF1 ("ev", "MouseEvent")
+onMouseMoveHandler = mkF1 "ev"
     "return ['Mouse', ev.clientX, ev.clientY]"

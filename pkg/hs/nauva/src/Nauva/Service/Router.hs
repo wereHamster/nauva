@@ -70,7 +70,7 @@ linkComponent = createComponent $ \componentId -> Component
     }
   where
     onClickHandler :: F1 MouseEvent ()
-    onClickHandler = mkF1 ("ev", "MouseEvent")
+    onClickHandler = mkF1 "ev"
         "ev.preventDefault(); return []"
 
     clickEffect :: LinkProps -> IO (Maybe ())
