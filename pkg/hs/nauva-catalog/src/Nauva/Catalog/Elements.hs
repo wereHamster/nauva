@@ -125,20 +125,28 @@ pageH4 = h4_ [style_ style]
 
 
 pageParagraph :: Bool -> [Element] -> Element
-pageParagraph isTopLevel = p_ [style_ style]
+pageParagraph isTopLevel = if isTopLevel
+    then \c -> div_ [style_ full] [p_ [style_ style] c]
+    else p_ [style_ style]
   where
+    full = mkStyle $ do
+        flexBasis "100%"
+        paddingLeft "16px"
+        margin "8px 0"
+
+        firstChild $
+            marginTop "0"
+        lastChild $
+            marginBottom "0"
+
+
     style = mkStyle $ do
         typeface paragraphTypeface
         fontStyle "normal"
         color "#333333"
         flexBasis "100%"
-        margin "8px 0"
-
         maxWidth "64em"
-
-        when isTopLevel $
-            paddingLeft "16px"
-
+        margin "8px 0"
 
         firstChild $
             marginTop "0"
