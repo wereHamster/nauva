@@ -2,6 +2,8 @@
 {-# LANGUAGE RecordWildCards    #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveLift         #-}
+{-# LANGUAGE QuasiQuotes        #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module Nauva.Catalog.Elements
     ( pageRoot
@@ -32,6 +34,10 @@ module Nauva.Catalog.Elements
     , codeBlock
 
 
+    , nauvaSpecimen
+    , NauvaSpecimenProps(..)
+
+
     , ColorGroup(..)
     , ColorCell(..)
     , ColorCellValue(..)
@@ -42,12 +48,16 @@ module Nauva.Catalog.Elements
 import           Data.Text          (Text)
 import qualified Data.Text          as T
 import           Data.Monoid
-import           Data.Aeson
 import           Data.Typeable
 import           Data.Data
 import           Data.List
 import           Data.Color
 import           Data.Word
+import qualified Data.Aeson as A
+
+import qualified Text.Blaze.Html     as B
+import qualified Text.Blaze.Internal as B
+import qualified Text.Blaze.Html.Renderer.Pretty as B
 
 import           Control.Monad
 import           Control.Lens hiding (none)
@@ -56,6 +66,7 @@ import           Language.Haskell.TH.Syntax
 
 import           Nauva.View
 import           Nauva.Catalog.Theme.Typeface
+import           Nauva.Static
 
 
 pageRoot :: [Element] -> Element
@@ -172,7 +183,7 @@ pageBlockquote = blockquote_ [style_ style]
 
 codeBlock :: Text -> Text -> Element
 codeBlock lang s = div_ [style_ rootStyle]
-    [ div_ [style_ langStyle] [str_ lang]
+    [ if T.null lang then null_ else div_ [style_ langStyle] [str_ lang]
     , pre_ [style_ preStyle] [code_ [style_ codeStyle] [str_ s]]
     ]
   where
@@ -203,7 +214,9 @@ codeBlock lang s = div_ [style_ rootStyle]
         height "auto"
         margin "0px"
         overflow "auto"
-        padding "50px 20px 20px"
+        if T.null lang
+            then padding "20px"
+            else padding "50px 20px 20px"
         whiteSpace "pre"
         width "100%"
 
@@ -320,10 +333,10 @@ data PageElementProps = PageElementProps
     , pepSpan :: Int
     } deriving (Typeable, Data, Lift)
 
-instance FromJSON PageElementProps where
-    parseJSON (Object o) = PageElementProps
-        <$> o .:? "title"
-        <*> o .:? "span" .!= 6
+instance A.FromJSON PageElementProps where
+    parseJSON (A.Object o) = PageElementProps
+        <$> o A..:? "title"
+        <*> o A..:? "span" A..!= 6
 
     parseJSON _ = fail "PageElementProps"
 
@@ -350,10 +363,10 @@ data CodeSpecimenProps = CodeSpecimenProps
     , cspNoSource :: Bool
     } deriving (Typeable, Data, Lift)
 
-instance FromJSON CodeSpecimenProps where
-    parseJSON v@(Object o) = CodeSpecimenProps
-        <$> parseJSON v
-        <*> o .:? "noSource" .!= False
+instance A.FromJSON CodeSpecimenProps where
+    parseJSON v@(A.Object o) = CodeSpecimenProps
+        <$> A.parseJSON v
+        <*> o A..:? "noSource" A..!= False
 
     parseJSON _ = fail "CodeSpecimenProps"
 
@@ -372,6 +385,183 @@ codeSpecimen CodeSpecimenProps{..} c lang s = if cspNoSource
         width "100%"
         background "rgb(255, 255, 255)"
         border "1px solid rgb(238, 238, 238)"
+
+
+data NauvaSpecimenProps = NauvaSpecimenProps
+    { csProps :: CodeSpecimenProps
+    , csElement :: Element
+    , csLang :: Text
+    , csSource :: Text
+    }
+
+data NauvaSpecimenState = NauvaSpecimenState
+    { nssLang :: Text
+    , nssStyles :: [Style]
+    , nssHtml :: B.Html
+    }
+
+data NauvaSpecimenAction
+    = NSASelectLanguage Text
+
+instance Value NauvaSpecimenAction where
+    parseValue v = do
+        list <- A.parseJSON v
+        case list of
+            (t:xs) -> do
+                ctag <- A.parseJSON t
+                case ctag :: Text of
+                    "NSASelectLanguage" -> do
+                        case xs of
+                            [a] -> NSASelectLanguage <$> A.parseJSON a
+                            _ -> fail "NauvaSpecimenAction:NSASelectLanguage"
+                    _ -> fail "NauvaSpecimenAction"
+            _ -> fail "NauvaSpecimenAction"
+
+$( return [] )
+
+nauvaSpecimen :: NauvaSpecimenProps -> Element
+nauvaSpecimen = component_ nauvaSpecimenComponent
+
+nauvaSpecimenComponent :: Component NauvaSpecimenProps () NauvaSpecimenState NauvaSpecimenAction
+nauvaSpecimenComponent = createComponent $ \componentId -> Component
+    { componentId = componentId
+    , componentDisplayName = "CodeSpecimen"
+    , initialComponentState = \props -> do
+        (html, styles, _) <- elementToMarkup $ csElement props
+        pure (NauvaSpecimenState "Haskell" styles html, [], [])
+    , componentEventListeners = const []
+    , componentHooks = emptyHooks
+    , processLifecycleEvent = \() _ s -> (s, [])
+    , receiveProps = \_ s -> pure (s, [], [])
+    , update = update
+    , renderComponent = render
+    , componentSnapshot = \_ -> A.object []
+    , restoreComponent = \_ s -> Right (s, [])
+    }
+  where
+    update (NSASelectLanguage t) props s = (s { nssLang = t}, [])
+
+    onClickHandler :: FE MouseEvent NauvaSpecimenAction
+    onClickHandler = [njs| ev => {
+        return $NSASelectLanguage(ev.target.innerText)
+    }|]
+
+
+    renderCSSDeclarations :: CSSStyleDeclaration -> T.Text
+    renderCSSDeclarations = mconcat . intersperse ";" . map renderDeclaration
+      where
+        renderDeclaration (k, CSSValue v) = "\n    " <> k <> ": " <> v
+
+    cssRuleSelector :: Hash -> [Suffix] -> T.Text
+    cssRuleSelector hash suffixes = ".s" <> unHash hash <> mconcat (map unSuffix suffixes)
+
+    wrapInConditions [] t = t
+    wrapInConditions (CMedia x:xs) t = "@media " <> x <> " {" <> wrapInConditions xs t <> "\n}"
+
+    renderCSSRule :: CSSRule -> T.Text
+    renderCSSRule (CSSStyleRule hash conditions suffixes styleDeclaration) = wrapInConditions conditions $ mconcat
+        [ cssRuleSelector hash suffixes <> " {"
+        , renderCSSDeclarations styleDeclaration
+        , "\n}"
+        ]
+    renderCSSRule (CSSFontFaceRule hash styleDeclaration) = mconcat
+        [ "@font-face {"
+        , renderCSSDeclarations styleDeclaration
+        , "\n}"
+        ]
+
+    render NauvaSpecimenProps{..} NauvaSpecimenState{..} = if cspNoSource
+        then div_ [style_ rootStyle] [pageElementContainer [c]]
+        else div_ [style_ rootStyle]
+            [ pageElementContainer [c]
+            , div_ [style_ tabsStyle]
+                [ tab "Haskell"
+                , tab "HTML"
+                , tab "CSS"
+                ]
+            , case nssLang of
+                "Haskell" -> codeBlock "" s
+                "HTML" -> codeBlock "" $ T.pack $ B.renderHtml nssHtml
+                "CSS" -> codeBlock "" $ mconcat $ intersperse "\n" $
+                    nub $ map renderCSSRule (mconcat $ map unStyle nssStyles)
+                _ -> codeBlock "" "other"
+            ]
+      where
+        CodeSpecimenProps{..} = csProps
+        c = csElement
+        lang = csLang
+        s = csSource
+
+        tab t = div_
+            [ onClick_ onClickHandler
+            , style_ (if nssLang == t then activeTabStyle else tabStyle)
+            ]
+            [str_ t]
+
+        rootStyle = mkStyle $ do
+            typeface mono12Typeface
+            fontStyle "normal"
+            fontWeight "400"
+            color "rgb(51, 51, 51)"
+            display "block"
+            width "100%"
+            background "rgb(255, 255, 255)"
+            border "1px solid rgb(238, 238, 238)"
+
+        tabsStyle = mkStyle $ do
+            typeface meta14Typeface
+            fontSize "16px"
+            display flex
+            backgroundColor "rgba(180,180,180,.1)"
+            borderTop "1px solid rgb(238, 238, 238)"
+
+        tabStyle = mkStyle $ do
+            padding "12px" "20px"
+            cursor pointer
+            color "rgba(0,0,0,.7)"
+            position relative
+
+            transition "color .2s"
+
+            after $ do
+                display block
+                content "''"
+                position absolute
+                bottom "5px"
+                left "20px"
+                right "20px"
+                height "2px"
+                backgroundColor "transparent"
+
+                transition "background-color .2s, bottom .2s"
+
+            onHover $ do
+                color "rgba(0,0,0,1)"
+
+                after $ do
+                    backgroundColor "rgba(0,0,0,.7)"
+                    bottom "7px"
+
+        activeTabStyle = mkStyle $ do
+            padding "12px" "20px"
+            cursor pointer
+            color "rgba(0,0,0,1)"
+            position relative
+
+            transition "color .2s"
+
+            after $ do
+                display block
+                content "''"
+                position absolute
+                bottom "7px"
+                left "20px"
+                right "20px"
+                height "2px"
+                backgroundColor "rgba(0,0,0,.7)"
+
+                transition "background-color .2s, bottom .2s"
+
 
 
 

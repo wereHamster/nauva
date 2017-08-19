@@ -49,9 +49,12 @@ library
   build-depends:
      base >= 4.7 && < 5
    , aeson
+   , blaze-html
+   , blaze-markup
    , bytestring
    , color
    , conduit
+   , filepath
    , haskell-src-meta
    , lens
    , markdown
@@ -62,4 +65,3 @@ library
    , text
    , th-lift-instances
    , yaml
-   , filepath

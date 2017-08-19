@@ -76,7 +76,9 @@ elementToMarkup el = case el of
             parentWithAttributes = foldl (B.!) parent attrs
 
         (children', childrenStyles, childrenActions) :: (B.Html, [Style], [IO ()]) <- mconcat <$> mapM elementToMarkup children
-        let html = parentWithAttributes children' B.! B.attribute (B.textTag "class") (B.textTag " class=\"") (B.textValue (mconcat (intersperse " " classes)))
+        let html = if null classes
+                then parentWithAttributes children'
+                else parentWithAttributes children' B.! B.attribute (B.textTag "class") (B.textTag " class=\"") (B.textValue (mconcat (intersperse " " classes)))
         pure (html, styles <> childrenStyles, childrenActions)
 
     (EThunk thunk p) ->

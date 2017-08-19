@@ -134,7 +134,7 @@ renderBlock isTopLevel b = case b of
                     expr <- [| div_ [str_ "Unrecognized expression"] |]
                     pure (cspDef, expr, str)
 
-            appE [| \c -> [pageElement (cspPEP csp) [codeSpecimen csp c "Haskell" str2]] |] (pure expr)
+            appE [| \c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimenProps csp c "Haskell" str2]] |] (pure expr)
         Just "hint" -> do
             let blocks = markdownBlocksT str
             children <- ListE <$> mapM (renderBlock False) blocks
