@@ -14,7 +14,7 @@ import           Nauva.Product.Varna.Element.Card as Card
 
 catalogApp :: App
 catalogApp = App
-    { rootElement = catalog . CatalogProps catalogPages
+    { rootElement = catalog . CatalogProps "Varna" catalogPages
     }
 
 catalogPages :: [Page]
