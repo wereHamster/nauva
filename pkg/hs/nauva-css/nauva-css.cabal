@@ -48,7 +48,7 @@ library
      base >= 4.7 && < 5
    , aeson
    , bytestring
-   , text
-   , mtl
    , containers
+   , mtl
    , siphash
+   , text

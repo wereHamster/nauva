@@ -13,14 +13,21 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import           Data.String
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import           Data.ByteString.Lazy (toStrict)
+import qualified Data.ByteString.Char8 as BC
+import           Data.Word
+import           Data.Char
 
 import           Control.Monad.Writer.Lazy
 
 import           Crypto.MAC.SipHash (SipHash(..), SipKey(..))
 import qualified Crypto.MAC.SipHash as SH
 
+import           Numeric
 import           Prelude
 
 
@@ -207,10 +214,19 @@ instance A.ToJSON Hash where
 
 
 cssStyleDeclarationHash :: CSSStyleDeclaration -> Hash
-cssStyleDeclarationHash = Hash . T.pack . show . unSipHash . SH.hash sipKey . toStrict . A.encode . toJSON
+cssStyleDeclarationHash = Hash . T.decodeUtf8 . encodeBase58I . fromIntegral . unSipHash . SH.hash sipKey . toStrict . A.encode . toJSON
   where
     sipKey = SipKey 0 1
     unSipHash (SipHash x) = x
+
+    encodeBase58I :: Integer -> ByteString
+    encodeBase58I i = BC.pack $ showIntAtBase 58 f i ""
+      where
+        f :: Int -> Char
+        f = chr . fromIntegral . BS.index alphabet . fromIntegral
+
+        alphabet :: ByteString
+        alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 
 
