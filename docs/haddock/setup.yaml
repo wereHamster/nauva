@@ -1,6 +1,6 @@
 # Increase timeout because compiling all the Haskell packages
 # takes a *long* time.
-timeout: 120m
+timeout: 7200s # 120m
 
 steps:
 - name: 'gcr.io/cloud-builders/docker'
