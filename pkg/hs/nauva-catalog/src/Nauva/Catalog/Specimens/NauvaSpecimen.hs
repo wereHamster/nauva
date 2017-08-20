@@ -13,7 +13,6 @@ module Nauva.Catalog.Specimens.NauvaSpecimen
 
 import           Data.Text          (Text)
 import qualified Data.Text          as T
-import           Data.Monoid
 import           Data.List
 import qualified Data.Aeson         as A
 
