@@ -34,8 +34,10 @@ import           Instances.TH.Lift ()
 
 import           System.FilePath
 
-import           Nauva.View hiding (Exp)
+import           Nauva.View
 import           Nauva.Catalog.Elements
+import           Nauva.Catalog.Specimens.CodeSpecimen
+import           Nauva.Catalog.Specimens.NauvaSpecimen
 
 
 
@@ -134,7 +136,7 @@ renderBlock isTopLevel b = case b of
                     expr <- [| div_ [str_ "Unrecognized expression"] |]
                     pure (cspDef, expr, str)
 
-            appE [| \c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimenProps csp c "Haskell" str2]] |] (pure expr)
+            appE [| \c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimen csp c "Haskell" str2]] |] (pure expr)
         Just "hint" -> do
             let blocks = markdownBlocksT str
             children <- ListE <$> mapM (renderBlock False) blocks

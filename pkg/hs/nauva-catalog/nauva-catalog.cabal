@@ -39,12 +39,15 @@ library
 
   exposed-modules:
      Nauva.Catalog
-   , Nauva.Catalog.Shell
    , Nauva.Catalog.Elements
-   , Nauva.Catalog.Types
+   , Nauva.Catalog.Shell
+   , Nauva.Catalog.Specimens.CodeSpecimen
+   , Nauva.Catalog.Specimens.NauvaSpecimen
+   , Nauva.Catalog.Specimens.TypefaceSpecimen
    , Nauva.Catalog.TH
    , Nauva.Catalog.Theme.Color
    , Nauva.Catalog.Theme.Typeface
+   , Nauva.Catalog.Types
 
   build-depends:
      base >= 4.7 && < 5

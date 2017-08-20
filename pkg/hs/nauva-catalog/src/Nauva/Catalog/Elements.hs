@@ -25,18 +25,7 @@ module Nauva.Catalog.Elements
     , PageElementProps(..)
     , pageElement
 
-    , CodeSpecimenProps(..)
-    , codeSpecimen
-
-    , typefaceSpecimen
-    , typefaceSpecimen'
-
     , codeBlock
-
-
-    , nauvaSpecimen
-    , NauvaSpecimenProps(..)
-
 
     , ColorGroup(..)
     , ColorCell(..)
@@ -50,23 +39,17 @@ import qualified Data.Text          as T
 import           Data.Monoid
 import           Data.Typeable
 import           Data.Data
-import           Data.List
 import           Data.Color
 import           Data.Word
 import qualified Data.Aeson as A
 
-import qualified Text.Blaze.Html     as B
-import qualified Text.Blaze.Internal as B
-import qualified Text.Blaze.Html.Renderer.Pretty as B
-
-import           Control.Monad
 import           Control.Lens hiding (none)
 
 import           Language.Haskell.TH.Syntax
 
 import           Nauva.View
 import           Nauva.Catalog.Theme.Typeface
-import           Nauva.Static
+
 
 
 pageRoot :: [Element] -> Element
@@ -355,250 +338,6 @@ pageElement PageElementProps{..} c = case pepTitle of
 
     titleStyle = mkStyle $
         margin "0 0 8px -16px"
-
-
-
-data CodeSpecimenProps = CodeSpecimenProps
-    { cspPEP :: PageElementProps
-    , cspNoSource :: Bool
-    } deriving (Typeable, Data, Lift)
-
-instance A.FromJSON CodeSpecimenProps where
-    parseJSON v@(A.Object o) = CodeSpecimenProps
-        <$> A.parseJSON v
-        <*> o A..:? "noSource" A..!= False
-
-    parseJSON _ = fail "CodeSpecimenProps"
-
-
-codeSpecimen :: CodeSpecimenProps -> Element -> Text -> Text -> Element
-codeSpecimen CodeSpecimenProps{..} c lang s = if cspNoSource
-    then div_ [style_ rootStyle] [pageElementContainer [c]]
-    else div_ [style_ rootStyle] [pageElementContainer [c], codeBlock lang s]
-  where
-    rootStyle = mkStyle $ do
-        typeface mono12Typeface
-        fontStyle "normal"
-        fontWeight "400"
-        color "rgb(51, 51, 51)"
-        display "block"
-        width "100%"
-        background "rgb(255, 255, 255)"
-        border "1px solid rgb(238, 238, 238)"
-
-
-data NauvaSpecimenProps = NauvaSpecimenProps
-    { csProps :: CodeSpecimenProps
-    , csElement :: Element
-    , csLang :: Text
-    , csSource :: Text
-    }
-
-data NauvaSpecimenState = NauvaSpecimenState
-    { nssLang :: Text
-    , nssStyles :: [Style]
-    , nssHtml :: B.Html
-    }
-
-data NauvaSpecimenAction
-    = NSASelectLanguage Text
-
-instance Value NauvaSpecimenAction where
-    parseValue v = do
-        list <- A.parseJSON v
-        case list of
-            (t:xs) -> do
-                ctag <- A.parseJSON t
-                case ctag :: Text of
-                    "NSASelectLanguage" -> do
-                        case xs of
-                            [a] -> NSASelectLanguage <$> A.parseJSON a
-                            _ -> fail "NauvaSpecimenAction:NSASelectLanguage"
-                    _ -> fail "NauvaSpecimenAction"
-            _ -> fail "NauvaSpecimenAction"
-
-$( return [] )
-
-nauvaSpecimen :: NauvaSpecimenProps -> Element
-nauvaSpecimen = component_ nauvaSpecimenComponent
-
-nauvaSpecimenComponent :: Component NauvaSpecimenProps () NauvaSpecimenState NauvaSpecimenAction
-nauvaSpecimenComponent = createComponent $ \componentId -> Component
-    { componentId = componentId
-    , componentDisplayName = "CodeSpecimen"
-    , initialComponentState = \props -> do
-        (html, styles, _) <- elementToMarkup $ csElement props
-        pure (NauvaSpecimenState "Haskell" styles html, [], [])
-    , componentEventListeners = const []
-    , componentHooks = emptyHooks
-    , processLifecycleEvent = \() _ s -> (s, [])
-    , receiveProps = \_ s -> pure (s, [], [])
-    , update = update
-    , renderComponent = render
-    , componentSnapshot = \_ -> A.object []
-    , restoreComponent = \_ s -> Right (s, [])
-    }
-  where
-    update (NSASelectLanguage t) props s = (s { nssLang = t}, [])
-
-    onClickHandler :: FE MouseEvent NauvaSpecimenAction
-    onClickHandler = [njs| ev => {
-        return $NSASelectLanguage(ev.target.innerText)
-    }|]
-
-
-    renderCSSDeclarations :: CSSStyleDeclaration -> T.Text
-    renderCSSDeclarations = mconcat . intersperse ";" . map renderDeclaration
-      where
-        renderDeclaration (k, CSSValue v) = "\n    " <> k <> ": " <> v
-
-    cssRuleSelector :: Hash -> [Suffix] -> T.Text
-    cssRuleSelector hash suffixes = ".s" <> unHash hash <> mconcat (map unSuffix suffixes)
-
-    wrapInConditions [] t = t
-    wrapInConditions (CMedia x:xs) t = "@media " <> x <> " {" <> wrapInConditions xs t <> "\n}"
-
-    renderCSSRule :: CSSRule -> T.Text
-    renderCSSRule (CSSStyleRule hash conditions suffixes styleDeclaration) = wrapInConditions conditions $ mconcat
-        [ cssRuleSelector hash suffixes <> " {"
-        , renderCSSDeclarations styleDeclaration
-        , "\n}"
-        ]
-    renderCSSRule (CSSFontFaceRule hash styleDeclaration) = mconcat
-        [ "@font-face {"
-        , renderCSSDeclarations styleDeclaration
-        , "\n}"
-        ]
-
-    render NauvaSpecimenProps{..} NauvaSpecimenState{..} = if cspNoSource
-        then div_ [style_ rootStyle] [pageElementContainer [c]]
-        else div_ [style_ rootStyle]
-            [ pageElementContainer [c]
-            , div_ [style_ tabsStyle]
-                [ tab "Haskell"
-                , tab "HTML"
-                , tab "CSS"
-                ]
-            , case nssLang of
-                "Haskell" -> codeBlock "" s
-                "HTML" -> codeBlock "" $ T.pack $ B.renderHtml nssHtml
-                "CSS" -> codeBlock "" $ mconcat $ intersperse "\n" $
-                    nub $ map renderCSSRule (mconcat $ map unStyle nssStyles)
-                _ -> codeBlock "" "other"
-            ]
-      where
-        CodeSpecimenProps{..} = csProps
-        c = csElement
-        lang = csLang
-        s = csSource
-
-        tab t = div_
-            [ onClick_ onClickHandler
-            , style_ (if nssLang == t then activeTabStyle else tabStyle)
-            ]
-            [str_ t]
-
-        rootStyle = mkStyle $ do
-            typeface mono12Typeface
-            fontStyle "normal"
-            fontWeight "400"
-            color "rgb(51, 51, 51)"
-            display "block"
-            width "100%"
-            background "rgb(255, 255, 255)"
-            border "1px solid rgb(238, 238, 238)"
-
-        tabsStyle = mkStyle $ do
-            typeface meta14Typeface
-            fontSize "16px"
-            display flex
-            backgroundColor "rgba(180,180,180,.1)"
-            borderTop "1px solid rgb(238, 238, 238)"
-
-        tabStyle = mkStyle $ do
-            padding "12px" "20px"
-            cursor pointer
-            color "rgba(0,0,0,.7)"
-            position relative
-
-            transition "color .2s"
-
-            after $ do
-                display block
-                content "''"
-                position absolute
-                bottom "5px"
-                left "20px"
-                right "20px"
-                height "2px"
-                backgroundColor "transparent"
-
-                transition "background-color .2s, bottom .2s"
-
-            onHover $ do
-                color "rgba(0,0,0,1)"
-
-                after $ do
-                    backgroundColor "rgba(0,0,0,.7)"
-                    bottom "7px"
-
-        activeTabStyle = mkStyle $ do
-            padding "12px" "20px"
-            cursor pointer
-            color "rgba(0,0,0,1)"
-            position relative
-
-            transition "color .2s"
-
-            after $ do
-                display block
-                content "''"
-                position absolute
-                bottom "7px"
-                left "20px"
-                right "20px"
-                height "2px"
-                backgroundColor "rgba(0,0,0,.7)"
-
-                transition "background-color .2s, bottom .2s"
-
-
-
-
-typefaceSpecimen :: Text -> Typeface -> Element
-typefaceSpecimen t tf = pageElement
-    PageElementProps{pepTitle = Nothing, pepSpan = 6}
-    [div_ [style_ rootStyle]
-    [ div_ [style_ metaStyle] [str_ $ tfName tf <> " – " <> metaString]
-    , div_ [style_ previewStyle] [str_ t]
-    ]]
-  where
-    rootStyle = mkStyle $ do
-        display flex
-        flexDirection column
-
-    metaStyle = mkStyle $ do
-        typeface meta14Typeface
-        color "black"
-        marginBottom "4px"
-        color "#333"
-
-    metaString = mconcat $ intersperse ", "
-        [ unCSSValue (tfFontFamily tf)
-        , unCSSValue (tfFontWeight tf)
-        , unCSSValue (tfFontSize tf) <> "/" <> unCSSValue (tfLineHeight tf)
-        ]
-
-    previewStyle = mkStyle $ do
-        typeface tf
-        padding "20px"
-        backgroundColor "white"
-        border "1px solid #eee"
-
-typefaceSpecimen' :: Typeface -> Element
-typefaceSpecimen' = typefaceSpecimen "A very bad quack might jinx zippy fowls"
-
-
 
 
 -------------------------------------------------------------------------------
