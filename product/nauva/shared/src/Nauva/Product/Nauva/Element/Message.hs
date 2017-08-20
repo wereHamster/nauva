@@ -42,13 +42,13 @@ messageEl props = div_ [style_ rootStyle]
     ]
   where
     rootStyle :: Style
-    rootStyle = mkStyle $ do
+    rootStyle = mkStyle' "message" $ do
         display flex
         flexDirection column
         marginBottom "20px"
 
     filePathStyle :: Style
-    filePathStyle = mkStyle $ do
+    filePathStyle = mkStyle' "filePath" $ do
         typeface system14Typeface
         padding (px 8) (px 12)
         backgroundColor $ case severity props of
@@ -58,7 +58,7 @@ messageEl props = div_ [style_ rootStyle]
         overflow "hidden"
 
     messageStyle :: Style
-    messageStyle = mkStyle $ do
+    messageStyle = mkStyle' "messageText" $ do
         typeface mono12Typeface
         padding (px 12) (px 12)
         whiteSpace "pre"

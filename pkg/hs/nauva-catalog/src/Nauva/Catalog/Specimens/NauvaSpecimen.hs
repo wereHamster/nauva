@@ -96,16 +96,16 @@ nauvaSpecimenComponent = createComponent $ \componentId -> Component
       where
         renderDeclaration (k, CSSValue v) = "\n    " <> k <> ": " <> v
 
-    cssRuleSelector :: Hash -> [Suffix] -> T.Text
-    cssRuleSelector hash suffixes = ".s" <> unHash hash <> mconcat (map unSuffix suffixes)
+    cssRuleSelector :: Text -> Hash -> [Suffix] -> T.Text
+    cssRuleSelector name hash suffixes = ".s" <> (if T.null name then "" else ("-" <> name <> "-")) <> unHash hash <> mconcat (map unSuffix suffixes)
 
     wrapInConditions [] t = t
     wrapInConditions (CMedia x:xs) t = "@media " <> x <> " {" <> wrapInConditions xs t <> "\n}"
     wrapInConditions (CSupports x:xs) t = "@supports " <> x <> " {" <> wrapInConditions xs t <> "\n}"
 
     renderCSSRule :: CSSRule -> T.Text
-    renderCSSRule (CSSStyleRule hash conditions suffixes styleDeclaration) = wrapInConditions conditions $ mconcat
-        [ cssRuleSelector hash suffixes <> " {"
+    renderCSSRule (CSSStyleRule name hash conditions suffixes styleDeclaration) = wrapInConditions conditions $ mconcat
+        [ cssRuleSelector name hash suffixes <> " {"
         , renderCSSDeclarations styleDeclaration
         , "\n}"
         ]

@@ -82,13 +82,14 @@ type CSSStyleDeclaration = [CSSDeclaration]
 -- the same 'CSSRule' multiple times.
 
 data CSSRule
-    = CSSStyleRule !Hash ![Condition] ![Suffix] !CSSStyleDeclaration
+    = CSSStyleRule !Text !Hash ![Condition] ![Suffix] !CSSStyleDeclaration
     | CSSFontFaceRule !Hash !CSSStyleDeclaration
     deriving (Show)
 
 instance A.ToJSON CSSRule where
-    toJSON (CSSStyleRule hash conditions suffixes styleDeclaration) = A.toJSON
+    toJSON (CSSStyleRule name hash conditions suffixes styleDeclaration) = A.toJSON
         [ A.toJSON (1 :: Int)
+        , A.toJSON name
         , A.toJSON hash
         , A.toJSON conditions
         , A.toJSON suffixes
@@ -102,8 +103,8 @@ instance A.ToJSON CSSRule where
 
 
 cssRuleHash :: CSSRule -> Hash
-cssRuleHash (CSSStyleRule hash _ _ _) = hash
-cssRuleHash (CSSFontFaceRule hash _)  = hash
+cssRuleHash (CSSStyleRule _ hash _ _ _) = hash
+cssRuleHash (CSSFontFaceRule hash _)    = hash
 
 
 
@@ -146,7 +147,10 @@ instance A.ToJSON Style where
 
 
 mkStyle :: Writer [Statement] () -> Style
-mkStyle = Style . execWriter . writeRules . M.toList . flatten . execWriter
+mkStyle = mkStyle' ""
+
+mkStyle' :: Text -> Writer [Statement] () -> Style
+mkStyle' name = Style . execWriter . writeRules . M.toList . flatten . execWriter
   where
     -- Convert a list of statements into unique declaration blocks (unique by the
     -- context, which is the list of suffixes for now).
@@ -178,7 +182,7 @@ mkStyle = Style . execWriter . writeRules . M.toList . flatten . execWriter
                 pure ("font-family", fontFamily)
 
         let hash = cssStyleDeclarationHash styleDeclaration
-        tell [CSSStyleRule hash conditions suffixes styleDeclaration]
+        tell [CSSStyleRule name hash conditions suffixes styleDeclaration]
 
         writeRules xs
 
