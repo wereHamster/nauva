@@ -293,7 +293,7 @@ const emitRule = (rule) => {
         const text = cssRuleExText(rule);
         styleSheet.insertRule(text, styleSheet.cssRules.length);
     }
-    return 's' + hash;
+    return rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`;
 };
 const renderCSSDeclarations = (() => {
     const hyphenate = (x) => x
@@ -312,7 +312,7 @@ const cssRuleExText = (() => {
     const renderCondition = c => (c[0] == 1 ? `@media ` : `@supports `) + c[1] + ' ';
     const wrapWithCondition = (c, text) => c.length === 0 ? text : wrapWithCondition(c.slice(1), renderCondition(c[0]) + "{" + text + "}");
     const cssStyleRuleExText = (rule) => wrapWithCondition(rule.conditions, [".",
-        's' + rule.hash,
+        rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`,
         rule.suffixes.join(""),
         "{",
         renderCSSDeclarations(rule.cssDeclarations),

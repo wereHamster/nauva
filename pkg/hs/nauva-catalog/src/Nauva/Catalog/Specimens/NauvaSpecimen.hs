@@ -25,6 +25,7 @@ import           Nauva.Catalog.Theme.Typeface
 import           Nauva.Static
 import           Nauva.Catalog.Specimens.CodeSpecimen
 import           Nauva.Catalog.Elements
+import           Nauva.CSS.Renderer
 
 
 
@@ -89,31 +90,6 @@ nauvaSpecimenComponent = createComponent $ \componentId -> Component
     onClickHandler = [njs| ev => {
         return $NSASelectLanguage(ev.target.innerText)
     }|]
-
-
-    renderCSSDeclarations :: CSSStyleDeclaration -> T.Text
-    renderCSSDeclarations = mconcat . intersperse ";" . map renderDeclaration
-      where
-        renderDeclaration (k, CSSValue v) = "\n    " <> k <> ": " <> v
-
-    cssRuleSelector :: Text -> Hash -> [Suffix] -> T.Text
-    cssRuleSelector name hash suffixes = (if T.null name then ".s-" else ("." <> name <> "-")) <> unHash hash <> mconcat (map unSuffix suffixes)
-
-    wrapInConditions [] t = t
-    wrapInConditions (CMedia x:xs) t = "@media " <> x <> " {" <> wrapInConditions xs t <> "\n}"
-    wrapInConditions (CSupports x:xs) t = "@supports " <> x <> " {" <> wrapInConditions xs t <> "\n}"
-
-    renderCSSRule :: CSSRule -> T.Text
-    renderCSSRule (CSSStyleRule name hash conditions suffixes styleDeclaration) = wrapInConditions conditions $ mconcat
-        [ cssRuleSelector name hash suffixes <> " {"
-        , renderCSSDeclarations styleDeclaration
-        , "\n}"
-        ]
-    renderCSSRule (CSSFontFaceRule _hash styleDeclaration) = mconcat
-        [ "@font-face {"
-        , renderCSSDeclarations styleDeclaration
-        , "\n}"
-        ]
 
     render NauvaSpecimen{..} State{..} = if cspNoSource
         then div_ [style_ rootStyle] [pageElementContainer [c]]

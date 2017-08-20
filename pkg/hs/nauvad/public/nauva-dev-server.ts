@@ -418,7 +418,7 @@ const emitRule = (rule: any): string => {
         styleSheet.insertRule(text, styleSheet.cssRules.length);
     }
 
-    return 's' + hash;
+    return rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`;
 };
 
 const renderCSSDeclarations = (() => {
@@ -448,7 +448,7 @@ const cssRuleExText = (() => {
     const cssStyleRuleExText = (rule: any): string =>
         wrapWithCondition(rule.conditions,
             [ "."
-            , 's' + rule.hash
+            , rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`
             , rule.suffixes.join("")
             , "{"
             , renderCSSDeclarations(rule.cssDeclarations)

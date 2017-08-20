@@ -18,6 +18,7 @@ import           System.FilePath
 import           Nauva.App
 import           Nauva.Catalog
 import           Nauva.Static (elementToMarkup)
+import           Nauva.CSS.Renderer
 
 import           Nauva.Product.Nauva.Book.App (bookApp, catalogPages)
 
@@ -26,29 +27,6 @@ import qualified Text.Blaze.Html5.Attributes as A
 import           Text.Blaze.Html.Renderer.String
 
 
-
-renderCSSDeclarations :: CSSStyleDeclaration -> T.Text
-renderCSSDeclarations = mconcat . intersperse ";" . map renderDeclaration
-  where
-    renderDeclaration (k, CSSValue v) = k <> ":" <> v
-
-cssRuleSelector :: Hash -> [Suffix] -> T.Text
-cssRuleSelector hash suffixes = ".s" <> unHash hash <> mconcat (map unSuffix suffixes)
-
-wrapInConditions [] t = t
-wrapInConditions (CMedia x:xs) t = "@media " <> x <> " {" <> wrapInConditions xs t <> "}"
-
-renderCSSRule :: CSSRule -> T.Text
-renderCSSRule (CSSStyleRule hash conditions suffixes styleDeclaration) = wrapInConditions conditions $ mconcat
-    [ cssRuleSelector hash suffixes <> " {"
-    , renderCSSDeclarations styleDeclaration
-    , "}"
-    ]
-renderCSSRule (CSSFontFaceRule _ styleDeclaration) = mconcat
-    [ "@font-face {"
-    , renderCSSDeclarations styleDeclaration
-    , "}"
-    ]
 
 main :: IO ()
 main = do

@@ -32,6 +32,7 @@ import           Control.Concurrent.STM
 
 import           Nauva.Internal.Types
 import           Nauva.CSS
+import           Nauva.CSS.Renderer
 import           Nauva.DOM
 
 import           Prelude
@@ -63,7 +64,11 @@ elementToMarkup el = case el of
                 toStyle (ASTY x) = Just x
                 toStyle _ = Nothing
 
-            classes = map (("s"<>) . unHash . cssRuleHash) $ mconcat $ map unStyle styles
+            cssRuleClass' :: CSSRule -> Maybe T.Text
+            cssRuleClass' (CSSStyleRule name hash _ _ _) = Just $ cssRuleClass name hash
+            cssRuleClass' (CSSFontFaceRule _ _) = Nothing
+
+            classes = catMaybes $ map cssRuleClass' $ mconcat $ map unStyle styles
             attrs = mapMaybe toAttribute attributes
             toAttribute (AEVL _) = Nothing
             toAttribute (ASTY _) = Nothing

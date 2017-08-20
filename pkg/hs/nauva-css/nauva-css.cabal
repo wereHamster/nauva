@@ -40,6 +40,7 @@ library
   exposed-modules:
      Nauva.CSS
    , Nauva.CSS.Helpers
+   , Nauva.CSS.Renderer
    , Nauva.CSS.Terms
    , Nauva.CSS.Typeface
    , Nauva.CSS.Types

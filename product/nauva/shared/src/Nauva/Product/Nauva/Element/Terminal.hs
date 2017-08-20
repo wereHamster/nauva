@@ -30,14 +30,14 @@ data TerminalProps = TerminalProps
 terminalEl :: TerminalProps -> Element
 terminalEl props = div_ [style_ rootStyle] els
   where
-    rootStyle = mkStyle $ do
+    rootStyle = mkStyle' "terminal" $ do
         typeface mono12Typeface
         backgroundColor black
         color "rgba(255,255,255,0.95)"
         overflow "auto"
         padding "2rem"
 
-    lineStyle = mkStyle $ do
+    lineStyle = mkStyle' "line" $ do
         whiteSpace "nowrap"
         overflow "hidden"
         cssTerm "text-overflow" "ellipsis"
