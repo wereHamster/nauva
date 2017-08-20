@@ -6,11 +6,8 @@ module Nauva.NJS.TH
     ) where
 
 
-import           Data.ByteString      (ByteString)
-import qualified Data.ByteString      as BS
 import           Data.Text            (Text)
 import qualified Data.Text             as T
-import qualified Data.Text.Encoding    as T
 import           Data.Monoid
 import qualified Data.Attoparsec.Text as AP
 import           Data.Char
@@ -43,7 +40,7 @@ njsQ t = do
     pure $ foldl1 AppE
         [ VarE 'createF
         , ListE $ map (LitE . StringL . T.unpack) w
-        , ListE $ map (\(x, _) -> LitE $ StringL $ T.unpack x) $ arguments templ
+        , ListE $ map (\(x, _) -> LitE $ StringL $ T.unpack x) $ templateArguments templ
         , body
         ]
 
@@ -56,8 +53,8 @@ data Fragment
     deriving (Show, Eq)
 
 data Template = Template
-    { arguments :: [(Text, Maybe Text)]
-    , body :: [Fragment]
+    { templateArguments :: [(Text, Maybe Text)]
+    , templateBody :: [Fragment]
     }
 
 
@@ -81,18 +78,12 @@ expParser = do
     fragments <- fragmentParser
 
     pure $ Template
-        { arguments = arguments
-        , body = fragments
+        { templateArguments = arguments
+        , templateBody = fragments
         }
 
 argumentsParser :: AP.Parser [(Text, Maybe Text)]
-argumentsParser = do
-    args <- multipleArguments <|> singleArgument
-    AP.skipSpace
-    AP.string "=>"
-    AP.skipSpace
-    pure args
-
+argumentsParser = (multipleArguments <|> singleArgument) <* AP.skipSpace <* AP.string "=>" <* AP.skipSpace
   where
     arg = do
         AP.skipSpace
@@ -101,20 +92,14 @@ argumentsParser = do
         ch <- AP.peekChar'
         case ch of
             ':' -> do
-                AP.char ':'
-                AP.skipSpace
-                t <- AP.takeWhile1 isAlpha
-                AP.skipSpace
+                t <- AP.char ':' *> AP.skipSpace *> AP.takeWhile1 isAlpha <* AP.skipSpace
                 pure (n, Just t)
 
             _ -> do
                 pure (n, Nothing)
 
-    multipleArguments = do
-        AP.string "("
-        args <- arg `AP.sepBy` (AP.char ',')
-        AP.string ")"
-        pure args
+    multipleArguments =
+        AP.string "(" *> (arg `AP.sepBy` (AP.char ',')) <* AP.string ")"
 
     singleArgument = do
         text <- AP.takeWhile1 isAlpha
@@ -124,18 +109,15 @@ fragmentParser :: AP.Parser [Fragment]
 fragmentParser = normalBody <|> arrowBody
   where
     normalBody = do
-        AP.string "{"
-        fragments <- mergeStrings <$> go
+        fragments <- AP.string "{" *> (mergeStrings <$> go)
 
         -- Delete the closing '}' from the last fragment (if it's a string)
         let len = length fragments
         if len == 0
             then pure fragments
-            else do
-                let (init, last) = (take (len - 1) fragments, drop (len - 1) fragments)
-                case last of
-                    [StringF x] -> pure $ init <> [StringF (T.dropEnd 1 $ T.strip x)]
-                    _ -> pure fragments
+            else case drop (len - 1) fragments of
+                [StringF x] -> pure $ take (len - 1) fragments <> [StringF (T.dropEnd 1 $ T.strip x)]
+                _ -> pure fragments
 
 
     -- Prepend "return " so that we get a valid JS function body.
@@ -146,13 +128,11 @@ fragmentParser = normalBody <|> arrowBody
     go = ref <|> cons <|> string <|> (pure [] <* AP.endOfInput)
 
     ref = do
-        AP.string "@"
-        text <- AP.takeWhile1 isAlpha
+        text <- AP.string "@" *> AP.takeWhile1 isAlpha
         (RefF text :) <$> go
 
     cons = do
-        AP.string "$"
-        text <- AP.takeWhile1 isAlpha
+        text <- AP.string "$" *> AP.takeWhile1 isAlpha
         (ConsF text :) <$> go
 
     string = do
@@ -170,7 +150,7 @@ render (Template _ frags) = do
 
     renderFragment (RefF s) = do
         name <- lift $ do
-            n <-lookupValueName (T.unpack s)
+            n <- lookupValueName (T.unpack s)
             case n of
                 Nothing -> fail $ "renderFragment: ref not found: " <> T.unpack s
                 Just x -> pure x

@@ -47,13 +47,11 @@ library
    , blaze-html
    , bytestring
    , directory
-   , filepath
    , nauva
    , snap-blaze
    , snap-core
    , snap-server
    , stm
-   , template-haskell
    , text
    , websockets
    , websockets-snap
