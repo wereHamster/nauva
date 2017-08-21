@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Nauva.Catalog.TH
     ( catalogPage
@@ -28,6 +29,7 @@ import           Text.Markdown.Inline
 
 import           Language.Haskell.TH         hiding (Inline)
 import           Language.Haskell.TH.Quote
+import           Language.Haskell.TH.Syntax (Lift(lift))
 import           Language.Haskell.Meta.Parse (parseExp)
 
 import           Instances.TH.Lift ()
@@ -39,6 +41,95 @@ import           Nauva.Catalog.Elements
 import           Nauva.Catalog.Specimens.CodeSpecimen
 import           Nauva.Catalog.Specimens.NauvaSpecimen
 
+
+instance Lift F where
+    lift (F{..}) = do
+        fId' <- lift fId
+        fConstructors' <- lift fConstructors
+        fArguments' <- lift fArguments
+        fBody' <- lift fBody
+        pure $ AppE (AppE (AppE (AppE (ConE 'Tag) fId') fConstructors') fArguments') fBody'
+
+instance Lift FID where
+    lift (FID x) = AppE (ConE 'FID) <$> lift x
+
+instance Lift Tag where
+    lift (Tag x) = AppE (ConE 'Tag) <$> lift x
+
+instance Lift Suffix where
+    lift (Suffix x) = AppE (ConE 'Suffix) <$> lift x
+
+instance Lift Hash where
+    lift (Hash x) = AppE (ConE 'Hash) <$> lift x
+
+instance Lift CSSValue where
+    lift (CSSValue x) = AppE (ConE 'CSSValue) <$> lift x
+
+instance Lift Condition where
+    lift (CMedia x) = AppE (ConE 'CMedia) <$> lift x
+    lift (CSupports x) = AppE (ConE 'CSupports) <$> lift x
+
+instance Lift AttributeValue where
+    lift (AVBool x)   = AppE (ConE 'AVBool)   <$> lift x
+    lift (AVString x) = AppE (ConE 'AVString) <$> lift x
+    lift (AVInt x)    = AppE (ConE 'AVInt)    <$> lift x
+    lift (AVDouble x) = AppE (ConE 'AVDouble) <$> lift x
+
+instance Lift Style where
+    lift (Style x) = AppE (ConE 'Style) <$> lift x
+
+instance Lift CSSRule where
+    lift (CSSStyleRule name hash conditions suffixes styleDeclarations) = do
+        name' <- lift name
+        hash' <- lift hash
+        conditions' <- lift conditions
+        suffixes' <- lift suffixes
+        styleDeclarations' <- lift styleDeclarations
+
+        pure $ foldl1 AppE
+            [ (ConE 'CSSStyleRule)
+            , name'
+            , hash'
+            , conditions'
+            , suffixes'
+            , styleDeclarations'
+            ]
+
+    lift (CSSFontFaceRule hash styleDeclarations) = undefined
+
+instance Lift Attribute where
+    lift (AVAL t av) = do
+        t' <- lift t
+        av' <- lift av
+        pure $ AppE (AppE (ConE 'AVAL) t') av'
+
+    lift (AEVL (EventListener t f)) = do
+        t' <- lift t
+        f' <- lift f
+        pure $ AppE (ConE 'AEVL) (AppE (AppE (ConE 'EventListener) t') f')
+
+    lift (ASTY style) = do
+        style' <- lift style
+        pure $ AppE (ConE 'ASTY) style'
+
+instance Lift Element where
+    lift e = case e of
+        ENull -> pure (ConE 'ENull)
+        EText str -> (AppE (ConE 'EText)) <$> lift str
+        ENode tag attrs children -> do
+            tag' <- lift tag
+            attrs' <- lift attrs
+            children' <- lift children
+
+            pure $ foldl1 AppE
+                [ (ConE 'ENode)
+                , tag'
+                , attrs'
+                , children'
+                ]
+
+        EThunk _ _ -> error "EThunk"
+        EComponent _ _ -> error "EComponent"
 
 
 markdownBlocks :: ByteString -> [Block [Inline]]
@@ -97,108 +188,193 @@ renderBlocks isTopLevel = fmap ListE . go NoState
 renderBlock :: Bool -> Block [Inline] -> Q Exp -- Q [Element]
 renderBlock isTopLevel b = case b of
     (BlockPara is) ->
-        appE [| \x -> [pageParagraph isTopLevel $ mconcat x] |] (ListE <$> mapM renderInline is)
+        lift [pageParagraph isTopLevel $ concatMap renderInline is]
 
     (BlockHeading level is) -> case level of
-        1 -> appE [| \x -> [pageH2 $ mconcat x] |] (ListE <$> mapM renderInline is)
-        2 -> appE [| \x -> [pageH3 $ mconcat x] |] (ListE <$> mapM renderInline is)
-        3 -> appE [| \x -> [pageH4 $ mconcat x] |] (ListE <$> mapM renderInline is)
-        _ -> appE [| \x -> [pageH4 $ mconcat x] |] (ListE <$> mapM renderInline is)
+        1 -> lift [pageH2 $ concatMap renderInline is]
+        2 -> lift [pageH3 $ concatMap renderInline is]
+        3 -> lift [pageH4 $ concatMap renderInline is]
+        _ -> lift [pageH4 $ concatMap renderInline is]
 
     (BlockPlainText is) ->
-        appE [| mconcat |] (ListE <$> mapM renderInline is)
+        lift $ concatMap renderInline is
 
     (BlockQuote is) ->
         appE [| \x -> [pageBlockquote $ mconcat x] |] (ListE <$> mapM (renderBlock False) is)
 
     (BlockCode mbType str) -> case mbType of
-        Nothing -> [| [pageCodeBlock str] |]
-        Just "nauva" -> do
-            let pepDef = PageElementProps {pepTitle = Nothing, pepSpan = 6}
-            let cspDef = CodeSpecimenProps {cspPEP = pepDef, cspNoSource = False }
-            (csp, expr, str2) <- case T.splitOn "---\n" str of
-                [str1] -> case parseExp (T.unpack str1) of
-                    Left err -> do
-                        err1 <- [| div_ [str_ (T.pack err)] |]
-                        pure (cspDef, err1, str)
-                    Right expr -> pure (cspDef, expr, str1)
-
-                [rawYAML, str1] -> case decodeEither (T.encodeUtf8 rawYAML) of
-                        Left yamlErr -> do
-                            err1 <- [| div_ [str_ $ T.pack $ show yamlErr] |]
-                            pure (cspDef, err1, str1)
-                        Right csp -> case parseExp (T.unpack str1) of
+        Nothing -> lift [pageCodeBlock "" str]
+        Just tag -> case T.splitOn "|" tag of
+            [tag'] -> case tag' of
+                "code" -> lift [pageCodeBlock "" str]
+                "nauva" -> do
+                    let pepDef = PageElementProps {pepTitle = Nothing, pepSpan = 6}
+                    let cspDef = CodeSpecimenProps {cspPEP = pepDef, cspNoSource = False }
+                    (csp, expr, str2) <- case T.splitOn "---\n" str of
+                        [str1] -> case parseExp (T.unpack str1) of
                             Left err -> do
-                                err1 <- [| div_ [str_ (T.pack err)] |]
-                                pure (csp, err1, str)
-                            Right expr -> pure (csp, expr, str1)
-                _ -> do
-                    expr <- [| div_ [str_ "Unrecognized expression"] |]
-                    pure (cspDef, expr, str)
+                                err1 <- lift $ div_ [str_ (T.pack err)]
+                                pure (cspDef, err1, str)
+                            Right expr -> pure (cspDef, expr, str1)
 
-            appE [| \c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimen csp c "Haskell" str2]] |] (pure expr)
-        Just "hint" -> do
-            let blocks = markdownBlocksT str
-            children <- ListE <$> mapM (renderBlock False) blocks
-            appE [| \x -> [pageHint $ mconcat x] |] (pure children)
+                        [rawYAML, str1] -> case decodeEither (T.encodeUtf8 rawYAML) of
+                                Left yamlErr -> do
+                                    err1 <- lift $ div_ [str_ $ T.pack $ show yamlErr]
+                                    pure (cspDef, err1, str1)
+                                Right csp -> case parseExp (T.unpack str1) of
+                                    Left err -> do
+                                        err1 <- lift $ div_ [str_ (T.pack err)]
+                                        pure (csp, err1, str)
+                                    Right expr -> pure (csp, expr, str1)
+                        _ -> do
+                            expr <- lift $ div_ [str_ "Unrecognized expression"]
+                            pure (cspDef, expr, str)
 
-        Just "element" -> do
-            el <- case parseExp (T.unpack str) of
-                Left err -> [| div_ [str_ (T.pack err)] |]
-                Right expr -> pure expr
+                    appE [| \c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimen csp c "Haskell" str2]] |] (pure expr)
+                "hint" -> do
+                    let blocks = markdownBlocksT str
+                    children <- ListE <$> mapM (renderBlock False) blocks
+                    appE [| \x -> [pageHint $ mconcat x] |] (pure children)
 
-            appE [| (: []) |] (pure el)
+                "element" -> do
+                    el <- case parseExp (T.unpack str) of
+                        Left err -> lift $ div_ [str_ (T.pack err)]
+                        Right expr -> pure expr
 
-        _ -> [| [pageCodeBlock str] |]
+                    appE [| (: []) |] (pure el)
+
+                _ -> lift [pageCodeBlock "" str]
+            _ -> lift [pageCodeBlock "" str]
 
     (BlockList Ordered inlineOrBlocks) ->
         appE [| \x -> [li_ $ mconcat x] |] $ case inlineOrBlocks of
-            Left is -> ListE <$> mapM renderInline is
+            Left is -> lift $ map renderInline is
             Right bs -> ListE <$> mapM (renderBlock False) bs
 
     (BlockList Unordered inlineOrBlocks) ->
         appE [| \x -> [li_ $ mconcat x] |] $ case inlineOrBlocks of
-            Left is -> ListE <$> mapM renderInline is
+            Left is -> lift $ map renderInline is
             Right bs -> ListE <$> mapM (renderBlock False) bs
 
     (BlockHtml _) ->
-        [| [div_ [str_ "TODO: BlockHtml"]] |]
+        lift [div_ [str_ "TODO: BlockHtml"]]
 
     BlockRule ->
-        [| [hr_ []] |]
+        lift [hr_ []]
 
     (BlockReference _ _) ->
-        [| [div_ [str_ "TODO: BlockReference"]] |]
+        lift [div_ [str_ "TODO: BlockReference"]]
 
+{-}
+renderBlock' :: Bool -> Block [Inline] -> [Element]
+renderBlock' isTopLevel b = case b of
+    (BlockPara is) ->
+        (\x -> [pageParagraph isTopLevel $ mconcat x]) (mapM renderInline is)
 
-renderInline :: Inline -> Q Exp -- [Q Element]
+    (BlockHeading level is) -> case level of
+        1 -> (\x -> [pageH2 $ mconcat x]) (mapM renderInline is)
+        2 -> (\x -> [pageH3 $ mconcat x]) (mapM renderInline is)
+        3 -> (\x -> [pageH4 $ mconcat x]) (mapM renderInline is)
+        _ -> (\x -> [pageH4 $ mconcat x]) (mapM renderInline is)
+
+    (BlockPlainText is) ->
+        mconcat (mapM renderInline is)
+
+    (BlockQuote is) ->
+        (\x -> [pageBlockquote $ mconcat x]) (mapM (renderBlock' False) is)
+
+    (BlockCode mbType str) -> case mbType of
+        Nothing -> [pageCodeBlock "" str]
+        Just tag -> case T.splitOn "|" tag of
+            [tag'] -> case tag' of
+                "code" -> [pageCodeBlock "" str]
+                "nauva" ->
+                    let pepDef = PageElementProps {pepTitle = Nothing, pepSpan = 6}
+                        cspDef = CodeSpecimenProps {cspPEP = pepDef, cspNoSource = False }
+                        (csp, expr, str2) = case T.splitOn "---\n" str of
+                            [str1] -> case parseExp (T.unpack str1) of
+                                Left err ->
+                                    let err1 = div_ [str_ (T.pack err)]
+                                    in (cspDef, err1, str)
+                                Right expr -> (cspDef, expr, str1)
+
+                            [rawYAML, str1] -> case decodeEither (T.encodeUtf8 rawYAML) of
+                                    Left yamlErr -> do
+                                        let err1 = div_ [str_ $ T.pack $ show yamlErr]
+                                        in (cspDef, err1, str1)
+                                    Right csp -> case parseExp (T.unpack str1) of
+                                        Left err ->
+                                            let err1 = div_ [str_ (T.pack err)]
+                                            in (csp, err1, str)
+                                        Right expr -> (csp, expr, str1)
+                            _ ->
+                                let expr = div_ [str_ "Unrecognized expression"]
+                                in (cspDef, expr, str)
+
+                    in (\c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimen csp c "Haskell" str2]]) expr
+
+                "hint" ->
+                    let blocks = markdownBlocksT str
+                        children = mapM (renderBlock' False) blocks
+                    in (\x -> [pageHint $ mconcat x] |] (pure children)
+
+                "element" -> do
+                    (: []) $ case parseExp (T.unpack str) of
+                        Left err -> div_ [str_ (T.pack err)]
+                        Right expr -> expr
+
+                _ -> [pageCodeBlock str]
+            _ -> [pageCodeBlock str]
+
+    (BlockList Ordered inlineOrBlocks) ->
+        (\x -> [li_ $ mconcat x]) $ case inlineOrBlocks of
+            Left is -> mapM renderInline is
+            Right bs -> mapM (renderBlock' False) bs
+
+    (BlockList Unordered inlineOrBlocks) ->
+        (\x -> [li_ $ mconcat x]) $ case inlineOrBlocks of
+            Left is -> mapM renderInline is
+            Right bs -> mapM (renderBlock' False) bs
+
+    (BlockHtml _) ->
+        [div_ [str_ "TODO: BlockHtml"]]
+
+    BlockRule ->
+        [hr_ []]
+
+    (BlockReference _ _) ->
+        [div_ [str_ "TODO: BlockReference"]]
+-}
+
+renderInline :: Inline -> [Element]
 renderInline i = case i of
     (InlineText str) ->
-        [| [str_ str] |]
+        [str_ str]
 
     (InlineItalic is) ->
-        appE [| \x -> [i_ $ mconcat x] |] (ListE <$> mapM renderInline is)
+        [i_ $ concatMap renderInline is]
 
     (InlineBold is) ->
-        appE [| \x -> [strong_ $ mconcat x] |] (ListE <$> mapM renderInline is)
+        [strong_ $ concatMap renderInline is]
 
     (InlineLink url _title is) ->
-        appE [| \x -> [a_ [href_ url] (mconcat x)] |] (ListE <$> mapM renderInline is)
+        [a_ [href_ url] (concatMap renderInline is)]
 
     (InlineCode str) ->
-        [| [pageCode [str_ str]] |]
+        [pageCode [str_ str]]
 
     (InlineHtml _) ->
-        [| [str_ "TODO: InlineHtml"] |]
+        [str_ "TODO: InlineHtml"]
 
     (InlineImage url _ _) ->
-        [| [img_ [src_ url]] |]
+        [img_ [src_ url]]
 
     (InlineFootnoteRef _) ->
-        [| [str_ "TODO: InlineFootnoteRef"] |]
+        [str_ "TODO: InlineFootnoteRef"]
 
     (InlineFootnote _) ->
-        [| [str_ "TODO: InlineFootnote"] |]
+        [str_ "TODO: InlineFootnote"]
+
 
 
 catalogPage :: ByteString -> Q Exp -- Element

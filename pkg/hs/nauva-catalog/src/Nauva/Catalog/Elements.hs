@@ -126,7 +126,7 @@ pageParagraph isTopLevel = if isTopLevel
     full = mkStyle $ do
         flexBasis "100%"
         paddingLeft "16px"
-        margin "8px 0"
+        margin "8px" "0"
 
         firstChild $
             marginTop "0"
@@ -140,7 +140,7 @@ pageParagraph isTopLevel = if isTopLevel
         color "#333333"
         flexBasis "100%"
         maxWidth "64em"
-        margin "8px 0"
+        margin "8px" "0"
 
         firstChild $
             marginTop "0"
@@ -203,21 +203,17 @@ codeBlock lang s = div_ [style_ rootStyle]
         whiteSpace "pre"
         width "100%"
 
-pageCodeBlock :: Text -> Element
-pageCodeBlock s = div_ [style_ pageCodeBlockStyle]
+pageCodeBlock :: Text -> Text -> Element
+pageCodeBlock lang s = div_ [style_ pageCodeBlockStyle]
     [ section_ [style_ sectionStyle]
-        [ codeBlock "Haskell" s
+        [ codeBlock lang s
         ]
     ]
   where
     pageCodeBlockStyle = mkStyle $ do
-        display "flex"
         flexBasis "100%"
-        maxWidth "100%"
-        flexWrap "wrap"
-        margin "8px 0"
         paddingLeft "16px"
-        position "relative"
+        margin "8px" "0"
 
     sectionStyle = mkStyle $ do
         typeface mono12Typeface
@@ -243,13 +239,16 @@ pageElementContainer = div_ [style_ style]
 
 
 pageHint :: [Element] -> Element
-pageHint c = div_ [style_ pageHintContainerStyle] [div_ [style_ pageHintDefaultStyle] c]
+pageHint c = div_ [style_ pageHintContainerStyle]
+    [div_ [style_ pageHintDefaultStyle] c]
   where
     pageHintDefaultStyle = pageHintStyle "rgb(255, 180, 0)" "rgb(255, 246, 221)" "rgb(255, 239, 170)"
     -- pageHintDirectiveStyle = pageHintStyle "rgb(47, 191, 98)" "rgb(234, 250, 234)" "rgb(187, 235, 200)"
 
-    pageHintContainerStyle = mkStyle $
+    pageHintContainerStyle = mkStyle $ do
+        flexBasis "100%"
         paddingLeft "16px"
+        margin "8px" "0"
 
     pageHintStyle fg bg b = mkStyle $ do
         fontStyle "normal"
@@ -259,7 +258,7 @@ pageHint c = div_ [style_ pageHintContainerStyle] [div_ [style_ pageHintDefaultS
         borderRadius "2px"
         padding "20px"
         flexBasis "100%"
-        margin "16px 0"
+        maxWidth "64em"
 
 
 
