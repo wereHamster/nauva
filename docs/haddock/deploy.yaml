@@ -1,11 +1,13 @@
+timeout: 1200s # 20m
+
 steps:
 
 - name: 'gcr.io/$PROJECT_ID/haskell:nightly-2017-07-25'
-  args: [ '--stack-yaml=docs/haddock/stack.yaml', 'build', '--haddock' ]
+  args: [ '--system-ghc', '--stack-yaml=docs/haddock/stack.yaml', 'build', '--haddock' ]
 
 - name: 'gcr.io/$PROJECT_ID/haskell:nightly-2017-07-25'
   entrypoint: 'bash'
-  args: [ '-c', 'ln -s $(stack --stack-yaml=docs/haddock/stack.yaml path --local-doc-root) doc' ]
+  args: [ '-c', 'ln -s $(stack --system-ghc --stack-yaml=docs/haddock/stack.yaml path --local-doc-root) doc' ]
 
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['-m', 'rsync', '-r', 'doc/', 'gs://nvdocs/latest/']
