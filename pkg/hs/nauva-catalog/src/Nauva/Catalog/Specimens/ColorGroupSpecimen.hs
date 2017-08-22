@@ -17,19 +17,12 @@ module Nauva.Catalog.Specimens.ColorGroupSpecimen
 import           Data.Text          (Text)
 import qualified Data.Text          as T
 import           Data.Monoid
-import           Data.Typeable
-import           Data.Data
 import           Data.Color
 import           Data.Word
-import qualified Data.Aeson as A
 
 import           Control.Lens hiding (none)
-import           Control.Applicative
-
-import           Language.Haskell.TH.Syntax
 
 import           Nauva.View
-import           Nauva.Catalog.Theme.Typeface
 import           Nauva.Catalog.Elements
 
 

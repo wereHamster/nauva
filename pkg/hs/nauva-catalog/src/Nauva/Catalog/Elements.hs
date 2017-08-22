@@ -34,11 +34,7 @@ import qualified Data.Text          as T
 import           Data.Monoid
 import           Data.Typeable
 import           Data.Data
-import           Data.Color
-import           Data.Word
 import qualified Data.Aeson as A
-
-import           Control.Lens hiding (none)
 
 import           Language.Haskell.TH.Syntax
 
