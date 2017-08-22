@@ -44,6 +44,7 @@ library
    , Nauva.Catalog.Specimens.CodeSpecimen
    , Nauva.Catalog.Specimens.NauvaSpecimen
    , Nauva.Catalog.Specimens.TypefaceSpecimen
+   , Nauva.Catalog.Specimens.ColorGroupSpecimen
    , Nauva.Catalog.TH
    , Nauva.Catalog.Theme.Color
    , Nauva.Catalog.Theme.Typeface

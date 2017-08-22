@@ -38,6 +38,7 @@ import           Nauva.View
 import           Nauva.Catalog.Elements
 import           Nauva.Catalog.Specimens.CodeSpecimen
 import           Nauva.Catalog.Specimens.NauvaSpecimen
+import           Nauva.Catalog.Specimens.ColorGroupSpecimen
 
 
 

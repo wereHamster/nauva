@@ -15,6 +15,7 @@ import           Nauva.Catalog.Elements
 import           Nauva.Catalog.Theme.Color
 import           Nauva.Catalog.Theme.Typeface
 import           Nauva.Catalog.Specimens.TypefaceSpecimen
+import           Nauva.Catalog.Specimens.ColorGroupSpecimen
 
 import           Nauva.Product.Nauva.Element.Terminal as Terminal
 import           Nauva.Product.Nauva.Element.Message  as Message
