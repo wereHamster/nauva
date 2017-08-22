@@ -113,6 +113,7 @@ renderBlock isTopLevel b = case b of
 
     (BlockCode mbType str) -> case mbType of
         Nothing -> [| [pageCodeBlock str] |]
+
         Just "nauva" -> do
             let pepDef = PageElementProps {pepTitle = Nothing, pepSpan = 6}
             let cspDef = CodeSpecimenProps {cspPEP = pepDef, cspNoSource = False }
@@ -137,6 +138,7 @@ renderBlock isTopLevel b = case b of
                     pure (cspDef, expr, str)
 
             appE [| \c -> [pageElement (cspPEP csp) [nauvaSpecimen $ NauvaSpecimen csp c "Haskell" str2]] |] (pure expr)
+
         Just "hint" -> do
             let blocks = markdownBlocksT str
             children <- ListE <$> mapM (renderBlock False) blocks
@@ -148,6 +150,12 @@ renderBlock isTopLevel b = case b of
                 Right expr -> pure expr
 
             appE [| (: []) |] (pure el)
+
+        Just "typeface" -> do
+            n <- lookupValueName (T.unpack $ T.strip str)
+            case n of
+                Nothing -> [| [div_ [str_ "Typeface not found"]] |]
+                Just x -> appE [| \x -> [typefaceSpecimen' x] |] (pure $ VarE x)
 
         _ -> [| [pageCodeBlock str] |]
 

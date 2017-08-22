@@ -124,16 +124,17 @@ typefacesPage = [nauvaCatalogPage|
 The heading typefaces are used in the catalog for for the main page header (h1)
 and headings inside the page content (h2 – h4).
 
-```element
-typefaceSpecimen' h2Typeface
+
+```typeface
+h2Typeface
 ```
 
-```element
-typefaceSpecimen' h3Typeface
+```typeface
+h3Typeface
 ```
 
-```element
-typefaceSpecimen' h4Typeface
+```typeface
+h4Typeface
 ```
 
 # Copy
