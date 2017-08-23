@@ -99,7 +99,7 @@ instance ToJSVal Callbacks where
 newtype Bridge = Bridge { unBridge :: JSVal }
 
 
-foreign import javascript unsafe "newBridge($1, $2)" js_newBridge
+foreign import javascript unsafe "nv$app.newBridge($1, $2)" js_newBridge
     :: DOMElement -> JSVal -> IO Bridge
 
 foreign import javascript unsafe "$1.pushLocation($2)" js_pushLocation

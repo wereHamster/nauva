@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@types/lodash": "^4.14.74",
+    "@types/react": "^16.0.5",
+    "@types/react-dom": "^15.5.4",
+    "js-yaml": "^3.9.1",
+    "lodash": "^4.17.4",
+    "preact": "^8.2.1",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "rollup": "^0.48.2",
+    "rollup-plugin-commonjs": "^8.2.0",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-replace": "^1.1.1",
+    "typescript": "^2.4.2"
+  }
+}

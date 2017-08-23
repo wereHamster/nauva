@@ -67,5 +67,5 @@ eval ctx f = unsafePerformIO $ do
     pure $ Right r
 
 
-foreign import javascript unsafe "evalF($1, $2, $3)" js_evalF
+foreign import javascript unsafe "nv$app.evalF($1, $2, $3)" js_evalF
     :: JSVal -> JSVal -> JSVal -> IO JSVal
