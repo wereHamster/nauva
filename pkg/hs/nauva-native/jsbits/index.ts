@@ -284,7 +284,7 @@ const emitRule = (rule: any): string => {
         styleSheet().insertRule(text, styleSheet().cssRules.length);
     }
 
-    return 's' + hash;
+    return rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`;
 };
 
 const renderCSSDeclarations = (() => {
@@ -314,7 +314,7 @@ const cssRuleExText = (() => {
     const cssStyleRuleExText = (rule: any): string =>
         wrapWithCondition(rule.conditions,
             [ "."
-            , 's' + rule.hash
+            , rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`
             , rule.suffixes.join("")
             , "{"
             , renderCSSDeclarations(rule.cssDeclarations)
@@ -359,7 +359,7 @@ function spineToReact(clientH: ClientH, path, ctx: Context, spine, key) {
             } else if (k === 'ASTY') {
                 props.className = a.map(v => {
                     switch (v[0]) {
-                    case 1: return emitRule({ type: v[0], hash: v[1], conditions: v[2], suffixes: v[3], cssDeclarations: v[4] });
+                    case 1: return emitRule({ type: v[0], name: v[1], hash: v[2], conditions: v[3], suffixes: v[4], cssDeclarations: v[5] });
                     case 5: return emitRule({ type: v[0], hash: v[1], cssDeclarations: v[2] });
                     }
                 }).filter(x => x !== undefined).join(" ");

@@ -201,7 +201,7 @@ const emitRule = (rule) => {
         const text = cssRuleExText(rule);
         styleSheet().insertRule(text, styleSheet().cssRules.length);
     }
-    return 's' + hash;
+    return rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`;
 };
 const renderCSSDeclarations = (() => {
     const hyphenate = (x) => x
@@ -220,7 +220,7 @@ const cssRuleExText = (() => {
     const renderCondition = c => (c[0] == 1 ? `@media ` : `@supports `) + c[1] + ' ';
     const wrapWithCondition = (c, text) => c.length === 0 ? text : wrapWithCondition(c.slice(1), renderCondition(c[0]) + "{" + text + "}");
     const cssStyleRuleExText = (rule) => wrapWithCondition(rule.conditions, [".",
-        's' + rule.hash,
+        rule.name === '' ? `s-${rule.hash}` : `${rule.name}-${rule.hash}`,
         rule.suffixes.join(""),
         "{",
         renderCSSDeclarations(rule.cssDeclarations),
@@ -260,7 +260,7 @@ function spineToReact(clientH, path, ctx, spine, key) {
             else if (k === 'ASTY') {
                 props.className = a.map(v => {
                     switch (v[0]) {
-                        case 1: return emitRule({ type: v[0], hash: v[1], conditions: v[2], suffixes: v[3], cssDeclarations: v[4] });
+                        case 1: return emitRule({ type: v[0], name: v[1], hash: v[2], conditions: v[3], suffixes: v[4], cssDeclarations: v[5] });
                         case 5: return emitRule({ type: v[0], hash: v[1], cssDeclarations: v[2] });
                     }
                 }).filter(x => x !== undefined).join(" ");

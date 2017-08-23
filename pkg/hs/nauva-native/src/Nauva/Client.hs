@@ -386,8 +386,9 @@ jsCondition (CMedia    x) = jsval $ fromList [js_intJSVal 1, jsval $ textToJSStr
 jsCondition (CSupports x) = jsval $ fromList [js_intJSVal 2, jsval $ textToJSString x]
 
 jsCSSRule :: CSSRule -> JSVal
-jsCSSRule (CSSStyleRule hash conditions suffixes styleDeclaration) = jsval $ fromList
+jsCSSRule (CSSStyleRule name hash conditions suffixes styleDeclaration) = jsval $ fromList
     [ js_intJSVal 1
+    , jsval $ textToJSString name
     , jsval $ textToJSString $ unHash hash
     , jsval $ fromList $ map jsCondition conditions
     , jsval $ fromList $ map (jsval . JSS.pack . T.unpack . unSuffix) suffixes
