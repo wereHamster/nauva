@@ -47,24 +47,24 @@ data Context = Context
     }
 
 eval :: Context -> F -> Either () (JSVal, IO ())
-eval ctx f = do
-    let refs = unsafePerformIO $ do
-            o <- O.create
-            forM_ (M.toList (ctxRefs ctx)) $ \((RefKey k), val) -> do
-                O.setProp (JSS.pack $ show k) val o
-            pure $ jsval o
+eval ctx f = unsafePerformIO $ do
+    refs <- do
+        o <- O.create
+        forM_ (M.toList (ctxRefs ctx)) $ \((RefKey k), val) -> do
+            O.setProp (JSS.pack $ show k) val o
+        pure $ jsval o
 
     let args = jsval $ fromList $ ctxArgs ctx
 
-    let jsf = unsafePerformIO $ do
-            o <- O.create
-            O.setProp "constructors" (jsval $ fromList $ map (jsval . textToJSString) $ fConstructors f) o
-            O.setProp "arguments" (jsval $ fromList $ map (jsval . textToJSString) $ fArguments f) o
-            O.setProp "body" (jsval $ textToJSString $ fBody f) o
-            pure $ jsval o
+    jsf <- do
+        o <- O.create
+        O.setProp "constructors" (jsval $ fromList $ map (jsval . textToJSString) $ fConstructors f) o
+        O.setProp "arguments" (jsval $ fromList $ map (jsval . textToJSString) $ fArguments f) o
+        O.setProp "body" (jsval $ textToJSString $ fBody f) o
+        pure $ jsval o
 
-    let r = unsafePerformIO $ js_evalF refs args jsf
-    Right (r, pure ())
+    r <- js_evalF refs args jsf
+    pure $ Right (r, pure ())
 
 
 foreign import javascript unsafe "evalF($1, $2, $3)" js_evalF
