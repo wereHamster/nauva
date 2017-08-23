@@ -166,8 +166,8 @@ hookHandler accessor h path = do
                 let fs = accessor $ componentHooks component
 
                 let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty []) f of
-                        Left _ -> Nothing; Right (x, ioa) -> (\v -> (v, ioa)) <$> unsafePerformIO (fromJSVal x)) fs
-                forM rawHookActions $ \(rawValue, ioAction) -> do
+                        Left _ -> Nothing; Right x -> unsafePerformIO (fromJSVal x)) fs
+                forM rawHookActions $ \rawValue -> do
                     case A.parseEither parseValue rawValue of
                         Left e -> throwError e
                         Right value -> do
@@ -180,13 +180,12 @@ hookHandler accessor h path = do
                                 writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
                                 pure actions
 
-                            pure $ (Effect (ComponentInstance path component stateRef) actions, ioAction)
+                            pure $ Effect (ComponentInstance path component stateRef) actions
 
     case res of
         Left e -> pure $ Left e
         Right effects -> do
-            sequence_ $ map snd effects
-            executeEffects h (map fst effects)
+            executeEffects h effects
             pure $ Right ()
 
 
@@ -223,13 +222,11 @@ attachRefHandler h refsVar path jsVal = do
                     Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
                     Just (Ref _ fra _) -> case eval (Context M.empty [jsVal]) fra of
                         Left e -> Prelude.error $ show e
-                        Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
+                        Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "attachRefHandler: fromJSVal"
                             Just rawValue -> case A.parseEither parseValue rawValue of
                                 Left e -> Prelude.error $ show e
-                                Right action -> do
-                                    eff <- applyAction h action ci
-                                    pure (eff, ioAction)
+                                Right action -> applyAction h action ci
 
             _ -> throwError $ "attachRefHandler: " ++ show (unPath path)
 
@@ -237,8 +234,7 @@ attachRefHandler h refsVar path jsVal = do
         Left e -> do
             print e
             pure $ Left e
-        Right (effects, ioAction) -> do
-            ioAction
+        Right effects -> do
             executeEffects h effects
             pure $ Right ()
 
@@ -260,20 +256,17 @@ detachRefHandler h refsVar path = do
                     Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
                     Just (Ref _ _ frd) -> case eval (Context M.empty []) frd of
                         Left e -> Prelude.error $ show e
-                        Right (jsVal, ioAction) -> case unsafePerformIO (fromJSVal jsVal) of
+                        Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
                             Nothing -> Prelude.error "detachRefHandler: fromJSVal"
                             Just rawValue -> case A.parseEither parseValue rawValue of
                                 Left e -> Prelude.error $ show e
-                                Right action -> do
-                                    eff <- applyAction h action ci
-                                    pure (eff, ioAction)
+                                Right action -> applyAction h action ci
 
             _ -> throwError $ "detachRefHandler: " ++ show (unPath path)
 
     case res of
         Left e -> pure $ Left e
-        Right (effects, ioAction) -> do
-            ioAction
+        Right effects -> do
             executeEffects h effects
             pure $ Right ()
 
@@ -306,7 +299,7 @@ dispatchNodeEventHandler h refsVar path fid ev = do
         ctxRefs <- lift $ mkCtxRefs refsVar
         let ctx = (Context ctxRefs [ev])
 
-        (jsVal, ioAction) <- withExceptT (const "dispatchNodeEventHandler: eval") $
+        jsVal <- withExceptT (const "dispatchNodeEventHandler: eval") $
             ExceptT $ pure $ eval ctx fe
 
         rawValue <- case unsafePerformIO (fromJSVal jsVal) of
@@ -317,14 +310,12 @@ dispatchNodeEventHandler h refsVar path fid ev = do
             Left e  -> throwError $ "dispatchNodeEventHandler: " ++ show e
             Right x -> pure x
 
-        effect <- lift $ applyAction h action ci
-        pure (effect, ioAction)
+        lift $ applyAction h action ci
 
     case res of
         Left e -> do
             pure $ Left e
-        Right (effects, ioAction) -> do
-            ioAction
+        Right effects -> do
             executeEffects h effects
             pure $ Right ()
 
@@ -348,7 +339,7 @@ dispatchComponentEventHandler h refsVar path fid ev = do
             Nothing -> throwError "dispatchComponentEventHandler: no listener"
             Just x  -> pure x
 
-        (jsVal, ioAction) <- withExceptT (const "dispatchComponentEventHandler: eval") $
+        jsVal <- withExceptT (const "dispatchComponentEventHandler: eval") $
             ExceptT $ pure $ eval ctx fe
 
         rawValue <- case unsafePerformIO (fromJSVal jsVal) of
@@ -359,13 +350,11 @@ dispatchComponentEventHandler h refsVar path fid ev = do
             Left e  -> throwError $ "dispatchComponentEventHandler: " ++ show e
             Right x -> pure x
 
-        effect <- lift $ applyAction h action ci
-        pure (effect, ioAction)
+        lift $ applyAction h action ci
 
     case res of
         Left e -> pure $ Left e
-        Right (effects, ioAction) -> do
-            ioAction
+        Right effects -> do
             executeEffects h effects
             pure $ Right ()
 

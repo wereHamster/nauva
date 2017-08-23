@@ -46,7 +46,7 @@ data Context = Context
     , ctxArgs :: [JSVal]
     }
 
-eval :: Context -> F -> Either () (JSVal, IO ())
+eval :: Context -> F -> Either () JSVal
 eval ctx f = unsafePerformIO $ do
     refs <- do
         o <- O.create
@@ -64,7 +64,7 @@ eval ctx f = unsafePerformIO $ do
         pure $ jsval o
 
     r <- js_evalF refs args jsf
-    pure $ Right (r, pure ())
+    pure $ Right r
 
 
 foreign import javascript unsafe "evalF($1, $2, $3)" js_evalF
