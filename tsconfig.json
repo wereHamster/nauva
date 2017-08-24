@@ -3,7 +3,6 @@
     "compilerOptions": {
         "target": "es6",
         "module": "es6",
-        "watch": true,
         "outDir": "pkg/js/build/js"
     },
     "include": [
