@@ -40,7 +40,6 @@ library
   exposed-modules:
      Nauva.Client
    , Nauva.Native.Bridge
-   , Nauva.NJS.Eval
 
   build-depends:
      base >= 4.7 && < 5

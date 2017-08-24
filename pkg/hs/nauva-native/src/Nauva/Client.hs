@@ -7,16 +7,9 @@ module Nauva.Client
     ) where
 
 
-import           Data.Default
-import           Data.Text               (Text)
 import qualified Data.Text               as T
-import qualified Data.Text.Encoding      as T
-import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Aeson              as A
 import qualified Data.Aeson.Types        as A
-import           Data.Map                (Map)
-import qualified Data.Map                as M
-import qualified Data.ByteString.Lazy    as LBS
 import           Data.Monoid
 import           Data.Maybe
 
@@ -24,7 +17,6 @@ import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.Except
-import           Control.Monad.Writer.Lazy
 
 import           System.IO.Unsafe
 
@@ -32,26 +24,16 @@ import           Nauva.App
 import           Nauva.Handle
 import           Nauva.Internal.Types
 import           Nauva.View
-import           Nauva.NJS.Eval
-
-import           Nauva.Service.Head
-import           Nauva.Service.Router
 
 import           Nauva.Native.Bridge
 
 import           GHCJS.Types
 import           GHCJS.Marshal
-import           GHCJS.Foreign
-import           GHCJS.Foreign.Callback
 import           Data.JSString.Text
 import qualified Data.JSString              as JSS
 
 import qualified JavaScript.Object          as O
-import qualified JavaScript.Object.Internal as O
 import           JavaScript.Array.Internal  (fromList)
-
-import           Unsafe.Coerce
-import           Debug.Trace
 
 
 
@@ -99,15 +81,14 @@ runClient app = do
     nauvaH <- newHandle
     routerH <- newRouterH nauvaH
 
-    refsVar <- newTVarIO (M.empty :: Map (ComponentId, RefKey) JSVal)
     bridge <- newBridge appEl $ Impl
         { sendLocationImpl = \path -> void $ hPush routerH path
-        , componentEventImpl = \path fid val -> void $ dispatchComponentEventHandler nauvaH refsVar path fid val
-        , nodeEventImpl = \path fid val -> void $ dispatchNodeEventHandler nauvaH refsVar path fid val
-        , attachRefImpl = \path val -> void $ attachRefHandler nauvaH refsVar path val
-        , detachRefImpl = \path -> void $ detachRefHandler nauvaH refsVar path
-        , componentDidMountImpl = \path -> void $ componentDidMountHandler nauvaH path
-        , componentWillUnmountImpl = \path -> void $ componentWillUnmountHandler nauvaH path
+        , componentEventImpl = \path val -> void $ dispatchComponentEventHandler nauvaH path val
+        , nodeEventImpl = \path val -> void $ dispatchNodeEventHandler nauvaH path val
+        , attachRefImpl = \path val -> void $ attachRefHandler nauvaH path val
+        , detachRefImpl = \path val -> void $ detachRefHandler nauvaH path val
+        , componentDidMountImpl = \path vals -> void $ componentDidMountHandler nauvaH path vals
+        , componentWillUnmountImpl = \path vals -> void $ componentWillUnmountHandler nauvaH path vals
         }
 
     headH <- newHeadH nauvaH bridge
@@ -155,18 +136,16 @@ runClient app = do
 foreign import javascript unsafe "console.log($1)" js_log :: JSVal -> IO ()
 
 
-hookHandler :: (forall h. Hooks h -> [F]) -> Nauva.Handle.Handle -> Path -> IO (Either String ())
-hookHandler accessor h path = do
+hookHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO (Either String ())
+hookHandler h path vals = do
     res <- atomically $ runExceptT $ do
         (mbSCI, inst) <- contextForPath h path
         case mbSCI of
             Nothing -> throwError $ "No Component at path " ++ show (unPath path)
             Just (SomeComponentInstance (ComponentInstance _ component stateRef)) -> do
                 state <- lift $ readTMVar stateRef
-                let fs = accessor $ componentHooks component
 
-                let rawHookActions = catMaybes $ map (\f -> case eval (Context M.empty []) f of
-                        Left _ -> Nothing; Right x -> unsafePerformIO (fromJSVal x)) fs
+                let rawHookActions = fromMaybe [] (unsafePerformIO (fromJSVal vals)) :: [A.Value]
                 forM rawHookActions $ \rawValue -> do
                     case A.parseEither parseValue rawValue of
                         Left e -> throwError e
@@ -189,174 +168,95 @@ hookHandler accessor h path = do
             pure $ Right ()
 
 
-componentDidMountHandler :: Nauva.Handle.Handle -> Path -> IO (Either String ())
-componentDidMountHandler = hookHandler componentDidMount
+componentDidMountHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO (Either String ())
+componentDidMountHandler = hookHandler
 
-componentWillUnmountHandler :: Nauva.Handle.Handle -> Path -> IO (Either String ())
-componentWillUnmountHandler = hookHandler componentWillUnmount
+componentWillUnmountHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO (Either String ())
+componentWillUnmountHandler = hookHandler
 
+attachRefHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
+attachRefHandler h path jsVal = do
+    res <- runExceptT $ do
+        rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
 
-refFromAttributes :: [Attribute] -> Maybe Ref
-refFromAttributes attrs = case catMaybes (map unRef attrs) of
-    ref:_ -> Just ref
-    _     -> Nothing
-  where
-    unRef (AREF x) = Just x
-    unRef _        = Nothing
+        effects <- ExceptT $ atomically $ runExceptT $ do
+            (mbSCI, _) <- contextForPath h path
+            case mbSCI of
+                Nothing -> throwError $ show (unPath path)
+                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
+                    Left e -> throwError $ "parseEither: " <> show e
+                    Right action -> lift $ applyAction h action ci
 
-
-attachRefHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, RefKey) JSVal) -> Path -> JSVal -> IO (Either String ())
-attachRefHandler h refsVar path jsVal = do
-    res <- atomically $ runExceptT $ do
-        (mbSCI, inst) <- contextForPath h path
-        case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ _ attrs _) -> do
-                let mbRef = refFromAttributes attrs
-                let mbRefKey = mbRef >>= \(Ref mbRefKey _ _) -> mbRefKey
-                case mbRefKey of
-                    Nothing -> pure ()
-                    Just refKey -> lift $ do
-                        modifyTVar refsVar $ M.insert (componentId component, refKey) jsVal
-
-                lift $ case mbRef of
-                    Nothing -> Prelude.error "attachRefHandler: no ref on node?!?"
-                    Just (Ref _ fra _) -> case eval (Context M.empty [jsVal]) fra of
-                        Left e -> Prelude.error $ show e
-                        Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
-                            Nothing -> Prelude.error "attachRefHandler: fromJSVal"
-                            Just rawValue -> case A.parseEither parseValue rawValue of
-                                Left e -> Prelude.error $ show e
-                                Right action -> applyAction h action ci
-
-            _ -> throwError $ "attachRefHandler: " ++ show (unPath path)
+        lift $ executeEffects h effects
 
     case res of
-        Left e -> do
-            print e
-            pure $ Left e
-        Right effects -> do
-            executeEffects h effects
-            pure $ Right ()
+        Left e -> putStrLn $ "attachRefHandler: " <> e
+        Right () -> pure ()
 
 
-detachRefHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, RefKey) JSVal) -> Path -> IO (Either String ())
-detachRefHandler h refsVar path = do
-    res <- atomically $ runExceptT $ do
-        (mbSCI, inst) <- contextForPath h path
-        case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)), INode _ _ attrs _) -> do
-                let mbRef = refFromAttributes attrs
-                let mbRefKey = mbRef >>= \(Ref mbRefKey _ _) -> mbRefKey
-                case mbRefKey of
-                    Nothing -> pure ()
-                    Just refKey -> lift $ do
-                        modifyTVar refsVar $ M.delete (componentId component, refKey)
+detachRefHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
+detachRefHandler h path jsVal = do
+    res <- runExceptT $ do
+        rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
 
-                lift $ case mbRef of
-                    Nothing -> Prelude.error "detachRefHandler: no ref on node?!?"
-                    Just (Ref _ _ frd) -> case eval (Context M.empty []) frd of
-                        Left e -> Prelude.error $ show e
-                        Right jsVal -> case unsafePerformIO (fromJSVal jsVal) of
-                            Nothing -> Prelude.error "detachRefHandler: fromJSVal"
-                            Just rawValue -> case A.parseEither parseValue rawValue of
-                                Left e -> Prelude.error $ show e
-                                Right action -> applyAction h action ci
+        effects <- ExceptT $ atomically $ runExceptT $ do
+            (mbSCI, _) <- contextForPath h path
+            case mbSCI of
+                Nothing -> throwError $ show (unPath path)
+                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
+                    Left e -> throwError $ "parseEither: " <> show e
+                    Right action -> lift $ applyAction h action ci
 
-            _ -> throwError $ "detachRefHandler: " ++ show (unPath path)
+        lift $ executeEffects h effects
 
     case res of
-        Left e -> pure $ Left e
-        Right effects -> do
-            executeEffects h effects
-            pure $ Right ()
+        Left e -> putStrLn $ "detachRefHandler: " <> e
+        Right () -> pure ()
 
 
-mkCtxRefs :: TVar (Map (ComponentId, RefKey) JSVal) -> STM (Map RefKey JSVal)
-mkCtxRefs refsVar = do
-    x <- readTVar refsVar
-    pure $ M.fromList $ map (\((_,k),v) -> (k,v)) $ M.toList x
+dispatchNodeEventHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
+dispatchNodeEventHandler h path jsVal = do
+    res <- runExceptT $ do
+        rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
 
-dispatchNodeEventHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, RefKey) JSVal) -> Path -> FID -> JSVal -> IO (Either String ())
-dispatchNodeEventHandler h refsVar path fid ev = do
-    res <- atomically $ runExceptT $ do
-        -- Find the correct context (ComponentInstance) to dispatch the event to. The actual target
-        -- must be a 'INode', from which we need the attributes (so we know which NJS experession
-        -- to evaluate).
-        (mbSCI, inst) <- contextForPath h path
-        (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef), attrs) <- do
-            case (mbSCI, inst) of
-                (Just sci, INode _ _ attrs _) -> pure (sci, attrs)
-                _                             -> throwError $ "dispatchNodeEventHandler: " ++ show (unPath path)
+        effects <- ExceptT $ atomically $ runExceptT $ do
+            (mbSCI, _) <- contextForPath h path
+            case mbSCI of
+                Nothing -> throwError $ show (unPath path)
+                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
+                    Left e -> throwError $ "parseEither: " <> show e
+                    Right action -> lift $ applyAction h action ci
 
-        -- Find the correct 'EventListener'.
-        --
-        -- FIXME: We do this by FID, which isn't strictly correct. We should be using
-        -- the event name (or better, both event name and FID).
-        (EventListener _ fe) <- case lookupEventListener fid attrs of
-            Nothing -> throwError $ "dispatchNodeEventHandler: no listener"
-            Just el -> pure el
-
-        ctxRefs <- lift $ mkCtxRefs refsVar
-        let ctx = (Context ctxRefs [ev])
-
-        jsVal <- withExceptT (const "dispatchNodeEventHandler: eval") $
-            ExceptT $ pure $ eval ctx fe
-
-        rawValue <- case unsafePerformIO (fromJSVal jsVal) of
-            Nothing -> throwError "dispatchNodeEventHandler: fromJSVal"
-            Just x  -> pure x
-
-        action <- case A.parseEither parseValue rawValue of
-            Left e  -> throwError $ "dispatchNodeEventHandler: " ++ show e
-            Right x -> pure x
-
-        lift $ applyAction h action ci
+        lift $ executeEffects h effects
 
     case res of
-        Left e -> do
-            pure $ Left e
-        Right effects -> do
-            executeEffects h effects
-            pure $ Right ()
+        Left e -> putStrLn $ "dispatchNodeEventHandler: " <> e
+        Right () -> pure ()
 
 
+dispatchComponentEventHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
+dispatchComponentEventHandler h path jsVal = do
+    res <- runExceptT $ do
+        rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
 
-dispatchComponentEventHandler :: Nauva.Handle.Handle -> TVar (Map (ComponentId, RefKey) JSVal) -> Path -> FID -> JSVal -> IO (Either String ())
-dispatchComponentEventHandler h refsVar path fid ev = do
-    res <- atomically $ runExceptT $ do
-        (mbSCI, _) <- contextForPath h path
+        effects <- ExceptT $ atomically $ runExceptT $ do
+            (mbSCI, _) <- contextForPath h path
+            case mbSCI of
+                Nothing -> throwError $ show (unPath path)
+                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
+                    Left e -> throwError $ "parseEither: " <> show e
+                    Right action -> lift $ applyAction h action ci
 
-        (SomeComponentInstance ci@(ComponentInstance ciPath component stateRef)) <- case mbSCI of
-            Nothing -> throwError $ "dispatchComponentEventHandler: " ++ show (unPath path)
-            Just x  -> pure x
-
-        ctxRefs <- lift $ mkCtxRefs refsVar
-        let ctx = (Context ctxRefs [ev])
-
-        state <- lift $ readTMVar stateRef
-
-        (EventListener _ fe) <- case lookupComponentEventListener fid component (componentState state) of
-            Nothing -> throwError "dispatchComponentEventHandler: no listener"
-            Just x  -> pure x
-
-        jsVal <- withExceptT (const "dispatchComponentEventHandler: eval") $
-            ExceptT $ pure $ eval ctx fe
-
-        rawValue <- case unsafePerformIO (fromJSVal jsVal) of
-            Nothing -> throwError "dispatchComponentEventHandler: fromJSVal"
-            Just x  -> pure x
-
-        action <- case A.parseEither parseValue rawValue of
-            Left e  -> throwError $ "dispatchComponentEventHandler: " ++ show e
-            Right x -> pure x
-
-        lift $ applyAction h action ci
+        lift $ executeEffects h effects
 
     case res of
-        Left e -> pure $ Left e
-        Right effects -> do
-            executeEffects h effects
-            pure $ Right ()
+        Left e -> putStrLn $ "dispatchComponentEventHandler: " <> e
+        Right () -> pure ()
+
+
+
+
+
 
 foreign import javascript unsafe "$r = $1"
     js_intJSVal :: Int -> JSVal
@@ -436,6 +336,7 @@ instanceToJSVal = go []
                     AVAL an (AVBool b)        -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, if b then js_true else js_false]
                     AVAL an (AVString s)      -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, jsval $ textToJSString s]
                     AVAL an (AVInt i)         -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, js_intJSVal i]
+                    AVAL an (AVDouble d)      -> jsval $ fromList [jsval $ textToJSString "AVAL", jsval $ textToJSString an, js_doubleJSVal d]
 
                     AEVL (EventListener n f)  -> jsval $ fromList
                         [ jsval $ textToJSString "AEVL"
@@ -484,8 +385,9 @@ instanceToJSVal = go []
                 o <- O.create
 
                 hooks <- O.create
-                O.setProp "componentDidMount" (jsval $ fromList []) hooks
-                O.setProp "componentWillUnmount" (jsval $ fromList []) hooks
+
+                O.setProp "componentDidMount" (jsval $ fromList $ map fToJSVal (componentDidMount (componentHooks component))) hooks
+                O.setProp "componentWillUnmount" (jsval $ fromList $ map fToJSVal (componentWillUnmount (componentHooks component))) hooks
 
                 O.setProp "type" (jsval ("Component" :: JSString)) o
                 O.setProp "id" (js_intJSVal $ unComponentId $ componentId component) o

@@ -32,12 +32,11 @@ import           GHCJS.Marshal
 import           GHCJS.Foreign.Callback
 
 import qualified JavaScript.Object          as O
-import qualified JavaScript.Object.Internal as O
 
 import           Nauva.Internal.Types
-import           Nauva.NJS
 
 import           Unsafe.Coerce
+
 
 
 -- A wrapper around a pointer to a native DOM element.
@@ -53,12 +52,12 @@ getElementById = js_getElementById
 
 data Impl = Impl
     { sendLocationImpl :: Text -> IO ()
-    , componentEventImpl :: Path -> FID -> JSVal -> IO ()
-    , nodeEventImpl :: Path -> FID -> JSVal -> IO ()
+    , componentEventImpl :: Path -> JSVal -> IO ()
+    , nodeEventImpl :: Path -> JSVal -> IO ()
     , attachRefImpl :: Path -> JSVal -> IO ()
-    , detachRefImpl :: Path -> IO ()
-    , componentDidMountImpl :: Path -> IO ()
-    , componentWillUnmountImpl :: Path -> IO ()
+    , detachRefImpl :: Path -> JSVal -> IO ()
+    , componentDidMountImpl :: Path -> JSVal -> IO ()
+    , componentWillUnmountImpl :: Path -> JSVal -> IO ()
     }
 
 
@@ -69,12 +68,12 @@ data Impl = Impl
 
 data Callbacks = Callbacks
     { sendLocationCallback :: Callback (JSVal -> IO ())
-    , componentEventCallback :: Callback (JSVal -> JSVal -> JSVal -> IO ())
-    , nodeEventCallback :: Callback (JSVal -> JSVal -> JSVal -> IO ())
+    , componentEventCallback :: Callback (JSVal -> JSVal -> IO ())
+    , nodeEventCallback :: Callback (JSVal -> JSVal -> IO ())
     , attachRefCallback :: Callback (JSVal -> JSVal -> IO ())
-    , detachRefCallback :: Callback (JSVal -> IO ())
-    , componentDidMountCallback :: Callback (JSVal -> IO ())
-    , componentWillUnmountCallback :: Callback (JSVal -> IO ())
+    , detachRefCallback :: Callback (JSVal -> JSVal -> IO ())
+    , componentDidMountCallback :: Callback (JSVal -> JSVal -> IO ())
+    , componentWillUnmountCallback :: Callback (JSVal -> JSVal -> IO ())
     }
 
 instance ToJSVal Callbacks where
@@ -143,31 +142,29 @@ newBridge el impl = do
         path <- fromJSValUnchecked vPath
         sendLocationImpl impl path
 
-    componentEventCallback <- syncCallback3 ContinueAsync $ \vPath vFID vEvent -> do
+    componentEventCallback <- syncCallback2 ContinueAsync $ \vPath vEvent -> do
         path <- fromJSValUnchecked vPath
-        fid <- FID <$> fromJSValUnchecked vFID
-        componentEventImpl impl path fid vEvent
+        componentEventImpl impl path vEvent
 
-    nodeEventCallback <- syncCallback3 ContinueAsync $ \vPath vFID vEvent -> do
+    nodeEventCallback <- syncCallback2 ContinueAsync $ \vPath vEvent -> do
         path <- fromJSValUnchecked vPath
-        fid <- FID <$> fromJSValUnchecked vFID
-        nodeEventImpl impl path fid vEvent
+        nodeEventImpl impl path vEvent
 
     attachRefCallback <- syncCallback2 ContinueAsync $ \vPath vRef -> do
         path <- fromJSValUnchecked vPath
         attachRefImpl impl path vRef
 
-    detachRefCallback <- syncCallback1 ContinueAsync $ \vPath -> do
+    detachRefCallback <- syncCallback2 ContinueAsync $ \vPath vRef -> do
         path <- fromJSValUnchecked vPath
-        detachRefImpl impl path
+        detachRefImpl impl path vRef
 
-    componentDidMountCallback <- syncCallback1 ContinueAsync $ \vPath -> do
+    componentDidMountCallback <- syncCallback2 ContinueAsync $ \vPath vals -> do
         path <- fromJSValUnchecked vPath
-        componentDidMountImpl impl path
+        componentDidMountImpl impl path vals
 
-    componentWillUnmountCallback <- syncCallback1 ContinueAsync $ \vPath -> do
+    componentWillUnmountCallback <- syncCallback2 ContinueAsync $ \vPath vals -> do
         path <- fromJSValUnchecked vPath
-        componentWillUnmountImpl impl path
+        componentWillUnmountImpl impl path vals
 
 
     callbacks <- toJSVal $ Callbacks

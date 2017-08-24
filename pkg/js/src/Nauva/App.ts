@@ -10,6 +10,7 @@ import {emitRule} from './CSS'
 type ComponentId = number
 
 class Context {
+    refs: { [id: string]: any } = {}
     fn: { [id: string]: { [path: string]: any } } = {}
 }
 
@@ -80,6 +81,11 @@ export class AppH {
     }
 }
 
+const compileF = (o) => {
+    const f = new Function('nv$ref', ...o.constructors.map(x => "nv$" + x), ...o.arguments, o.body)
+    const constructorFunctions = o.constructors.map(x => (...args) => ([x, ...args]))
+    return (refs, ...args) => f(k => refs[k], ...constructorFunctions, ...args)
+}
 
 function spineToReact(appH: AppH, path, ctx: Context, spine, key) {
     if (spine === null) {
@@ -94,10 +100,12 @@ function spineToReact(appH: AppH, path, ctx: Context, spine, key) {
 
         const props: any = { key }
 
-        const installEventListener = (name, f) => {
-            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, f.id, () => {
+        const installEventListener = (name, o) => {
+            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, o.id, () => {
+                const f = compileF(o)
                 return ev => {
-                    appH.dispatchNodeEvent(path, f.id, ev);
+                    const v = f(ctx.refs, ev)
+                    appH.dispatchNodeEvent(path, v);
                 };
             });
         };
@@ -116,11 +124,14 @@ function spineToReact(appH: AppH, path, ctx: Context, spine, key) {
                 }).filter(x => x !== undefined).join(" ");
             } else if (k === 'AREF') {
                 props.ref = getFn(ctx, path, 'ref', () => {
+                    const attachF = compileF(a.attach)
+                    const detachF = compileF(a.detach)
                     return ref => {
+                        ctx.refs[a.key] = ref
                         if (ref === null) {
-                            appH.detachRef(path);
+                            appH.detachRef(path, detachF(ctx.refs));
                         } else {
-                            appH.attachRef(path, ref);
+                            appH.attachRef(path, attachF(ctx.refs, ref));
                         }
                     };
                 });
@@ -165,14 +176,20 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
             }
 
             componentDidMount() {
-                const {appH, path, spine: {eventListeners}} = this.props;
+                const {appH, path, spine: {eventListeners, hooks: {componentDidMount}}} = this.props;
                 appH.components.set(path.join('.'), this);
-                appH.componentDidMount(path);
 
-                eventListeners.forEach(([name, f]) => {
-                    window.addEventListener(name, getFn(this.ctx, path, f.id, () => {
+                const vals = componentDidMount.map(o => getFn(this.ctx, path, o.id, () => {
+                    const f = compileF(o)
+                    return () => f(this.ctx.refs)
+                })())
+                appH.componentDidMount(path, vals);
+
+                eventListeners.forEach(([name, o]) => {
+                    window.addEventListener(name, getFn(this.ctx, path, o.id, () => {
+                        const f = compileF(o)
                         return ev => {
-                            appH.dispatchComponentEvent(path, f.id, ev);
+                            appH.dispatchComponentEvent(path, f(this.ctx.refs, ev));
                         };
                     }));
                 })
@@ -183,8 +200,13 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
             }
 
             componentWillUnmount() {
-                const {appH, path, spine: {eventListeners}} = this.props;
-                appH.componentWillUnmount(path);
+                const {appH, path, spine: {eventListeners, hooks: {componentWillUnmount}}} = this.props;
+
+                const vals = componentWillUnmount.map(o => getFn(this.ctx, path, o.id, () => {
+                    const f = compileF(o)
+                    return () => f(this.ctx.refs)
+                })())
+                appH.componentWillUnmount(path, vals);
 
                 eventListeners.forEach(([name, f]) => {
                     window.removeEventListener(name, getFn(this.ctx, path, f.id, () => {
@@ -196,7 +218,7 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
             }
 
             render() {
-                const {appH, path, key} = this.props
+                const {appH, path} = this.props
                 const {spine} = this.state
                 return spineToReact(appH, path, this.ctx, spine.spine, undefined) as JSX.Element
             }
