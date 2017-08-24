@@ -21133,10 +21133,10 @@ function spineToReact(appH, path, ctx, spine, key) {
     else if (spine.type === 'Node') {
         const children = spine.children.map(([index, child]) => spineToReact(appH, [].concat(path, index), ctx, child, index));
         const props = { key };
-        const installEventListener = (fid, name) => {
-            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
+        const installEventListener = (name, f) => {
+            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, f.id, () => {
                 return ev => {
-                    appH.dispatchNodeEvent(path, fid, ev);
+                    appH.dispatchNodeEvent(path, f.id, ev);
                 };
             });
         };
@@ -21197,10 +21197,10 @@ function getComponent(appH, componentId, displayName) {
                 const { appH, path, spine: { eventListeners } } = this.props;
                 appH.components.set(path.join('.'), this);
                 appH.componentDidMount(path);
-                eventListeners.forEach(([fid, name]) => {
-                    window.addEventListener(name, getFn(this.ctx, path, fid, () => {
+                eventListeners.forEach(([name, f]) => {
+                    window.addEventListener(name, getFn(this.ctx, path, f.id, () => {
                         return ev => {
-                            appH.dispatchComponentEvent(path, fid, ev);
+                            appH.dispatchComponentEvent(path, f.id, ev);
                         };
                     }));
                 });
@@ -21211,8 +21211,8 @@ function getComponent(appH, componentId, displayName) {
             componentWillUnmount() {
                 const { appH, path, spine: { eventListeners } } = this.props;
                 appH.componentWillUnmount(path);
-                eventListeners.forEach(([fid, name]) => {
-                    window.removeEventListener(name, getFn(this.ctx, path, fid, () => {
+                eventListeners.forEach(([name, f]) => {
+                    window.removeEventListener(name, getFn(this.ctx, path, f.id, () => {
                         return () => undefined;
                     }));
                 });

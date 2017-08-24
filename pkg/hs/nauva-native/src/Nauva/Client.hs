@@ -439,8 +439,8 @@ instanceToJSVal = go []
 
                     AEVL (EventListener n f)  -> jsval $ fromList
                         [ jsval $ textToJSString "AEVL"
-                        , jsval $ textToJSString $ unFID $ fId f
                         , jsval $ textToJSString n
+                        , fToJSVal f
                         ]
 
                     ASTY style                -> jsval $ fromList
@@ -455,8 +455,8 @@ instanceToJSVal = go []
                             Nothing -> pure ()
                             Just (RefKey k) -> O.setProp "key" (js_intJSVal $ k) o
 
-                        O.setProp "attach" (jsval $ textToJSString $ unFID $ fId fra) o
-                        O.setProp "detach" (jsval $ textToJSString $ unFID $ fId frd) o
+                        O.setProp "attach" (fToJSVal fra) o
+                        O.setProp "detach" (fToJSVal frd) o
 
                         pure $ jsval $ fromList [jsval $ textToJSString "AREF", jsval o]
 
@@ -476,8 +476,8 @@ instanceToJSVal = go []
 
             eventListeners' <- pure $ jsval $ fromList $ flip map (componentEventListeners component (componentState state)) $ \el -> case el of
                 (EventListener n f) -> jsval $ fromList
-                    [ jsval $ textToJSString $ unFID $ fId f
-                    , jsval $ textToJSString n
+                    [ jsval $ textToJSString n
+                    , fToJSVal f
                     ]
 
             pure $ unsafePerformIO $ do

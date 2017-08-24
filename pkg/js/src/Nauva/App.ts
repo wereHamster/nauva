@@ -94,10 +94,10 @@ function spineToReact(appH: AppH, path, ctx: Context, spine, key) {
 
         const props: any = { key }
 
-        const installEventListener = (fid, name) => {
-            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, fid, () => {
+        const installEventListener = (name, f) => {
+            props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, f.id, () => {
                 return ev => {
-                    appH.dispatchNodeEvent(path, fid, ev);
+                    appH.dispatchNodeEvent(path, f.id, ev);
                 };
             });
         };
@@ -169,10 +169,10 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
                 appH.components.set(path.join('.'), this);
                 appH.componentDidMount(path);
 
-                eventListeners.forEach(([fid, name]) => {
-                    window.addEventListener(name, getFn(this.ctx, path, fid, () => {
+                eventListeners.forEach(([name, f]) => {
+                    window.addEventListener(name, getFn(this.ctx, path, f.id, () => {
                         return ev => {
-                            appH.dispatchComponentEvent(path, fid, ev);
+                            appH.dispatchComponentEvent(path, f.id, ev);
                         };
                     }));
                 })
@@ -186,8 +186,8 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
                 const {appH, path, spine: {eventListeners}} = this.props;
                 appH.componentWillUnmount(path);
 
-                eventListeners.forEach(([fid, name]) => {
-                    window.removeEventListener(name, getFn(this.ctx, path, fid, () => {
+                eventListeners.forEach(([name, f]) => {
+                    window.removeEventListener(name, getFn(this.ctx, path, f.id, () => {
                         return () => undefined;
                     }));
                 });
@@ -198,7 +198,7 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
             render() {
                 const {appH, path, key} = this.props
                 const {spine} = this.state
-                return spineToReact(appH, path, this.ctx, spine.spine, key) as JSX.Element
+                return spineToReact(appH, path, this.ctx, spine.spine, undefined) as JSX.Element
             }
         };
 
