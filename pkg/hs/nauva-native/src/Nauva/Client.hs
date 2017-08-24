@@ -401,6 +401,14 @@ jsCSSRule (CSSFontFaceRule hash styleDeclaration) = jsval $ fromList
         pure $ jsval o
     ]
 
+fToJSVal :: F -> JSVal
+fToJSVal f = unsafePerformIO $ do
+    o <- O.create
+    O.setProp "id" (jsval $ textToJSString $ unFID $ fId f) o
+    O.setProp "constructors" (jsval $ fromList $ map (jsval . textToJSString) $ fConstructors f) o
+    O.setProp "arguments" (jsval $ fromList $ map (jsval . textToJSString) $ fArguments f) o
+    O.setProp "body" (jsval $ textToJSString $ fBody f) o
+    pure $ jsval o
 
 instanceToJSVal :: Instance -> STM JSVal
 instanceToJSVal = go []
