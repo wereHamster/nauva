@@ -95,8 +95,8 @@ function spineToReact(appH: AppH, path, ctx: Context, spine, key) {
         return spine
 
     } else if (spine.type === 'Node') {
-        const children = spine.children.map(([index, child]) =>
-            spineToReact(appH, [].concat(path, index), ctx, child, index))
+        const children = spine.children.map(([key, child]) =>
+            spineToReact(appH, [].concat(path, key), ctx, child, key))
 
         const props: any = { key }
 
@@ -179,11 +179,13 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
                 const {appH, path, spine: {eventListeners, hooks: {componentDidMount}}} = this.props;
                 appH.components.set(path.join('.'), this);
 
-                const vals = componentDidMount.map(o => getFn(this.ctx, path, o.id, () => {
-                    const f = compileF(o)
-                    return () => f(this.ctx.refs)
-                })())
-                appH.componentDidMount(path, vals);
+                if (componentDidMount.length > 0) {
+                    const vals = componentDidMount.map(o => getFn(this.ctx, path, o.id, () => {
+                        const f = compileF(o)
+                        return () => f(this.ctx.refs)
+                    })())
+                    appH.componentDidMount(path, vals);
+                }
 
                 eventListeners.forEach(([name, o]) => {
                     window.addEventListener(name, getFn(this.ctx, path, o.id, () => {
@@ -202,11 +204,13 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
             componentWillUnmount() {
                 const {appH, path, spine: {eventListeners, hooks: {componentWillUnmount}}} = this.props;
 
-                const vals = componentWillUnmount.map(o => getFn(this.ctx, path, o.id, () => {
-                    const f = compileF(o)
-                    return () => f(this.ctx.refs)
-                })())
-                appH.componentWillUnmount(path, vals);
+                if (componentWillUnmount.length > 0) {
+                    const vals = componentWillUnmount.map(o => getFn(this.ctx, path, o.id, () => {
+                        const f = compileF(o)
+                        return () => f(this.ctx.refs)
+                    })())
+                    appH.componentWillUnmount(path, vals);
+                }
 
                 eventListeners.forEach(([name, f]) => {
                     window.removeEventListener(name, getFn(this.ctx, path, f.id, () => {

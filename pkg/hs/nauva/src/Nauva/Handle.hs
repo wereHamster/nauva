@@ -44,6 +44,7 @@ import           Nauva.Internal.Types
 import           Nauva.NJS
 
 
+
 --------------------------------------------------------------------------------
 -- | A 'Handle' in Nauva is like a DOM element in React: You can render an
 -- 'Element' into it, it keeps the current (instantiated) state of the
@@ -255,7 +256,7 @@ dispatchHook h path rawValue = do
                 Right value -> lift $ do
                     state <- takeTMVar stateRef
                     let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
-                    (newInst, effects) <- instantiate p $ renderComponent component (componentProps state) newState
+                    (newInst, effects) <- instantiateComponentChild p component (componentProps state) newState
                     putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                     writeTChan (changeSignal h) (ChangeComponent path inst)
                     pure $ effects <> [Effect (ComponentInstance path component stateRef) actions]
@@ -334,7 +335,7 @@ sendProps :: (Typeable p, Value h, Value a) => Path -> Component p h s a -> TMVa
 sendProps path component stateRef newProps = do
     state <- takeTMVar stateRef
     (newState, signals, actions) <- receiveProps component newProps (componentState state)
-    (inst, effects) <- instantiate path $ renderComponent component (componentProps state) newState
+    (inst, effects) <- instantiateComponentChild path component (componentProps state) newState
     putTMVar stateRef $ State newProps newState signals inst
     pure $ [Effect (ComponentInstance path component stateRef) actions] <> effects
 
@@ -344,7 +345,7 @@ applyAction :: (Typeable p, Value h, Value a) => Handle -> a -> ComponentInstanc
 applyAction h action (ComponentInstance path component stateRef) = do
     state <- takeTMVar stateRef
     let (newState, actions) = update component action (componentProps state) (componentState state)
-    (newInst, effects) <- instantiate path $ renderComponent component (componentProps state) newState
+    (newInst, effects) <- instantiateComponentChild path component (componentProps state) newState
     putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
     writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
     pure $ effects <> [Effect (ComponentInstance path component stateRef) actions]
@@ -374,9 +375,14 @@ instantiate path el = case el of
 
     (EComponent component p) -> do
         (s, signals, actions) <- initialComponentState component p
-        (inst, effects) <- instantiate (withChild path (KIndex 0)) $ renderComponent component p s
+        (inst, effects) <- instantiateComponentChild path component p s
         stateVar <- newTMVar (State p s signals inst)
         pure (IComponent path component stateVar, [Effect (ComponentInstance path component stateVar) actions] <> effects)
+
+
+instantiateComponentChild :: Path -> Component p h s a -> p -> s -> STM (Instance, [Effect])
+instantiateComponentChild path component props state =
+    instantiate (withChild path (KIndex 0)) (renderComponent component props state)
 
 
 executeEffects :: Handle -> [Effect] -> IO ()
@@ -502,7 +508,7 @@ processSignals h = do
                 Just a  -> do
                     state <- takeTMVar stateRef
                     let (newState, actions) = f a (componentProps state) (componentState state)
-                    (newInst, effects) <- instantiate path $ renderComponent component (componentProps state) newState
+                    (newInst, effects) <- instantiateComponentChild path component (componentProps state) newState
                     putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                     writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
                     pure $ [Effect ci actions] <> effects
