@@ -178,16 +178,7 @@ attachRefHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
 attachRefHandler h path jsVal = do
     res <- runExceptT $ do
         rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
-
-        effects <- ExceptT $ atomically $ runExceptT $ do
-            (mbSCI, _) <- contextForPath h path
-            case mbSCI of
-                Nothing -> throwError $ show (unPath path)
-                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
-                    Left e -> throwError $ "parseEither: " <> show e
-                    Right action -> lift $ applyAction h action ci
-
-        lift $ executeEffects h effects
+        ExceptT $ dispatchRef h path rawValue
 
     case res of
         Left e -> putStrLn $ "attachRefHandler: " <> e
@@ -198,16 +189,7 @@ detachRefHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
 detachRefHandler h path jsVal = do
     res <- runExceptT $ do
         rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
-
-        effects <- ExceptT $ atomically $ runExceptT $ do
-            (mbSCI, _) <- contextForPath h path
-            case mbSCI of
-                Nothing -> throwError $ show (unPath path)
-                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
-                    Left e -> throwError $ "parseEither: " <> show e
-                    Right action -> lift $ applyAction h action ci
-
-        lift $ executeEffects h effects
+        ExceptT $ dispatchRef h path rawValue
 
     case res of
         Left e -> putStrLn $ "detachRefHandler: " <> e
@@ -218,16 +200,7 @@ dispatchNodeEventHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
 dispatchNodeEventHandler h path jsVal = do
     res <- runExceptT $ do
         rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
-
-        effects <- ExceptT $ atomically $ runExceptT $ do
-            (mbSCI, _) <- contextForPath h path
-            case mbSCI of
-                Nothing -> throwError $ show (unPath path)
-                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
-                    Left e -> throwError $ "parseEither: " <> show e
-                    Right action -> lift $ applyAction h action ci
-
-        lift $ executeEffects h effects
+        ExceptT $ dispatchEvent h path rawValue
 
     case res of
         Left e -> putStrLn $ "dispatchNodeEventHandler: " <> e

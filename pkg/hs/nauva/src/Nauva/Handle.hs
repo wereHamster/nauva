@@ -205,13 +205,13 @@ contextForPath h path = do
 dispatchEvent :: Handle -> Path -> A.Value -> IO (Either String ())
 dispatchEvent h path rawEvent = do
     res <- atomically $ runExceptT $ do
-        (mbSCI, inst) <- contextForPath h path
-        case (mbSCI, inst) of
-            (Just (SomeComponentInstance ci), _) -> do
-                lift $ case A.parseEither parseValue rawEvent of
-                    Left e -> error $ show e
-                    Right action -> applyAction h action ci
-            _ -> throwError $ "dispatchEvent: no context for path " ++ show path
+        (mbSCI, _) <- contextForPath h path
+        case mbSCI of
+            Nothing -> throwError $ "dispatchEvent: no context for path " ++ show path
+            Just (SomeComponentInstance ci) -> do
+                case A.parseEither parseValue rawEvent of
+                    Left e -> throwError $ "dispatchEvent: " <> show e
+                    Right action -> lift $ applyAction h action ci
 
     case res of
         Left e -> pure $ Left e
@@ -282,64 +282,20 @@ dispatchHook h path rawValue = do
 
 dispatchRef :: Handle -> Path -> A.Value -> IO (Either String ())
 dispatchRef h path rawValue = do
-    res <- atomically $ do
-        currentInstance <- takeTMVar (hInstance h)
-        res <- runExceptT $ go ([], currentInstance) path currentInstance
-        putTMVar (hInstance h) currentInstance
-        pure res
+    res <- atomically $ runExceptT $ do
+        (mbSCI, _) <- contextForPath h path
+        case mbSCI of
+            Nothing -> throwError $ "dispatchRef: no context for path " ++ show path
+            Just (SomeComponentInstance ci) -> do
+                case A.parseEither parseValue rawValue of
+                    Left e -> throwError $ "dispatchRef: " <> show e
+                    Right action -> lift $ applyAction h action ci
 
     case res of
         Left e -> pure $ Left e
         Right effects -> do
             executeEffects h effects
             pure $ Right ()
-
-  where
-    go :: ([Key], Instance) -> Path -> Instance -> ExceptT String STM [Effect]
-    go (appPath, appAncestor) (Path []) inst = case inst of
-        (INull _) ->
-            throwError $ "Can not dispatch ref to a INull node (at path " ++ show path ++ ")"
-
-        (IText _ _) ->
-            throwError $ "Can not dispatch ref to a IText node (at path " ++ show path ++ ")"
-
-        (INode _ _ _ _) -> case appAncestor of
-            -- We've reached the native element which emitted the event.
-            -- Dispatch it to the closest 'IComponent' ancestor (if there is one).
-            (INull _) -> throwError $ "No App is ancestor of " ++ show path
-            (IText _ _) -> throwError $ "No App is ancestor of " ++ show path
-            (INode _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
-            (IThunk _ _ _ _) -> throwError $ "No App is ancestor of " ++ show path
-            (IComponent _ component stateRef) -> lift $ case A.parseEither parseValue rawValue of
-                Left e -> error $ show e
-                Right action -> applyAction h action (ComponentInstance (Path appPath) component stateRef)
-
-        (IThunk _ _ _ childI) ->
-            go (appPath, appAncestor) (Path []) childI
-
-        (IComponent _ _ stateRef) -> do
-            state <- lift $ readTMVar stateRef
-            go (appPath, inst) (Path []) (componentInstance state)
-
-    go (appPath, appAncestor) (Path (key:rest)) inst = case inst of
-        (INull _) -> do
-            throwError $ "INull doesn't have any children"
-
-        (IText _ _) -> do
-            throwError $ "IText doesn't have any children"
-
-        (INode _ _ _ children) -> do
-            case lookup key children of
-                Nothing -> throwError $ "Child at key " ++ show key ++ " not found"
-                Just childI -> go (appPath, appAncestor) (Path rest) childI
-
-        (IThunk _ _ _ childI) ->
-            go (appPath, appAncestor) (Path rest) childI
-
-        (IComponent _ _ stateRef) -> do
-            state <- lift $ readTMVar stateRef
-            go (take (length (unPath path) - length rest - 1) (unPath path), inst) (Path rest) $ componentInstance state
-
 
 
 -- | Convert an 'Instance' into a 'Spine'. This function runs in 'STM' because
