@@ -21241,7 +21241,7 @@ function getComponent(appH, componentId, displayName) {
             render() {
                 const { appH, path } = this.props;
                 const { spine } = this.state;
-                return spineToReact(appH, path, this.ctx, spine.spine, undefined);
+                return spineToReact(appH, [].concat(path, 0), this.ctx, spine.spine, undefined);
             }
         };
         component.displayName = displayName;

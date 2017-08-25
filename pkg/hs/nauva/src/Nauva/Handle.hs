@@ -167,10 +167,10 @@ contextForPath h path = do
         (IText _ _)                       -> pure (mbSCI, inst)
         (INode _ _ _ _)                   -> pure (mbSCI, inst)
         (IThunk _ _ _ childI)             -> go mbSCI (Path []) childI
-        (IComponent _ component stateRef) -> do
+        (IComponent p component stateRef) -> do
             state <- lift $ readTMVar stateRef
-            let sci = SomeComponentInstance $ ComponentInstance path component stateRef
-            go (Just sci) (Path []) $ componentInstance state
+            let sci = SomeComponentInstance $ ComponentInstance p component stateRef
+            pure (Just sci, componentInstance state)
 
     go mbSCI (Path (key:rest)) inst = case inst of
         (INull _) -> do
@@ -187,10 +187,10 @@ contextForPath h path = do
         (IThunk _ _ _ childI) ->
             go mbSCI (Path (key:rest)) childI
 
-        (IComponent _ component stateRef) -> do
+        (IComponent p component stateRef) -> do
             state <- lift $ readTMVar stateRef
-            let sci = SomeComponentInstance $ ComponentInstance (Path $ take (length (unPath path) - length rest - 1) $ unPath path) component stateRef
-            go (Just sci) (Path (key:rest)) $ componentInstance state
+            let sci = SomeComponentInstance $ ComponentInstance p component stateRef
+            go (Just sci) (Path rest) $ componentInstance state
 
 
 
@@ -418,7 +418,7 @@ instantiate path el = case el of
 
     (EComponent component p) -> do
         (s, signals, actions) <- initialComponentState component p
-        (inst, effects) <- instantiate path $ renderComponent component p s
+        (inst, effects) <- instantiate (withChild path (KIndex 0)) $ renderComponent component p s
         stateVar <- newTMVar (State p s signals inst)
         pure (IComponent path component stateVar, [Effect (ComponentInstance path component stateVar) actions] <> effects)
 

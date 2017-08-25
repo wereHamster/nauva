@@ -242,7 +242,7 @@ function getComponent(componentId, displayName) {
             }
             render() {
                 const { ws, path, spine, key } = this.props;
-                return spineToReact(ws, path, this.ctx, spine.spine, key);
+                return spineToReact(ws, [].concat(path, 0), this.ctx, spine.spine, key);
             }
         };
         component.displayName = displayName;

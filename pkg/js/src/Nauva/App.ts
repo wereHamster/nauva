@@ -220,7 +220,7 @@ function getComponent(appH: AppH, componentId: ComponentId, displayName: string)
             render() {
                 const {appH, path} = this.props
                 const {spine} = this.state
-                return spineToReact(appH, path, this.ctx, spine.spine, undefined) as JSX.Element
+                return spineToReact(appH, [].concat(path, 0), this.ctx, spine.spine, undefined) as JSX.Element
             }
         };
 
