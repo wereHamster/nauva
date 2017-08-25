@@ -424,6 +424,7 @@ instantiate path el = case el of
 
 
 executeEffects :: Handle -> [Effect] -> IO ()
+executeEffects _ [] = pure ()
 executeEffects h effects = do
     forM_ effects $ \(Effect ci actions) -> do
         forM_ actions $ \m -> forkIO $ do
@@ -433,10 +434,6 @@ executeEffects h effects = do
                 Just a -> do
                     nextEffects <- atomically $ applyAction h a ci
                     executeEffects h nextEffects
-
-    atomically $ do
-        rootInstance <- readTMVar (hInstance h)
-        writeTChan (changeSignal h) (ChangeRoot rootInstance)
 
 
 
