@@ -162,6 +162,10 @@ instance FromJSON Path where
     parseJSON v = Path <$> parseJSON v
 
 
+withChild :: Path -> Key -> Path
+withChild (Path ks) k = Path (ks <> [k])
+
+
 
 --------------------------------------------------------------------------------
 -- | Refs are used to capture the actual DOM nodes in your application so you

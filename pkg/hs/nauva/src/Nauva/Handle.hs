@@ -406,7 +406,7 @@ instantiate path el = case el of
 
     (ENode tag attributes children) -> do
         childInstances <- forM (zip (map KIndex [1..]) children) $ \(key, child) -> do
-            (childInstance, effects) <- instantiate (Path (unPath path <> [key])) child
+            (childInstance, effects) <- instantiate (withChild path key) child
             pure ((key, childInstance), effects)
 
         pure (INode path tag attributes (map fst childInstances), mconcat $ map snd childInstances)
