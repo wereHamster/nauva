@@ -77,6 +77,15 @@ data Instance where
     IComponent :: (Typeable p, Value h, Value a) => Path -> Component p h s a -> TMVar (State p s a) -> Instance
 
 
+instancePath :: Instance -> Path
+instancePath (INull path)          = path
+instancePath (IText path _)        = path
+instancePath (INode path _ _ _)    = path
+instancePath (IThunk path _ _ _)   = path
+instancePath (IComponent path _ _) = path
+
+
+
 -------------------------------------------------------------------------------
 -- | A 'Spine' is a simplified structure of the 'Instance' tree. It contains
 -- just enough information so that the JavaScript glue code in the web browser

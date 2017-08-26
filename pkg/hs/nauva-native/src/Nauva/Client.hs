@@ -17,6 +17,7 @@ import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
 import           Control.Monad.Except
+import           Control.Monad.Writer
 
 import           System.IO.Unsafe
 
@@ -48,7 +49,7 @@ newHeadH nauvaH bridge = do
             processSignals nauvaH
 
             h <- atomically $ do
-                instances <- mapM (\x -> fst <$> instantiate (Path []) x) newElements
+                instances <- mapM (\x -> fst <$> runWriterT (instantiate (Path []) x)) newElements
                 mapM instanceToJSVal instances
 
             renderHead bridge (jsval $ fromList h)
@@ -150,7 +151,7 @@ hookHandler h path vals = do
                     actions <- lift $ do
                         state <- takeTMVar stateRef
                         let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
-                        (newInst, _effects) <- instantiate path $ renderComponent component (componentProps state) newState
+                        (newInst, _effects) <- runWriterT $ instantiate path $ renderComponent component (componentProps state) newState
                         putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
                         -- traceShowM path
                         writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
