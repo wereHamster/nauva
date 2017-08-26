@@ -139,27 +139,24 @@ foreign import javascript unsafe "console.log($1)" js_log :: JSVal -> IO ()
 hookHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO (Either String ())
 hookHandler h path vals = do
     res <- atomically $ runExceptT $ do
-        (mbSCI, inst) <- contextForPath h path
-        case mbSCI of
-            Nothing -> throwError $ "No Component at path " ++ show (unPath path)
-            Just (SomeComponentInstance (ComponentInstance _ component stateRef)) -> do
-                state <- lift $ readTMVar stateRef
+        SomeComponentInstance (ComponentInstance _ component stateRef) <- contextForPath h path
+        state <- lift $ readTMVar stateRef
 
-                let rawHookActions = fromMaybe [] (unsafePerformIO (fromJSVal vals)) :: [A.Value]
-                forM rawHookActions $ \rawValue -> do
-                    case A.parseEither parseValue rawValue of
-                        Left e -> throwError e
-                        Right value -> do
-                            actions <- lift $ do
-                                state <- takeTMVar stateRef
-                                let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
-                                (newInst, _effects) <- instantiate path $ renderComponent component (componentProps state) newState
-                                putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
-                                -- traceShowM path
-                                writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
-                                pure actions
+        let rawHookActions = fromMaybe [] (unsafePerformIO (fromJSVal vals)) :: [A.Value]
+        forM rawHookActions $ \rawValue -> do
+            case A.parseEither parseValue rawValue of
+                Left e -> throwError e
+                Right value -> do
+                    actions <- lift $ do
+                        state <- takeTMVar stateRef
+                        let (newState, actions) = processLifecycleEvent component value (componentProps state) (componentState state)
+                        (newInst, _effects) <- instantiate path $ renderComponent component (componentProps state) newState
+                        putTMVar stateRef (State (componentProps state) newState (componentSignals state) newInst)
+                        -- traceShowM path
+                        writeTChan (changeSignal h) (ChangeComponent path $ IComponent path component stateRef)
+                        pure actions
 
-                            pure $ Effect (ComponentInstance path component stateRef) actions
+                    pure $ Effect (ComponentInstance path component stateRef) actions
 
     case res of
         Left e -> pure $ Left e
@@ -211,16 +208,7 @@ dispatchComponentEventHandler :: Nauva.Handle.Handle -> Path -> JSVal -> IO ()
 dispatchComponentEventHandler h path jsVal = do
     res <- runExceptT $ do
         rawValue <- lift (fromJSVal jsVal) >>= maybe (throwError "fromJSVal") pure
-
-        effects <- ExceptT $ atomically $ runExceptT $ do
-            (mbSCI, _) <- contextForPath h path
-            case mbSCI of
-                Nothing -> throwError $ show (unPath path)
-                Just (SomeComponentInstance ci) -> case A.parseEither parseValue rawValue of
-                    Left e -> throwError $ "parseEither: " <> show e
-                    Right action -> lift $ applyAction h action ci
-
-        lift $ executeEffects h effects
+        ExceptT $ dispatchEvent h path rawValue
 
     case res of
         Left e -> putStrLn $ "dispatchComponentEventHandler: " <> e

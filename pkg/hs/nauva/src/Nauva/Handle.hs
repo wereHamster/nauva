@@ -154,24 +154,21 @@ render h rootElement = do
 
 
 
-contextForPath :: Handle -> Path -> ExceptT String STM (Maybe SomeComponentInstance, Instance)
+contextForPath :: Handle -> Path -> ExceptT String STM SomeComponentInstance
 contextForPath h path = do
     currentInstance <- lift $ takeTMVar (hInstance h)
-    res <- go Nothing path currentInstance
+    mbSCI <- go Nothing path currentInstance
     lift $ putTMVar (hInstance h) currentInstance
-    pure res
+    maybe (throwError "contextForPath: component not found") pure mbSCI
 
   where
-    go :: Maybe SomeComponentInstance -> Path -> Instance -> ExceptT String STM (Maybe SomeComponentInstance, Instance)
+    go :: Maybe SomeComponentInstance -> Path -> Instance -> ExceptT String STM (Maybe SomeComponentInstance)
     go mbSCI (Path []) inst = case inst of
-        (INull _)                         -> pure (mbSCI, inst)
-        (IText _ _)                       -> pure (mbSCI, inst)
-        (INode _ _ _ _)                   -> pure (mbSCI, inst)
+        (INull _)                         -> pure mbSCI
+        (IText _ _)                       -> pure mbSCI
+        (INode _ _ _ _)                   -> pure mbSCI
         (IThunk _ _ _ childI)             -> go mbSCI (Path []) childI
-        (IComponent p component stateRef) -> do
-            state <- lift $ readTMVar stateRef
-            let sci = SomeComponentInstance $ ComponentInstance p component stateRef
-            pure (Just sci, componentInstance state)
+        (IComponent p component stateRef) -> pure $ Just $ SomeComponentInstance $ ComponentInstance p component stateRef
 
     go mbSCI (Path (key:rest)) inst = case inst of
         (INull _) -> do
@@ -182,15 +179,15 @@ contextForPath h path = do
 
         (INode _ _ _ children) -> do
             case lookup key children of
-                Nothing -> throwError $ "contextForPath: Child at key " ++ show key ++ " not found"
+                Nothing -> throwError $ "contextForPath: Child at key " ++ show key ++ " not found (" <> show rest <> ")"
                 Just childI -> go mbSCI (Path rest) childI
 
         (IThunk _ _ _ childI) ->
             go mbSCI (Path (key:rest)) childI
 
         (IComponent p component stateRef) -> do
-            state <- lift $ readTMVar stateRef
             let sci = SomeComponentInstance $ ComponentInstance p component stateRef
+            state <- lift $ readTMVar stateRef
             go (Just sci) (Path rest) $ componentInstance state
 
 
@@ -206,13 +203,10 @@ contextForPath h path = do
 dispatchEvent :: Handle -> Path -> A.Value -> IO (Either String ())
 dispatchEvent h path rawEvent = do
     res <- atomically $ runExceptT $ do
-        (mbSCI, _) <- contextForPath h path
-        case mbSCI of
-            Nothing -> throwError $ "dispatchEvent: no context for path " ++ show path
-            Just (SomeComponentInstance ci) -> do
-                case A.parseEither parseValue rawEvent of
-                    Left e -> throwError $ "dispatchEvent: " <> show e
-                    Right action -> lift $ applyAction h action ci
+        SomeComponentInstance ci <- contextForPath h path
+        case A.parseEither parseValue rawEvent of
+            Left e -> throwError $ "dispatchEvent: " <> show e
+            Right action -> lift $ applyAction h action ci
 
     case res of
         Left e -> pure $ Left e
@@ -284,13 +278,10 @@ dispatchHook h path rawValue = do
 dispatchRef :: Handle -> Path -> A.Value -> IO (Either String ())
 dispatchRef h path rawValue = do
     res <- atomically $ runExceptT $ do
-        (mbSCI, _) <- contextForPath h path
-        case mbSCI of
-            Nothing -> throwError $ "dispatchRef: no context for path " ++ show path
-            Just (SomeComponentInstance ci) -> do
-                case A.parseEither parseValue rawValue of
-                    Left e -> throwError $ "dispatchRef: " <> show e
-                    Right action -> lift $ applyAction h action ci
+        SomeComponentInstance ci <- contextForPath h path
+        case A.parseEither parseValue rawValue of
+            Left e -> throwError $ "dispatchRef: " <> show e
+            Right action -> lift $ applyAction h action ci
 
     case res of
         Left e -> pure $ Left e
