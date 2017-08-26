@@ -1,4 +1,4 @@
-resolver: nightly-2017-07-25
+resolver: nightly-2017-08-25
 packages:
 - .
 - ../../../pkg/hs/color
