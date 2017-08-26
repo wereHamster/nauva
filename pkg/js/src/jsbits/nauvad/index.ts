@@ -24,7 +24,6 @@ const localAppH = containerElement =>
         () => {},
         () => {},
     )
-}
 
 
 // Initialize the nauvad runtime. Make sure everything is in place
@@ -123,8 +122,8 @@ const connectWebSocket = (): void => {
         case 1:
             break;
         case 2:
-            sendLocation()
-            setTimeout(() => { sendLocation() }, 200);
+            nauvad.appH.sendLocation(window.location.pathname)
+            setTimeout(() => { nauvad.appH.sendLocation(window.location.pathname) }, 200);
             break;
         case 3:
             break;

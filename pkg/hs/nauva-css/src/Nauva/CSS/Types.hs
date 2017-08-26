@@ -19,7 +19,6 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import           Data.ByteString.Lazy (toStrict)
 import qualified Data.ByteString.Char8 as BC
-import           Data.Word
 import           Data.Char
 
 import           Control.Monad.Writer.Lazy
