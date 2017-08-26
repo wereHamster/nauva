@@ -187,7 +187,7 @@ connectToBackend stateVar portNumber = void $ forkIO $ go `catches`
     ]
 
   where
-    go = WS.runClient "localhost" portNumber "/_nauva" $ \conn -> do
+    go = WS.runClient "127.0.0.1" portNumber "/_nauva" $ \conn -> do
         shutdownBackendConnection stateVar
         threadId <- myThreadId
         registerBackendConnection stateVar (conn, threadId)
