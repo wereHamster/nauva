@@ -19,7 +19,7 @@ import qualified Data.Text.Encoding    as T
 import           Data.Conduit
 import qualified Data.Conduit.List     as CL
 import           Data.Functor.Identity (runIdentity)
-import           Data.Yaml
+-- import           Data.Yaml
 import           Data.Monoid
 
 import           Text.Markdown         (def)
@@ -38,7 +38,6 @@ import           Nauva.View
 import           Nauva.Catalog.Elements
 import           Nauva.Catalog.Specimens.CodeSpecimen
 import           Nauva.Catalog.Specimens.NauvaSpecimen
-import           Nauva.Catalog.Specimens.ColorGroupSpecimen
 
 
 
@@ -157,7 +156,7 @@ renderBlock isTopLevel b = case b of
             n <- lookupValueName (T.unpack $ T.strip str)
             case n of
                 Nothing -> [| [div_ [str_ "Typeface not found"]] |]
-                Just x -> appE [| \x -> [typefaceSpecimen' x] |] (pure $ VarE x)
+                Just x -> appE [| \x' -> [typefaceSpecimen' x'] |] (pure $ VarE x)
 
         _ -> [| [pageCodeBlock str] |]
 

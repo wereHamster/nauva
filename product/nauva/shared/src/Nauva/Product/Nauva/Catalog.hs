@@ -11,7 +11,6 @@ import           Nauva.App
 
 import           Nauva.Catalog
 import           Nauva.Catalog.TH
-import           Nauva.Catalog.Elements
 import           Nauva.Catalog.Theme.Color
 import           Nauva.Catalog.Theme.Typeface
 import           Nauva.Catalog.Specimens.TypefaceSpecimen

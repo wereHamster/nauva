@@ -10,8 +10,6 @@ module Nauva.Internal.Events where
 import qualified Data.Aeson as A
 import           Data.Text (Text)
 
-import qualified Control.Monad.State.Lazy as SL
-
 import           Nauva.NJS
 
 

@@ -8,7 +8,6 @@ module Nauva.View.Types where
 
 import           Data.Text (Text)
 import           Data.Monoid
-import qualified Data.Aeson as A
 import           Data.Typeable
 
 import           Nauva.DOM
