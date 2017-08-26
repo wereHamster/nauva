@@ -101,6 +101,9 @@ function spineToReact(appH: AppH, path, ctx: Context, spine, key) {
         const props: any = { key }
 
         const installEventListener = (name, o) => {
+            // This is here because the serialization of the Spine is different in GHC vs GHCJS :(
+            if (o === undefined) { const t = name; name = t[0], o = t[1] }
+
             props[`on${capitalizeFirstLetter(name)}`] = getFn(ctx, path, o.id, () => {
                 const f = compileF(o)
                 return ev => {

@@ -75,6 +75,7 @@ executable nauvad
         portfinder,
         file-embed,
         template-haskell,
+        mtl,
         async
     other-modules:
         Language.Haskell.Ghcid.Types

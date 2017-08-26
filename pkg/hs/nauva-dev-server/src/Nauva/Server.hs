@@ -21,6 +21,7 @@ import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.STM
 import           Control.Monad
+import           Control.Monad.Writer
 
 import           System.Directory
 import           System.Environment
@@ -67,6 +68,13 @@ newRouterH nauvaH = do
                 writeTChan chan (Location url)
 
             processSignals nauvaH
+
+            -- This is a hack to send the whole spine to the client when
+            -- the user reloads the browser.
+            atomically $ do
+                currentInstance <- takeTMVar (hInstance nauvaH)
+                writeTChan (changeSignal nauvaH) (ChangeRoot currentInstance)
+                putTMVar (hInstance nauvaH) currentInstance
         }
 
 
@@ -124,7 +132,7 @@ websocketApplication nauvaH appH pendingConnection = do
 
         headSpines <- atomically $ do
             elements <- readTVar (hElements $ headH appH)
-            instances <- map fst <$> mapM (instantiate (Path [])) elements
+            instances <- map fst <$> mapM (runWriterT . instantiate (Path [])) elements
             mapM toSpine instances
 
         WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine, A.toJSON headSpines]
@@ -136,7 +144,7 @@ websocketApplication nauvaH appH pendingConnection = do
 
     headSpines <- atomically $ do
         elements <- readTVar (hElements $ headH appH)
-        instances <- map fst <$> mapM (instantiate (Path [])) elements
+        instances <- map fst <$> mapM (runWriterT . instantiate (Path [])) elements
         mapM toSpine instances
 
     WS.sendTextData conn $ A.encode [A.toJSON ("spine" :: Text), A.toJSON spine, A.toJSON headSpines]

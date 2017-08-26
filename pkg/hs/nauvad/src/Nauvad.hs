@@ -44,6 +44,7 @@ import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.Async
 import           Control.Concurrent.STM
+import           Control.Monad.Writer
 
 import           System.Process
 
@@ -194,10 +195,10 @@ connectToBackend stateVar portNumber = void $ forkIO $ go `catches`
         forever $ do
             datum <- WS.receiveData conn
             case A.eitherDecode datum of
-                Right ("spine" :: Text, v :: A.Value, headElements :: A.Value) ->
+                Right ("spine" :: Text, v :: A.Value, headElements :: A.Value) -> do
                     sendToClient stateVar $ NVDMSpineRaw v headElements
 
-                Right ("location", v, _) ->
+                Right ("location", v, _) -> do
                     sendToClient stateVar $ NVDMLocationRaw v
 
                 _ -> do
@@ -251,7 +252,7 @@ echo stateVar _ s = do
     appendLine stateVar (T.pack s)
     strs <- _sessionOutput <$> atomically (readTVar stateVar)
     spine <- atomically $ do
-        (inst, _effects) <- instantiate (Path []) $ div_
+        (inst, _effects) <- runWriterT $ instantiate (Path []) $ div_
             [style_ rootStyle]
             [terminalEl TerminalProps { terminalLines = strs }]
         toSpine inst
@@ -420,14 +421,11 @@ httpServer port stateVar = do
 index :: Int -> H.Html
 index port = H.docTypeHtml $ do
     H.head $ do
-        H.script H.! A.src "/react.min.js" $ ""
-        H.script H.! A.src "/react-dom.min.js" $ ""
+        H.script $ fromString $ "NAUVA_PORT = " <> show port
 
     H.body $ do
         H.div H.! A.id "root" $ ""
-
-        H.script $ fromString $ "NAUVA_PORT = " <> show port
-        H.script H.! A.src "/nauva-dev-server.js" $ ""
+        H.script H.! A.src "/nauvad.js" $ ""
 
 
 runGhcid :: NauvaD -> IO ()
@@ -488,7 +486,7 @@ fire nd@NauvaD{..} restartTimes m = do
                         }
 
             spine <- atomically $ do
-                (inst, _effects) <- instantiate (Path []) $ div_
+                (inst, _effects) <- runWriterT $ instantiate (Path []) $ div_
                     [style_ $ mkStyle (backgroundColor "black" >> overflow "auto" >> padding "2rem" >> position absolute >> top "0" >> left "0" >> bottom "0" >> right "0")]
                     children
                 toSpine inst
