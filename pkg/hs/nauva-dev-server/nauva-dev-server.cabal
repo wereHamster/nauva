@@ -53,5 +53,6 @@ library
    , snap-server
    , stm
    , text
+   , mtl
    , websockets
    , websockets-snap
