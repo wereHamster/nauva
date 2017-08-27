@@ -256,7 +256,11 @@ echo stateVar _ s = do
             [style_ rootStyle]
             [terminalEl TerminalProps { terminalLines = strs }]
         toSpine inst
+
+    when (length strs `mod` 10 == 0) (threadDelay 100000)
+
     sendToClient stateVar $ NVDMSpine spine
+    pure ()
 
   where
     rootStyle = mkStyle $ do

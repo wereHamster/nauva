@@ -19,7 +19,7 @@ import qualified Data.Text.Encoding    as T
 import           Data.Conduit
 import qualified Data.Conduit.List     as CL
 import           Data.Functor.Identity (runIdentity)
--- import           Data.Yaml
+import           Data.Yaml
 import           Data.Monoid
 
 import           Text.Markdown         (def)
@@ -124,15 +124,15 @@ renderBlock isTopLevel b = case b of
                         pure (cspDef, err1, str)
                     Right expr -> pure (cspDef, expr, str1)
 
-                -- [rawYAML, str1] -> case decodeEither (T.encodeUtf8 rawYAML) of
-                --         Left yamlErr -> do
-                --             err1 <- [| div_ [str_ $ T.pack $ show yamlErr] |]
-                --             pure (cspDef, err1, str1)
-                --         Right csp -> case parseExp (T.unpack str1) of
-                --             Left err -> do
-                --                 err1 <- [| div_ [str_ (T.pack err)] |]
-                --                 pure (csp, err1, str)
-                --             Right expr -> pure (csp, expr, str1)
+                [rawYAML, str1] -> case decodeEither (T.encodeUtf8 rawYAML) of
+                        Left yamlErr -> do
+                            err1 <- [| div_ [str_ $ T.pack $ show yamlErr] |]
+                            pure (cspDef, err1, str1)
+                        Right csp -> case parseExp (T.unpack str1) of
+                            Left err -> do
+                                err1 <- [| div_ [str_ (T.pack err)] |]
+                                pure (csp, err1, str)
+                            Right expr -> pure (csp, expr, str1)
 
                 _ -> do
                     expr <- [| div_ [str_ "Unrecognized expression"] |]
