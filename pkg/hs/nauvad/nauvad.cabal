@@ -44,7 +44,7 @@ library
 executable nauvad
     hs-source-dirs: src
     default-language: Haskell2010
-    ghc-options: -main-is Nauvad.main -threaded
+    ghc-options: -main-is Nauvad.main -threaded -rtsopts "-with-rtsopts=-N"
     main-is: Nauvad.hs
     build-depends:
         base == 4.*,
