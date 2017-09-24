@@ -128,7 +128,7 @@ sendToClient stateVar msg = do
     mbClientConnection <- _clientConnection <$> atomically (readTVar stateVar)
     case mbClientConnection of
         Nothing -> pure ()
-        Just (conn, _) -> WS.sendTextData conn (A.encode msg) `catch`
+        Just (conn, _) -> (WS.sendPing conn ("ping" :: Text) >> WS.sendTextData conn (A.encode msg)) `catch`
             \(_ :: IOException) -> shutdownClientConnection stateVar -- SCT-3
 
 
@@ -233,7 +233,7 @@ handleClient stateVar pendingConnection = do
         mbBackendConnection <- _backendConnection <$> atomically (readTVar stateVar)
         case mbBackendConnection of
             Nothing -> pure ()
-            Just (conn, _) -> WS.sendTextData conn d `catches`
+            Just (conn, _) -> (WS.sendPing conn ("ping" :: Text) >> WS.sendTextData conn d) `catches`
                 [ Handler $ \(_ :: IOException) ->
                     shutdownBackendConnection stateVar -- SCT-5
 
